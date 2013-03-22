@@ -74,10 +74,15 @@ lift :: v ⇶ w → (x ∪ v) ⇶ (x ∪ w)
 lift θ (Inr x) = wk (θ x)
 lift _ (Inl x) = Var (Inl x)
 
-join' :: v ⇶ w → Term v → Term w
-join' θ (Var x)    = θ x
-join' θ (Lam nm t) = Lam nm (\x → join' (lift θ) (t x))
-join' θ (App t u)  = App (join' θ t) (join' θ u)
+instance Monad Term where
+  Var x    >>= θ = θ x
+  Lam nm t >>= θ = Lam nm (\x → t x >>= lift θ)
+  App t u  >>= θ = App (t >>= θ) (u >>= θ)
+
+  return = Var
+
+subst :: v ⇶ w → Term v → Term w
+subst = (=<<)
 
 instance Functor Term where
   fmap f (Var x)    = Var (f x)
