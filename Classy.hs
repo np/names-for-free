@@ -89,6 +89,3 @@ instance Functor Term where
   fmap f (Lam nm t) = Lam nm (\x → fmap (fmap f) (t x))
   fmap f (App t u)  = App (fmap f t) (fmap f u)
 
-instance Monad Term where
-  xs >>= f = join' f xs
-  return = Var
