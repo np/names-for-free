@@ -84,8 +84,9 @@ instance Monad Term where
 subst :: v ⇶ w → Term v → Term w
 subst = (=<<)
 
+-- As with any monad, fmap can be derived from bind and return.
+-- This is a bit nasty here though. Indeed the definition of bind
+-- uses lift which uses wk which uses fmap.
 instance Functor Term where
-  fmap f (Var x)    = Var (f x)
-  fmap f (Lam nm t) = Lam nm (\x → fmap (fmap f) (t x))
-  fmap f (App t u)  = App (fmap f t) (fmap f u)
+  fmap f t = t >>= return . f
 
