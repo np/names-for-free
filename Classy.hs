@@ -6,7 +6,9 @@ module Classy where
 
 data (∪) a b = Inl a | Inr b
 data Zero
-instance Show Zero where show _ = error "magic!"
+magic :: Zero -> a
+magic _ = error "magic!"
+instance Show Zero where show = magic
 
 type a :+: b = a ∪ b
 
