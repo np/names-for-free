@@ -85,5 +85,5 @@ instance Functor Term where
   fmap f (App t u)  = App (fmap f t) (fmap f u)
 
 instance Monad Term where
-  xs >>= f = join' id (fmap f xs)
+  xs >>= f = join' f xs
   return = Var
