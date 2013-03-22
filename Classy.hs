@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeOperators, GADTs, OverlappingInstances, UndecidableInstances, IncoherentInstances #-}
-
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types, UnicodeSyntax, TypeOperators,
+             GADTs, OverlappingInstances, UndecidableInstances, IncoherentInstances #-}
 --------------------------------
 -- Generic programming prelude
 
