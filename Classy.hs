@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types, UnicodeSyntax, TypeOperators,
              GADTs, OverlappingInstances, UndecidableInstances, IncoherentInstances #-}
+module Classy where
 --------------------------------
 -- Generic programming prelude
 
