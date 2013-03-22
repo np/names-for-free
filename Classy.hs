@@ -1,6 +1,10 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types, UnicodeSyntax, TypeOperators,
-             GADTs, OverlappingInstances, UndecidableInstances, IncoherentInstances #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types,
+             UnicodeSyntax, TypeOperators, GADTs, OverlappingInstances,
+             UndecidableInstances, IncoherentInstances, OverloadedStrings #-}
 module Classy where
+
+import Data.String
+
 --------------------------------
 -- Generic programming prelude
 
@@ -29,12 +33,24 @@ instance Functor ((∪) a) where
   fmap _ (Inl x) = Inl x
   fmap f (Inr x) = Inr (f x)
 
+-------------------------------------------
+-- Names as a simple wrapper around strings
+
+newtype Name = Name { unName :: String }
+
+-- Show them without quotes
+instance Show Name where
+  show = unName
+
+instance IsString Name where
+  fromString = Name . fromString
+
 ----------------------------------------
 -- Term representation and examples
 
 data Term v where
   Var :: v → Term v
-  Lam :: String → (forall w. w → Term (w ∪ v)) → Term v
+  Lam :: Name → (forall w. w → Term (w ∪ v)) → Term v
   App :: Term v → Term v → Term v
 
 var :: forall a b. (a :< b) => a → Term b
@@ -56,9 +72,9 @@ instance Show x => Show (Term x) where
   show = disp
 
 disp :: Show x => Term x → String
-disp  (Var x) = show x
-disp  (App a b) = "(" ++ disp a ++ ")" ++ disp b
-disp  (Lam nm f) = "λ" ++ nm ++ "." ++ disp (f nm)
+disp (Var x)    = show x
+disp (App a b)  = "(" ++ disp a ++ ")" ++ disp b
+disp (Lam nm f) = "λ" ++ unName nm ++ "." ++ disp (f nm)
 
 
 
