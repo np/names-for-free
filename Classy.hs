@@ -4,11 +4,11 @@ module Classy where
 --------------------------------
 -- Generic programming prelude
 
-data (:+:) a b = Inl a | Inr b
+data (∪) a b = Inl a | Inr b
 data Zero
 instance Show Zero where show _ = error "magic!"
-                         
-type a ∪ b = a :+: b
+
+type a :+: b = a ∪ b
 
 instance (Show a, Show b) => Show (a ∪ b) where
   show (Inl x) = show x
@@ -22,9 +22,9 @@ instance a :< (a ∪ b) where
   
 instance (a :< c) => a :< (b ∪ c) where
   inj = Inr . inj
-  
-instance Functor ((:+:) a) where
-  fmap f (Inl x) = Inl x
+
+instance Functor ((∪) a) where
+  fmap _ (Inl x) = Inl x
   fmap f (Inr x) = Inr (f x)
   
 ----------------------------------------
