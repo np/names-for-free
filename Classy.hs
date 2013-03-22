@@ -62,7 +62,7 @@ id' :: Term Zero
 id' = lam "x" (\x → var x)
 
 const' :: Term Zero
-const' = lam "x" (\_ → lam "y" (\y → var y))
+const' = lam "x" (\x → lam "y" (\y → var x))
 
 
 ---------------------
