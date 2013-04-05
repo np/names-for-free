@@ -1,49 +1,69 @@
-{-# LANGUAGE TypeOperators, GADTs, OverlappingInstances, UndecidableInstances, IncoherentInstances #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types,
+             UnicodeSyntax, TypeOperators, GADTs, OverlappingInstances,
+             UndecidableInstances, IncoherentInstances, OverloadedStrings #-}
+module Classy where
+
+import Data.String
+import Control.Monad (join)
 
 --------------------------------
 -- Generic programming prelude
 
-data (:+:) a b = Inl a | Inr b
+data (∪) a b = Inl a | Inr b
 data Zero
-instance Show Zero where show _ = error "magic!"
-                         
-type a ∪ b = a :+: b
+magic :: Zero -> a
+magic _ = error "magic!"
+instance Show Zero where show = magic
+
+type a :+: b = a ∪ b
 
 instance (Show a, Show b) => Show (a ∪ b) where
   show (Inl x) = show x
   show (Inr x) = show x
-  
+
 class a :< b where
-  inj :: a -> b
-  
+  inj :: a → b
+
 instance a :< (a ∪ b) where
   inj = Inl
-  
+
 instance (a :< c) => a :< (b ∪ c) where
   inj = Inr . inj
-  
-instance Functor ((:+:) a) where
-  fmap f (Inl x) = Inl x
+
+instance Functor ((∪) a) where
+  fmap _ (Inl x) = Inl x
   fmap f (Inr x) = Inr (f x)
-  
+
+-------------------------------------------
+-- Names as a simple wrapper around strings
+
+newtype Name = Name { unName :: String }
+
+-- Show them without quotes
+instance Show Name where
+  show = unName
+
+instance IsString Name where
+  fromString = Name . fromString
+
 ----------------------------------------
--- Term representation and examples  
-  
+-- Term representation and examples
+
 data Term v where
   Var :: v → Term v
-  Lam :: String -> (forall w. w → Term (w ∪ v)) → Term v
+  Lam :: Name → (forall w. w → Term (w ∪ v)) → Term v
   App :: Term v → Term v → Term v
-  
-var :: forall a b. (a :< b) => a -> Term b
+
+var :: forall a b. (a :< b) => a → Term b
 var = Var . inj
-  
+
 lam = Lam
-      
+
 id' :: Term Zero
 id' = lam "x" (\x → var x)
 
 const' :: Term Zero
-const' = lam "x" (\x → lam "y" (\y → var y))
+const' = lam "x" (\x → lam "y" (\y → var x))
 
 
 ---------------------
@@ -51,16 +71,16 @@ const' = lam "x" (\x → lam "y" (\y → var y))
 
 instance Show x => Show (Term x) where
   show = disp
-  
-disp :: Show x => Term x -> String
-disp  (Var x) = show x
-disp  (App a b) = "(" ++ disp a ++ ")" ++ disp b
-disp  (Lam nm f) = "λ" ++ nm ++ "." ++ disp (f nm)
+
+disp :: Show x => Term x → String
+disp (Var x)    = show x
+disp (App a b)  = "(" ++ disp a ++ ")" ++ disp b
+disp (Lam nm f) = "λ" ++ unName nm ++ "." ++ disp (f nm)
 
 
 
 -----------------------------------------------------------
--- Terms are monads 
+-- Terms are monads
 -- (which means they support substitution as they should)
 
 
@@ -69,39 +89,39 @@ wk = fmap Inr
 
 type v ⇶ w = v → Term w
 
+-- Union is a functor in the category of (⇶) arrows
 lift :: v ⇶ w → (x ∪ v) ⇶ (x ∪ w)
 lift θ (Inr x) = wk (θ x)
-lift θ (Inl x) = Var (Inl x)
-
-join' :: v ⇶ w → Term v → Term w
-join' θ (Var x)    = θ x
-join' θ (Lam nm t) = Lam nm (\x -> join' (lift θ) (t x))
-join' θ (App t u)  = App (join' θ t) (join' θ u)
-
-join :: Term (Term v) -> Term v
-join = join' id
-
-instance Functor Term where
-  fmap f (Var x)    = Var (f x)
-  fmap f (Lam nm t) = Lam nm (\x -> fmap (fmap f) (t x))
-  fmap f (App t u)  = App (fmap f t) (fmap f u)
+lift _ (Inl x) = Var (Inl x) -- also works: var x
 
 instance Monad Term where
-  xs >>= f = join (fmap f xs)
+  Var x    >>= θ = θ x
+  Lam nm t >>= θ = Lam nm (\x → t x >>= lift θ)
+  App t u  >>= θ = App (t >>= θ) (u >>= θ)
+
   return = Var
 
-subst :: (∀v. v → Term v) → Term w → Term w
-subst t u = join (t u)
+subst :: v ⇶ w → Term v → Term w
+subst = (=<<)
 
+-- As with any monad, fmap can be derived from bind and return.
+-- This is a bit nasty here though. Indeed the definition of bind
+-- uses lift which uses wk which uses fmap.
+instance Functor Term where
+  fmap f t = t >>= return . f
+
+-- Substitute in an open term
+subst' :: (∀v. v → Term v) → Term w → Term w
+subst' t u = join (t u)
 
 -- Nbe
 eval :: Term v -> Term v
 eval (Var x) = Var x
-eval (Lam n t) = Lam n t
-eval (App t u) = app t u
+eval (Lam n t) = Lam n (eval . t)
+eval (App t u) = app (eval t) (eval u)
 
 app :: Term v -> Term v -> Term v
-app (Lam _ t) u = join' yak (t u)
+app (Lam _ t) u = yak =<< t u
 app t u = App t u
 
 yak :: Term v ∪ v -> Term v

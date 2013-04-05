@@ -17,6 +17,13 @@ map-∪ : ∀{u v w}{U : Set u}{V : Set v}{W : Set w} → (V → U) →  V ∪ W
 map-∪ f (left x)  = left (f x)
 map-∪ f (right x) = right x
 
+-- We expect union types to be "fluid", for example the following hold:
+{-
+postulate
+  swp : ∀ {a} {V W X : Set a} → (V ∪ W) ∪ X ≡ (V ∪ X) ∪ W
+  ass : ∀ {a} {V W X : Set a} → (V ∪ W) ∪ X ≡ V ∪ (W ∪ X)
+  -}
+ 
 -- Worlds are types, binders are quantification over any value of any type.
 data Term {a} (V : Set a) : Set (suc a) where
   var : V → Term V
@@ -39,10 +46,9 @@ const™ = abs (λ x → abs (λ y → var (left (right x))))
 
 -- Weakening
 wk : ∀ {a} {V W : Set a} → Term V → Term (V ∪ W)
-wk = map left 
+wk = map left
 -- in particular, weakening becomes 'map id'; that is, just the identity
 
--- "Environment"
 _⇶_ : ∀ {v w} → Set v → Set w → Set _
 V ⇶ W = V → Term W
 
@@ -59,27 +65,28 @@ join' θ (app t u) = app (join' θ t) (join' θ u)
 join : ∀ {V : Set _} → Term (Term V) → Term V
 join = join' id
 
+{-
+join' : ∀ {V W} → Term (Term {_} V ∪ W) → Term (V ∪ W)
+join' (var x)   = joinV x
+join' (abs t)   = abs (λ x → subst Term (sym ass) (join' (subst Term ass (t x)))) --this ugliness would also disappear with real unions
+join' (app t u) = app (join' t) (join' u)
+
+join : ∀ {V} → Term (Term V) → Term V
+join (var t) = t
+join (abs t) = abs (λ x → join' (t x))
+join (app t t₁) = app (join t) (join t₁)
+-}
+
 -- and substitution is then easy:
 subs : ∀ {U} → (∀ {V} → V → Term V) → Term U → Term U
-subs t u = join (t u)
+subs t u = join (t u) 
 
 -- Remark: because we have quantification for all types at the binder
 -- level, I expect it's easy (we can follow Pouillard&Pottier) to do
 -- the correctness proofs in Agda+Parametricity (no need for Kripke
 -- logical relations).
 
-
--- Nbe
-yak : ∀ {V} -> V ∪ Term V -> Term V
-yak (left x) = var x
-yak (right x) = x
-
-app' : ∀ {V} -> Term V -> Term V -> Term V
-app' (abs x) u = join' yak (x u)
-app' t u = app t u
-
-eval : ∀ {V} -> Term V -> Term V 
-eval (var x) = var x
-eval (abs t) = abs (\x -> eval (t x))
-eval (app t t₁) = app' (eval t) (eval t₁)
-
+-- -}
+-- -}
+-- -}
+-- -}
