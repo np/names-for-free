@@ -67,3 +67,19 @@ subs t u = join (t u)
 -- level, I expect it's easy (we can follow Pouillard&Pottier) to do
 -- the correctness proofs in Agda+Parametricity (no need for Kripke
 -- logical relations).
+
+
+-- Nbe
+yak : ∀ {V} -> V ∪ Term V -> Term V
+yak (left x) = var x
+yak (right x) = x
+
+app' : ∀ {V} -> Term V -> Term V -> Term V
+app' (abs x) u = join' yak (x u)
+app' t u = app t u
+
+eval : ∀ {V} -> Term V -> Term V 
+eval (var x) = var x
+eval (abs x) = abs x
+eval (app t t₁) = app' (eval t) (eval t₁)
+

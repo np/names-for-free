@@ -78,6 +78,8 @@ join' θ (Var x)    = θ x
 join' θ (Lam nm t) = Lam nm (\x -> join' (lift θ) (t x))
 join' θ (App t u)  = App (join' θ t) (join' θ u)
 
+join :: Term (Term v) -> Term v
+join = join' id
 
 instance Functor Term where
   fmap f (Var x)    = Var (f x)
@@ -85,5 +87,26 @@ instance Functor Term where
   fmap f (App t u)  = App (fmap f t) (fmap f u)
 
 instance Monad Term where
-  xs >>= f = join' id (fmap f xs)
+  xs >>= f = join (fmap f xs)
   return = Var
+
+subst :: (∀v. v → Term v) → Term w → Term w
+subst t u = join (t u)
+
+
+-- Nbe
+eval :: Term v -> Term v
+eval (Var x) = Var x
+eval (Lam n t) = Lam n t
+eval (App t u) = app t u
+
+app :: Term v -> Term v -> Term v
+app (Lam _ t) u = join' yak (t u)
+app t u = App t u
+
+yak :: Term v ∪ v -> Term v
+yak (Inl x) = x
+yak (Inr x) = Var x
+
+
+
