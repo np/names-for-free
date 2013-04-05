@@ -87,9 +87,10 @@ disp (Lam nm f) = "λ" ++ unName nm ++ "." ++ disp (f nm)
 wk :: Term v → Term (w ∪ v)
 wk = fmap Inr
 
+-- Kleisli arrows arising from the Term monad
 type v ⇶ w = v → Term w
 
--- Union is a functor in the category of (⇶) arrows
+-- Union is a functor in the category of Kleisli arrows (⇶)
 lift :: v ⇶ w → (x ∪ v) ⇶ (x ∪ w)
 lift θ (Inr x) = wk (θ x)
 lift _ (Inl x) = Var (Inl x) -- also works: var x
