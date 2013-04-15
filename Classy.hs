@@ -15,8 +15,6 @@ magic :: Zero -> a
 magic _ = error "magic!"
 instance Show Zero where show = magic
 
-type a :+: b = a ∪ b
-
 instance (Show a, Show b) => Show (a ∪ b) where
   show (Inl x) = show x
   show (Inr x) = show x
@@ -77,7 +75,29 @@ disp (Var x)    = show x
 disp (App a b)  = "(" ++ disp a ++ ")" ++ disp b
 disp (Lam nm f) = "λ" ++ unName nm ++ "." ++ disp (f nm)
 
+---------------------
+-- Catamorphism
 
+cata :: All b a => ((a -> a) -> a, a -> a -> a) -> Term b -> a
+cata (fl,fa) (Var x)   = prj x
+cata (fl,fa) (App f a) = fa (cata (fl,fa) f) (cata (fl,fa) a)
+cata (fl,fa) (Lam _ f) = fl (cata (fl,fa) . f)
+
+class All a b where
+  prj :: a -> b
+
+instance All a a where
+  prj = id
+
+instance All b a => All (a ∪ b) a where
+  prj (Inl a) = a
+  prj (Inr a) = prj a
+
+instance All Zero a where
+  prj = magic
+
+size :: Term Zero -> Int
+size = cata (\f -> 1 + f 1, \a b -> 1 + a + b)
 
 -----------------------------------------------------------
 -- Terms are monads
