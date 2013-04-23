@@ -7,6 +7,7 @@ open import Data.Sum.NP renaming (map to map-⊎)
 open import Relation.Binary.Logical hiding (⟦★⟧) renaming (⟦★₀⟧ to ⟦★⟧)
 open import Level
 open import Relation.Binary.PropositionalEquality
+open import Relation.Binary
 --open import Names
 
 module V1 where
@@ -37,32 +38,47 @@ module V1 where
 
     
     ⟦Term⟧-refl : ∀ {V} -> (t : Term V) -> ⟦Term⟧ _≡_ t t
-    ⟦Term⟧-refl = {!!}
+    ⟦Term⟧-refl (var x) = ⟦var⟧ refl
+    ⟦Term⟧-refl (abs x) = ⟦abs⟧ (λ {W1} {W2} Wᵣ {w1} {w2} wᵣ → {!!})
+    ⟦Term⟧-refl (app t t₁) = ⟦app⟧ (⟦Term⟧-refl t) (⟦Term⟧-refl t₁)
+
+    postulate ⟦Term⟧-trans : ∀ {V} -> Transitive (⟦Term⟧ {V} _≡_)
+    
+
 
     -- data RelOf {A B : ★} (f : A → B) : A → B → ★ where
     --  relOf : ∀ {x} → RelOf f x (f x)
 
     RelOf : ∀ {A B : ★} (f : A → B) -> A → B → ★
-    RelOf f x y = y ≡ f x 
+    RelOf f x y = f x ≡ y
 
-    module ⟦Term⟧-map
-                (ext : ∀ {V W X} → (V → W) → (V ⊎ X → W ⊎ X)) where
-                -- (⟦ext⟧ : ∀ {W₁ W₂} (Wᵣ : ⟦★⟧ W₁ W₂) (φ : ?) → RelOf φ ⟦∪⟧ Wᵣ → RelOf (ext φ)) where
-        proof : ∀ {V W} (φ : V → W) t → ⟦Term⟧ (RelOf φ) (map id t) (map φ t)
-        proof φ t = mapR {!!} (RelOf φ) {id} {φ} {!!} {t} {t} {!!}
-{-
-        proof _ (var _)   = ⟦var⟧ refl
-        proof φ (abs f)   = ⟦abs⟧ (λ {W1} {W2} Wᵣ {w1} {w2} wᵣ → {!proof (ext φ) (f w1)!})
-        proof φ (app t u) = ⟦app⟧ (proof φ t) (proof φ u)
--}
+    proof : ∀ {V W} (φ : V → W) t → ⟦Term⟧ (RelOf φ) (map id t) (map φ t)
+    proof φ t = mapR (λ z z1 → z ≡ id z1) (RelOf φ) {id} {φ} (cong φ)  {t} {t} (⟦Term⟧-refl t)
+
+    proof' : ∀ {V W} (φ : V → W) -> (t : Term V) → ⟦Term⟧ (RelOf φ) t (map φ t)
+    proof' = {!proof!}
+ 
+    postulate extensionality' : ∀ {B : Set -> Set} {f g : {W : Set} -> W -> B W} -> (∀ W -> (w : W) -> f w ≡ g w) -> (\{x} -> f {x}) ≡ \{x} -> g {x}
+
+    yak1 : ∀{V W U : Set} (φ : V → W) (R : REL V W zero) -> (R ⇒ RelOf φ) → (R ⟦⊎⟧ (_≡_ {zero} {U})) ⇒ RelOf [ (λ x₁ → inj₁ (φ x₁)) , (λ x₁ → inj₂ x₁) ] 
+    yak1 φ R q (inj₁ xᵣ) = cong inj₁ (q xᵣ)
+    yak1 φ R q (inj₂ xᵣ) = cong inj₂ xᵣ
+
+    inverseproof : ∀ {V W} (φ : V → W) {t1 t2} (R : REL V W _) -> (R ⇒ RelOf φ) → ⟦Term⟧ R t1 t2 -> (map φ t1) ≡ t2
+    inverseproof φ R q (⟦var⟧ xᵣ) = cong var (q xᵣ)
+    inverseproof φ R q (⟦abs⟧ xᵣ) = cong abs (extensionality' (λ W w → inverseproof (map-⊎ φ id) (R ⟦⊎⟧ _≡_) (λ x -> yak1 φ R q x) (xᵣ _≡_ refl)))
+    inverseproof φ R q (⟦app⟧ t t₁) = cong₂ app (inverseproof φ R q t) (inverseproof φ R q t₁)
+
+    inverseproof' : ∀ {V W} (φ : V → W) {t1 t2} → ⟦Term⟧ (RelOf φ) t1 t2 -> map φ t1 ≡ t2
+    inverseproof' φ t = inverseproof φ (λ z → _≡_ (φ z)) (λ {i} {j} z → z) t 
+
     module TermOp (f  : IdTerm)
-                  (fᵣ : ⟦IdTerm⟧ f f)
+                  (fr : ⟦IdTerm⟧ f f)
                   {V W}
                   (φ  : V → W)
                   (t  : Term V) where
-      lem : ⟦Term⟧ {!!} (map φ (f t)) (f (map φ t))
-      lem = {!!}
-      -- lem : map φ (f t) ≡ f (map φ t)
+      lem : map φ (f t) ≡ f (map φ t)
+      lem =  inverseproof' _ (fr _ (proof' φ t))  
 
 module Lib {World : ★}
            (⟦World⟧ : ⟦★⟧ World World)
