@@ -8,3 +8,5 @@ cabal-dev
 .*.swp
 .*.agda.vim
 *.agdai
+*~
+.*.swp
