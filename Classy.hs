@@ -125,6 +125,7 @@ instance Functor Term where
 subst' :: (∀v. v → Term v) → Term w → Term w
 subst' t u = join (t u)
 
+
 -- Nbe
 eval :: Term v -> Term v
 eval (Var x) = Var x
@@ -132,12 +133,59 @@ eval (Lam n t) = Lam n (eval . t)
 eval (App t u) = app (eval t) (eval u)
 
 app :: Term v -> Term v -> Term v
-app (Lam _ t) u = yak =<< t u
+app (Lam _ t) u = subst0 =<< t u
 app t u = App t u
 
-yak :: Term v ∪ v -> Term v
+subst0 :: Term v ∪ v -> Term v
+subst0 (Inl x) = x
+subst0 (Inr x) = Var x
+
+{-
+data Ne v where
+  Var' :: v → Ne v
+  App' :: Ne v → No v → Ne v
+
+data No v where
+  Lam':: Name → (forall w. w → No (w ∪ v)) → No v
+  Emb' :: Ne v -> No v
+
+eval :: Term v -> No v
+eval (Var x) = Emb' (Var' x)
+eval (Lam n t) = Lam' n (eval . t)
+eval (App t u) = app (eval t) (eval u)
+
+instance Monad No where
+  return = Emb' . Var'
+
+app :: No v -> No v -> No v
+app (Lam' _ t) u = yak =<< t u -- t u :: No (No v ∪ v)
+app (Emb' t) u = Emb' $ App' t u
+
+yak :: No v ∪ v -> No v
 yak (Inl x) = x
-yak (Inr x) = Var x
+yak (Inr x) = Emb' (Var' x)
+-}
 
 
+-----------------------
+-- Can eta contract ?
+
+untag :: a ∪ a -> a
+untag (Inl x) = x 
+untag (Inr x) = x 
+
+canEta' :: Term Bool -> Bool
+canEta' (Var b) = b
+canEta' (App e1 e2) = canEta' e1 && canEta' e2
+canEta' (Lam _ e') = canEta' (fmap untag $ e' True)
+
+
+canEta :: Term Bool -> Bool
+canEta (Lam _ e') = case fmap untag $ e' False of
+  App e1 (Var False) -> canEta' e1
+  _ -> False
+canEta _ = False
+
+canη :: Term Zero -> Bool
+canη = canEta . fmap magic
 
