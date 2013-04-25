@@ -115,7 +115,7 @@ subst' :: (∀v. v → Term v) → Term w → Term w
 subst' t u = join (t u)
 
 
--- Nbe
+-- Nbe (HOAS-style)
 eval :: Term v -> Term v
 eval (Var x) = Var x
 eval (Lam n t) = Lam n (eval . t)
@@ -126,8 +126,9 @@ app (Lam _ t) u = subst0 =<< t u
 app t u = App t u
 
 subst0 :: v ∪ Term v -> Term v
-subst0 (Inr x) = x
 subst0 (Inl x) = Var x
+subst0 (Inr x) = x
+
 
 {-
 data Ne v where
@@ -165,7 +166,7 @@ untag (Inr x) = x
 
 {-
 
-PHOAS-style
+(P)HOAS-style
 
 canEta' :: Term Bool -> Bool
 canEta' (Var b) = b
@@ -214,8 +215,8 @@ canEta _ = False
 -- CPS
 
 data Primop v :: * where 
-  Tru' :: Primop v 
-  Fals' :: Primop v
+--  Tru' :: Primop v
+--  Fals' :: Primop v
   Var' :: v -> Primop v
   Abs' :: (∀ w. w -> Term' (v ∪ w)) -> Primop v
   (:-) :: v -> v -> Primop v 
@@ -228,7 +229,8 @@ data Term' v where
   App'  :: v -> v -> Term' v
   Let   :: Primop v -> (∀ w. w -> Term' (v ∪ w)) -> Term' v
   
-instance Functor Term' where -- TODO
+instance Functor Term' where 
+  
 
 mapu :: (u -> u') -> (v -> v') -> (u ∪ v) -> (u' ∪ v')
 mapu f g (Inl x) = Inl (f x)
@@ -252,8 +254,8 @@ splice (Let p e') e2 = Let (splicePrim p e2)  ( spliceAbs e' e2 )
 
 splicePrim :: forall v. Primop v  ->  (∀ w. w  -> Term' (v ∪ w) ) -> Primop v 
 splicePrim (Abs' e) e2 = Abs' (spliceAbs e e2)
-splicePrim Tru' e2 = Tru'
-splicePrim Fals' e2 = Fals'
+--splicePrim Tru' e2 = Tru'
+--splicePrim Fals' e2 = Fals'
 splicePrim (Var' v) e2 = Var' v
 splicePrim (y :- y') e2 = y :- y'
 splicePrim (Π1 y) e2 = Π1 y
