@@ -1,0 +1,13 @@
+Name:           tt-name-binders-paper
+Cabal-Version:  >= 1.2
+Version:        0.1
+Author:         Nicolas Pouillard, Jean-Philippe Bernardy
+Maintainer:     Nicolas Pouillard <nicolas.pouillard@gmail.com>
+Build-Type:     Simple
+
+executable paper
+    Build-depends: base>=3.0&&<5, containers>=0.1, base-unicode-symbols,
+                   directory, template-haskell, mtl, split, process,
+                   transformers, Agda, uniplate>=1.2, hlatex, wl-pprint
+    Main-Is: main.hs
+    ghc-options: -Wall
