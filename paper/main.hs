@@ -29,12 +29,9 @@ import NomPaKit.QQ
 
 title = «TODO»
 
-authors = ([ («Jean-Philippe Bernardy» , 1        , «bernardy@chalmers.se»)
-           , («Nicolas Pouillard»      , 1 :: Int , «npou@itu.dk»)
-           ]
-          , [af «Chalmers University of Technology and University of Gothenburg» «Gothenburg, Sweden»
-            ,af «IT University Copenhagen» «Copenhagen, Denmark»])
-  where af = (,)
+authors = [ («Jean-Philippe Bernardy» , «bernardy@chalmers.se» , «Chalmers University of Technology and University of Gothenburg»)
+           ,(«Nicolas Pouillard»      , «npou@itu.dk»          , «IT University Copenhagen»)
+          ]
 abstract = [texFile|abstract|]
 keywords = [texFile|keywords|]
 _Agda's = «{_Agda}'s»

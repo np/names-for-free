@@ -27,7 +27,7 @@ import Language.LaTeX.Slicer (slice)
 
 import NomPaKit.Char (mnsymbol)
 
-authorinfo (name, inst', email') =
+authorinfo (name, email', inst') =
   BI.preambleCmdArgs "authorinfo" $ map (BI.mandatory . BI.latexItem) [name, inst', email']
 
 begin = BI.latexCmdArg "begin"
@@ -101,7 +101,7 @@ dedent       = tell . B.para . return $ T.LatexNote (T.MkKey "dedent") emptyText
 
 writeAgdaTo destFile doc = writeFile destFile . unlines $ commentsOf doc
 
-document title (authors, insts) keywords abstract body appendix = B.document docclass preamble body'
+document title authors keywords abstract body appendix = B.document docclass preamble body'
   where
     docclass = sigplanconf (Just (L.pt 9)) Nothing
                   (fmap BI.latexItem [«preprint»,«authoryear»])
@@ -112,8 +112,8 @@ document title (authors, insts) keywords abstract body appendix = B.document doc
         usepackage [] "tikz" <>
         fonts <>
         B.title title <>
-        hyphs
-
+        hyphs <>
+        mconcat (map authorinfo authors) 
         {-
         B.author (mconcat . intersperse (BI.rawTex " \\and ")
                  . map (\(namn , skola , _) -> namn <> inst (fromString (show skola)))
