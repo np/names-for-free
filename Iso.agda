@@ -5,6 +5,7 @@ open import Type
 open import Function
 open import Data.Sum.NP renaming (map to map-⊎; ⟦map⟧ to ⟦map-⊎⟧)
 open import Relation.Binary.Logical hiding (⟦★⟧) renaming (⟦★₀⟧ to ⟦★⟧) -- ; ⟦⊤⟧ to ⟦𝟙⟧)
+open import Relation.Unary.Logical hiding ([★]) renaming ([★₀] to [★]) -- ; ⟦⊤⟧ to ⟦𝟙⟧)
 open import Relation.Binary.PropositionalEquality hiding ([_])
 open import Data.Nat
 open import Data.Maybe.NP
@@ -14,6 +15,63 @@ open import Data.Nat.Logical
 open import Relation.Binary
 
 
+module Reboot 
+  (s : ∀ {W} -> W -> W)
+  (sR : (∀⟨ Wᵣ ∶ ⟦★⟧ ⟩⟦→⟧  Wᵣ ⟦→⟧ Wᵣ) s s)
+  (A : ★)  
+    where
+
+   u : ∀ (x : A) -> s x ≡ x
+   u x =  sR {ℕ} (\_ y -> y ≡ x) {zero} refl 
+
+data [Maybe] {A} Ap : Maybe A -> ★ where
+  nothing : [Maybe] Ap nothing
+  just : (Ap [→] [Maybe] Ap) just
+
+module MaybeF 
+  (s : ∀ {W} -> W -> Maybe W)
+  (sR : (∀⟨ Wᵣ ∶ [★] ⟩[→]  Wᵣ [→] [Maybe] Wᵣ) s)
+  (A : ★)
+    where
+
+  S = ∀ {W} -> W -> Maybe W 
+  [S] = ∀⟨ Bᵣ ∶ [★] ⟩[→] Bᵣ [→] [Maybe] Bᵣ
+
+  T = Maybe ⊤
+  [T] = [Maybe] [⊤]
+
+  TS : T -> S
+  TS (just tt) = just 
+  TS nothing = λ x → nothing
+
+  ST : S -> T
+  ST s = s tt
+
+  u' : ∀ (x : A) -> [Maybe] (λ y → y ≡ x) (s x)
+  u' x = sR (λ y → y ≡ x) refl
+
+  lem : (x : A) -> [Maybe] (λ y → y ≡ x) (s x) -> s x ≡ just x ⊎ s x ≡ nothing
+  lem  x t with s x
+  lem x nothing | .nothing = inj₂ refl
+  lem x (just {x₁} xₚ) | .(just x₁) = inj₁ (cong just xₚ) 
+
+module Easy
+         {F : ★ → ★}
+         (Fᵣ : ([★] [→] [★]) F)
+--         (Fᵣ-refl : ∀ {A} {Aᵣ : Rel A _} → Reflexive Aᵣ → Reflexive (Fᵣ Aᵣ))
+         {mapF  : ∀ {A B} → (A → B) → F A → F B}
+         (mapFᵣ : (∀⟨ Aᵣ ∶ [★] ⟩[→] ∀⟨ Bᵣ ∶ [★] ⟩[→] (Aᵣ [→] Bᵣ) [→] Fᵣ Aᵣ [→] Fᵣ Bᵣ) mapF)
+  (s : ∀ {W} -> W -> F W)
+  (sR : (∀⟨ Wᵣ ∶ [★] ⟩[→]  Wᵣ [→] Fᵣ Wᵣ) s)
+  (A : ★)  
+  (Aᵣ : [★] A)
+  -- (Aᵣ-refl : Reflexive Aᵣ) 
+    where
+
+   u : ∀ (x : A) -> Fᵣ (λ y → y ≡ x) (s x) 
+   u x = sR (λ y → y ≡ x) refl
+
+{-
 module Iso
          {F : ★ → ★}
          (Fᵣ : (⟦★⟧ ⟦→⟧ ⟦★⟧) F F)
@@ -38,8 +96,10 @@ module Iso
   ⟦ST⟧ sᵣ = sᵣ _ ⟦tt⟧
   TS : T → S
   TS t {B} b = mapF (map-⊎ id (const b)) t
+
   ⟦TS⟧ : (⟦T⟧ ⟦→⟧ ⟦S⟧) TS TS
   ⟦TS⟧ tᵣ Bᵣ bᵣ = mapFᵣ _ _ (⟦map-⊎⟧ _ _ _ _ id (const bᵣ)) tᵣ
+
   TST = ST ∘ TS
   ⟦TST⟧ = λ {t₁ t₂} (tᵣ : ⟦T⟧ t₁ t₂) → ⟦ST⟧ (⟦TS⟧ tᵣ)
   -- mapF id ≡ id
@@ -61,12 +121,13 @@ module Iso
 
   Full : ∀ {A B} -> A -> B -> Set
   Full _ _ = ⊤
-
+ 
+ 
   lemma : ∀ (s : S) {B} (b : B) ->  Fᵣ (Aᵣ ⟦⊎⟧ Full) (s b) (s tt)
   lemma s {B} b = ⟦S⟧-refl {s} {B} {⊤} Full {b} {_} tt
 
   STS'' : ∀ (s : S) {B} (b : B) -> Fᵣ (Aᵣ ⟦⊎⟧ Full) (mapF (map-⊎ id (const b)) (s tt)) (s b)
-  STS'' s {B} b  = {!⟦S⟧-refl {s} {B} {⊤} Full {b} {_} tt   !}
+  STS'' s {B} b  = {! mapFᵣ _ _ (⟦map-⊎⟧ _ _ _ _ id (const ?)) (lemma s b)  !}
 
 
   {- STS : ∀ (x : S) → (λ {B} → TS (ST x) {B}) ≡ x
@@ -76,3 +137,4 @@ module Iso
   -- -}
 
 module TestIso = Iso {Maybe} ⟦Maybe⟧ (λ r {x} → ⟦Maybe⟧-Properties.refl (λ _ → r) x) {map?} ⟦map?⟧ {ℕ} _≡_ refl
+-}
