@@ -28,6 +28,30 @@ data [Maybe] {A} Ap : Maybe A -> ★ where
   nothing : [Maybe] Ap nothing
   just : (Ap [→] [Maybe] Ap) just
 
+
+module MaybeF2
+  (s : ∀ {W} -> W -> Maybe W)
+  (sR : (∀⟨ Wᵣ ∶ ⟦★⟧ ⟩⟦→⟧  Wᵣ ⟦→⟧ ⟦Maybe⟧ Wᵣ) s s)
+  (A : ★)
+    where
+
+  S = ∀ {W} -> W -> Maybe W 
+  ⟦S⟧ = ∀⟨ Bᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Bᵣ ⟦→⟧ ⟦Maybe⟧ Bᵣ
+
+  T = Maybe ⊤
+  ⟦T⟧ = ⟦Maybe⟧ ⟦⊤⟧
+
+  TS : T -> S
+  TS (just tt) = just 
+  TS nothing = λ x → nothing
+
+  ST : S -> T
+  ST s = s tt
+
+  test : {!!}
+  test = {!sR (\x -> !} 
+
+
 module MaybeF 
   (s : ∀ {W} -> W -> Maybe W)
   (sR : (∀⟨ Wᵣ ∶ [★] ⟩[→]  Wᵣ [→] [Maybe] Wᵣ) s)
@@ -50,11 +74,26 @@ module MaybeF
   u' : ∀ (x : A) -> [Maybe] (λ y → y ≡ x) (s x)
   u' x = sR (λ y → y ≡ x) refl
 
+
+  u'' : ∀ (x : A) -> [Maybe] (λ y → y ≡ x) (s x)
+  u'' x = sR (λ y → y ≡ x) refl
+
+
   lem : (x : A) -> [Maybe] (λ y → y ≡ x) (s x) -> s x ≡ just x ⊎ s x ≡ nothing
   lem  x t with s x
   lem x nothing | .nothing = inj₂ refl
   lem x (just {x₁} xₚ) | .(just x₁) = inj₁ (cong just xₚ) 
 
+  lem' : s {A} ≡ just ⊎ s {A} ≡ const nothing
+  lem' = {!!}
+
+
+  final : (x : A) -> TS (ST s) x ≡ s x
+  final with lem' 
+  final | inj₁ x = {!!}
+  final | inj₂ y = {!!} 
+
+{-
 module Easy
          {F : ★ → ★}
          (Fᵣ : ([★] [→] [★]) F)
@@ -70,6 +109,8 @@ module Easy
 
    u : ∀ (x : A) -> Fᵣ (λ y → y ≡ x) (s x) 
    u x = sR (λ y → y ≡ x) refl
+-}
+
 
 {-
 module Iso
@@ -137,4 +178,6 @@ module Iso
   -- -}
 
 module TestIso = Iso {Maybe} ⟦Maybe⟧ (λ r {x} → ⟦Maybe⟧-Properties.refl (λ _ → r) x) {map?} ⟦map?⟧ {ℕ} _≡_ refl
--}
+-- -}
+-- -}
+-- -}
