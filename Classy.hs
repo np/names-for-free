@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types,
              UnicodeSyntax, TypeOperators, GADTs, OverlappingInstances,
-             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving #-}
+             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes #-}
 module Classy where
 
 import Data.String
@@ -9,18 +9,22 @@ import Control.Monad (join)
 --------------------------------
 -- Generic programming prelude
 
-data (∪) a b = Inl a | Inr b 
+data (▹) a b = There a | Here b 
   deriving Eq
 data Zero
+
+elim :: (γ -> a) -> (v -> a) -> γ ▹ v -> a
+elim f g (There x) = f x
+elim f g (Here x) = g x
   
 deriving instance Eq Zero
 magic :: Zero -> a
 magic _ = error "magic!"
 instance Show Zero where show = magic
 
-instance (Show a, Show b) => Show (a ∪ b) where
-  show (Inl x) = show x
-  show (Inr x) = show x
+instance (Show a, Show b) => Show (a ▹ b) where
+  show (There x) = show x
+  show (Here x) = show x
 
 -------------------------------------------
 -- Names as a simple wrapper around strings
@@ -39,7 +43,7 @@ instance IsString Name where
 
 data Term v where
   Var :: v → Term v
-  Lam :: Name → (forall w. w → Term (v ∪ w)) → Term v
+  Lam :: Name → (forall w. w → Term (v ▹ w)) → Term v
   App :: Term v → Term v → Term v
 
 var :: forall a γ. (a ∈ γ) => a → Term γ
@@ -72,8 +76,8 @@ cata fv fl fa (Var x)   = fv x
 cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
 cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
   
-extend g (Inr a) = a
-extend g (Inl b) = g b
+extend g (Here a) = a
+extend g (There b) = g b
         
 size :: Term Zero -> Int
 size = cata magic (\f -> 1 + f 1) (\a b -> 1 + a + b)
@@ -90,9 +94,9 @@ wk = fmap inj
 type v ⇶ w = v → Term w
 
 -- Union is a functor in the category of Kleisli arrows (⇶)
-lift :: v ⇶ w → (v ∪ x) ⇶ (w ∪ x)
-lift θ (Inl x) = wk (θ x)
-lift _ (Inr x) = Var (Inr x) -- also works: var x
+lift :: v ⇶ w → (v ▹ x) ⇶ (w ▹ x)
+lift θ (There x) = wk (θ x)
+lift _ (Here x) = var x
 
 instance Monad Term where
   Var x    >>= θ = θ x
@@ -122,12 +126,25 @@ eval (Lam n t) = Lam n (eval . t)
 eval (App t u) = app (eval t) (eval u)
 
 app :: Term v -> Term v -> Term v
-app (Lam _ t) u = subst0 =<< t u
+app (Lam _ t) u = subst0 =<< t u 
 app t u = App t u
 
-subst0 :: v ∪ Term v -> Term v
-subst0 (Inl x) = Var x
-subst0 (Inr x) = x
+(@@) :: (∀ w. w -> Term (v ▹ w)) -> Term v -> Term v
+t @@ u = subst0 =<< t u
+
+subst0 :: v ▹ Term v -> Term v
+subst0 (Here x) = x
+subst0 (There x) = Var x
+
+
+(>>=-) :: Term γ -> (γ -> Term δ) -> Term δ
+Var x    >>=- θ = θ x
+Lam nm f >>=- θ = with f $ \t -> Lam nm (\x -> t >>=- lift' x θ)
+App t u  >>=- θ = App (t >>=- θ) (u >>=- θ)
+
+lift' :: x -> v ⇶ w → (v ▹ Zero) ⇶ (w ▹ x)
+lift' _ θ (There x) = wk (θ x)
+lift' x _ (Here _) = var x 
 
 
 {-
@@ -136,7 +153,7 @@ data Ne v where
   App' :: Ne v → No v → Ne v
 
 data No v where
-  Lam':: Name → (forall w. w → No (w ∪ v)) → No v
+  Lam':: Name → (forall w. w → No (w ▹ v)) → No v
   Emb' :: Ne v -> No v
 
 eval :: Term v -> No v
@@ -148,21 +165,21 @@ instance Monad No where
   return = Emb' . Var'
 
 app :: No v -> No v -> No v
-app (Lam' _ t) u = yak =<< t u -- t u :: No (No v ∪ v)
+app (Lam' _ t) u = yak =<< t u -- t u :: No (No v ▹ v)
 app (Emb' t) u = Emb' $ App' t u
 
-yak :: No v ∪ v -> No v
-yak (Inl x) = x
-yak (Inr x) = Emb' (Var' x)
+yak :: No v ▹ v -> No v
+yak (There x) = x
+yak (Here x) = Emb' (Var' x)
 -}
 
 
 -----------------------
 -- Can eta contract ?
 
-untag :: a ∪ a -> a
-untag (Inl x) = x 
-untag (Inr x) = x 
+untag :: a ▹ a -> a
+untag (There x) = x 
+untag (Here x) = x 
 
 {-
 
@@ -188,26 +205,32 @@ canη = canEta . fmap magic
 
 -- DeBrujn-style (?)
 
-fresh :: a
-fresh = error "cannot identify fresh variables!"
+openTerm :: Functor f => (forall w. w → f (v ▹ w)) -> v -> f v
+openTerm b x = fmap (elim id (const x)) (b fresh)
+  where fresh = error "cannot identify fresh variables!"
 
-rm :: [v ∪ a] -> [v]
-rm xs = [x | Inl x <- xs]
+    
+with :: (forall w. w → f (v ▹ w)) -> ((forall w. f (v ▹ w)) -> a) -> a
+with b k = k (b (error "cannot identify fresh variables!"))
+
+
+rm :: [v ▹ a] -> [v]
+rm xs = [x | There x <- xs]
 
 freeVars :: Term v -> [v]
 freeVars (Var x) = [x]
-freeVars (Lam _ f) = rm $ freeVars (f fresh)
+freeVars (Lam _ f) = with f $ \ t -> rm $ freeVars t
 freeVars (App f a) = freeVars f ++ freeVars a
   
-firstOccurs :: Term (Zero ∪ a) -> Bool
+firstOccurs :: Term (Zero ▹ a) -> Bool
 firstOccurs t = any isFirst (freeVars t)
 
-isFirst (Inr _) = True
+isFirst (Here _) = True
 isFirst _ = False
 
 canEta :: Term Zero -> Bool
-canEta (Lam _ e') = case e' fresh of
-  App e1 (Var (Inr _)) -> not (firstOccurs e1)
+canEta (Lam _ e') = with e' $ \t -> case t of
+  App e1 (Var (Here _)) -> not (firstOccurs e1)
   _ -> False
 canEta _ = False
 
@@ -218,7 +241,7 @@ data Primop v :: * where
 --  Tru' :: Primop v
 --  Fals' :: Primop v
   Var' :: v -> Primop v
-  Abs' :: (∀ w. w -> Term' (v ∪ w)) -> Primop v
+  Abs' :: (∀ w. w -> Term' (v ▹ w)) -> Primop v
   (:-) :: v -> v -> Primop v 
   Π1   :: v -> Primop v
   Π2   :: v -> Primop v
@@ -227,32 +250,32 @@ data Primop v :: * where
 data Term' v where
   Halt' :: v -> Term' v
   App'  :: v -> v -> Term' v
-  Let   :: Primop v -> (∀ w. w -> Term' (v ∪ w)) -> Term' v
+  Let   :: Primop v -> (∀ w. w -> Term' (v ▹ w)) -> Term' v
   
 instance Functor Term' where 
   
 
-mapu :: (u -> u') -> (v -> v') -> (u ∪ v) -> (u' ∪ v')
-mapu f g (Inl x) = Inl (f x)
-mapu f g (Inr x) = Inr (g x)
+mapu :: (u -> u') -> (v -> v') -> (u ▹ v) -> (u' ▹ v')
+mapu f g (There x) = There (f x)
+mapu f g (Here x) = Here (g x)
 
   
 spliceAbs :: ∀ v   .
-             (forall w. w  → Term' (v ∪ w) ) -> 
-             (∀ w. w  → Term' (v ∪ w) ) -> 
-             forall w. w  → Term' (v ∪ w) 
-spliceAbs e' e2 x = splice (e' x) (\ x₁ → fmap (mapu Inl id) (e2 x₁))
+             (forall w. w  → Term' (v ▹ w) ) -> 
+             (∀ w. w  → Term' (v ▹ w) ) -> 
+             forall w. w  → Term' (v ▹ w) 
+spliceAbs e' e2 x = splice (e' x) (\ x₁ → fmap (mapu There id) (e2 x₁))
 
 -- in e1, substitude Halt' by an arbitrary continuation e2
 splice :: forall v  .
          Term' v  ->
-         (∀ w. w  -> Term' (v ∪ w) ) -> 
+         (∀ w. w  -> Term' (v ▹ w) ) -> 
          Term' v 
 splice (Halt' v) e2 =  fmap untag (e2 v)
 splice (App' f x) e2 = App' f x
 splice (Let p e') e2 = Let (splicePrim p e2)  ( spliceAbs e' e2 )
 
-splicePrim :: forall v. Primop v  ->  (∀ w. w  -> Term' (v ∪ w) ) -> Primop v 
+splicePrim :: forall v. Primop v  ->  (∀ w. w  -> Term' (v ▹ w) ) -> Primop v 
 splicePrim (Abs' e) e2 = Abs' (spliceAbs e e2)
 --splicePrim Tru' e2 = Tru'
 --splicePrim Fals' e2 = Fals'
@@ -265,8 +288,8 @@ var' :: forall a b. (a ∈ b) => a → Primop b
 var' = Var' . lk
 
 cps :: Term v -> Term' v
--- cps Tru = Let Tru' (Halt' . Inl)
--- cps Fals = Let Fals' (Halt' . Inl) 
+-- cps Tru = Let Tru' (Halt' . There)
+-- cps Fals = Let Fals' (Halt' . There) 
 cps (Var v) = Halt' v
 cps (App e1 e2) = splice (cps e1) $ \ f -> 
                       splice (wk (cps e2)) $ \ x →
@@ -287,11 +310,11 @@ todo = error "todo!"
 class x ∈ γ where
   lk :: x -> γ
   
-instance x ∈ (γ ∪ x) where
-  lk = Inr
+instance x ∈ (γ ▹ x) where
+  lk = Here
   
-instance (x ∈ γ) => x ∈ (γ ∪ y) where
-  lk = Inl . lk
+instance (x ∈ γ) => x ∈ (γ ▹ y) where
+  lk = There . lk
 
 
 class a :< b where
@@ -303,17 +326,17 @@ instance a :< a where
 instance Zero :< a where
   inj = magic
 
-instance (γ :< δ) => (γ ∪ v) :< (δ ∪ v) where
+instance (γ :< δ) => (γ ▹ v) :< (δ ▹ v) where
   inj = mapu inj id
 
-instance (a :< c) => a :< (c ∪ b) where
-  inj = Inl . inj
+instance (a :< c) => a :< (c ▹ b) where
+  inj = There . inj
 
-instance Functor ((∪) a) where
-  fmap _ (Inl x) = Inl x
-  fmap f (Inr x) = Inr (f x)
+instance Functor ((▹) a) where
+  fmap _ (There x) = There x
+  fmap f (Here x) = Here (f x)
 
-
+testMe = freeVars ((Lam (Name "x") (\x -> App (var x) (var 'c'))) :: Term (a ▹ Char))
        
 -- -}
 -- -}
