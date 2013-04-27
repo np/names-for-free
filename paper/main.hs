@@ -143,6 +143,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p "non-intrusive" «the approach can be used locally»
   p "" «more remarks about safetly»
   p "" «impredicativity»
+  p "getting rid of the injections by using a stronger type system" «»
 
   p "acknowledgements" «Emil Axelsson wrote a definition of catamorphism on untyped lambda terms.»  
   
