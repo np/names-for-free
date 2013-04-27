@@ -144,7 +144,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p "" «more remarks about safetly»
   p "" «impredicativity»
 
-  
+  p "acknowledgements" «Emil Axelsson wrote a definition of catamorphism on untyped lambda terms.»  
   
   itemize $ do 
 --    it «PHOAS»
