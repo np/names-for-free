@@ -69,27 +69,118 @@ commentWhen True  x = doComment x
 commentWhen False x = x
 
 body = {-slice .-} execWriter $ do -- {{{
-  -- JP
+  -- JP (when the rest is ready)
   section $ «Intro» `labeled` intro
   subsection $ «Example final»
   
   -- JP
   section $ «Overview» `labeled` overview
-  subsection $ «DeBruijn»
-  subsection $ «Maybe/Nested»
+  -- subsection $ «DeBruijn Indices»
+  p""«A common way to represent variables is by the number of variables bound 
+      between the occurence of a given variable {|x|} and its declaration.»
+  p""«The main advantage of the technique two α-equivalent terms have exactly the same representation.»
+  p""«A direct implementation of the technique may yield the following represtenation of untyped lambda terms:»
   [agdaP|
-  |type Succ a = Either a ()
+  |data Nat = Zero | Succ Nat
+  |data TmDB where
+  |  Var :: Nat → TmDB
+  |  App :: TmDB → TmDB → TmDB
+  |  Lam :: TmDB → TmDB
+  |]
+  p""«Using this representation, the representation of the constant function {|\x y -> x|} is the following:»
+  [agdaP|
+  |constDB :: TmDB
+  |constDB = Lam $ Lam $ Var (Succ Zero)
+  |]
+
+  p""«However, such a direct implementation is naïve. It cannot distinguish between open and closed terms. 
+      That is, a closed term has the same type as an open term.»
+
+  -- subsection $ «Nested Abstract Syntax»
+  p""«In Haskell, it is possible to remedy to this situation by "nested recursion". 
+      That is, one parameterises the type of terms by a type that can represent free variables.
+      If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is one free variable, etc.»
+  [agdaP|
+  |data a ⊕ b = Inl a | Inr b
+  |type Succ a = a ⊕ ()
   |              
   |data TmN a where
   |  Var :: a → TmN a
   |  App :: TmN a → TmN a → TmN a
   |  Lam :: TmN (Succ a) → TmN a
   |]
-  subsection $ «Our stuff»
-  subsection $ «Safety»
-  p "the injection is always correct " $ «the injection is always correct if all binder types are universally quantified»
-  subsection $ «Auto-inject»
-  
+  p""«The recursive case {|Lam|} changes the parameter type, increasing its cardinality by one.»
+
+  p""«Using this representation, the representation of the constant function {|\x y → x|} is the following:»
+  [agdaP|
+  |data Zero -- no constructor
+  |constN :: TmN Zero
+  |constN = Lam $ Lam $ Var (Inl (Inr ()))
+  |]
+  p ""«As promised, the type is explicit about {|constN|} being closed.»
+  p "" «In passing, we remark that another valid type for closed terms is {|∀ a. TmN a|} 
+       --- literally: the type of terms which have an unknown number of free variables.
+       Indeed, because {|a|} is universally quantified, there is no way to construct an inhabitant of it; 
+       one cannot possibly refer to any free variable.»
+  p""«Another drawback of using DeBruijn indices is that it is easy to make a mistake
+      when counting the number of binders between the declaration of a variable and its occurence.»
+
+  -- subsection $ «Our stuff»
+  p""«To address this issue, we propose the following representation:»
+  [agdaP|
+  |data Tm w where
+  |  Var :: w → Tm w
+  |  App :: Tm w → Tm w → Tm w
+  |  Lam :: (∀ v. v → Tm (w ⊕ v)) → TmN a
+  |]
+  p""«That is, instead of adding a concrete unique type in the recursive parameter of {|Lam|}, 
+      we quantify universally over a type variable {|v|} and add this type variable to the type of free variables.»
+  p""«We also provide the sub-term with an arbitrary value of type {|v|}, to be used at occurences of the variable bound by {|Lam|}. »
+
+  p""«The constant function is then represented as follows:»
+  [agdaP|
+  |const_ :: Tm
+  |const_ = Lam $ \x → Lam $ \y → Var (Inl (Inr x))
+  |]
+
+  -- subsection $ «Safety»
+  p""«Now, if one were to make a mistake and forget one {|Inl|} when typing the term, GHC rejects the definition.»
+  [agdaP|
+  |oops_ = Lam $ \x → Lam $ \y → Var (Inr x) 
+  |-- Couldn't match expected type `v1' with actual type `v'
+  |]
+
+  p""«In fact, the possibility of making a mistake is inexistant (if we ignore diverging terms).»
+
+  p""«Ineed, because the type {|v|} corresponding to a bound variable is universally quantified, 
+      the only way to construct a value of its type is to use the variable bound by {|Lam|}.»
+  p""«Conversely, in a closed context, if one considers the expression {|Var (f x)|}, only one possible value of {|f|} 
+      is admissible. Indeed, any context, the type of variables is {|w = w0 ⊕ v0 ⊕ v1 ⊕ ⋯ ⊕ vn|} where {|v0|}, {|v1|}, … , {|vn|} 
+      are all distinct and universally quantified, and none of them occurs as part of {|w0|}. 
+      Hence, there is only one injection function from a given {|vi|} to {|w|}.»
+
+  -- subsection $ «Auto-inject»
+  p""«Knowing that the injection functions are purely mechanical, one may wish to automate them.
+      Thanks the the powerful class mechanism of Haskell, this is feasible. 
+      We can define a class {|v ∈ w|} capturing that {|v|} occurs as part of a sum {|w|}:»
+  [agdaP|
+  |class v ∈ w where
+  |  inj :: v → w
+  |]  
+  p""«We can then wrap the injection function and {|Var|} in a convenient package:»
+  [agdaP|
+  |var :: forall v w. (v ∈ w) => v → Tm w
+  |var = Var . inj
+  |]
+  p""«and the constant function can be conveniently written:»
+  [agdaP|
+  |const_ :: Tm
+  |const_ = Lam $ \x → Lam $ \y → var x
+  |]
+
+  p""«In sum, our term representation allows to write terms with DeBruijn-indices, 
+      but hides the complexity of juggling with indices.»
+
   -- NP
   section $ «Term Structure» `labeled` termStructure
   p "" $ «Laws»
@@ -179,3 +270,4 @@ doc = document title authors keywords abstract body appendix
 -- }}}
 
 -- vim: foldmarker
+-- -}
