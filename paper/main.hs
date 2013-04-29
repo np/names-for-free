@@ -49,9 +49,9 @@ abstract = [texFile|abstract|]
 keywords = [texFile|keywords|]
 _Agda's = «{_Agda}'s»
 
---notetodo x = p"" $ red «TODO {x}»
+notetodo x = p"" $ red «TODO {x}»
 --notecomm x = p"" $ red «COMMENT {x}»
-notetodo _ = return ()
+-- notetodo _ = return ()
 --notecomm _ = return ()
 
 long = True
@@ -78,6 +78,7 @@ body = {-slice .-} execWriter $ do -- {{{
   -- subsection $ «DeBruijn Indices»
   p""«A common way to represent variables is by the number of variables bound 
       between the occurence of a given variable {|x|} and its declaration.»
+  todo «cite»
   p""«The main advantage of the technique two α-equivalent terms have exactly the same representation.»
   p""«A direct implementation of the technique may yield the following represtenation of untyped lambda terms:»
   [agdaP|
@@ -100,6 +101,8 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«In Haskell, it is possible to remedy to this situation by "nested recursion". 
       That is, one parameterises the type of terms by a type that can represent free variables.
       If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is one free variable, etc.»
+  p""«This representation in known as Nested Abstract Syntax»
+  todo «cite»
   [agdaP|
   |data a ⊕ b = Inl a | Inr b
   |type Succ a = a ⊕ ()
