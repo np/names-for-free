@@ -57,6 +57,8 @@ id' = lam "x" (\x → var x)
 const' :: Term Zero
 const' = lam "x" (\x → lam "y" (\y → var x))
 
+-- oops' = lam "x" (\x → lam "y" (\y → Var (Here x)))
+
 ---------------------
 -- Display code
 
@@ -139,7 +141,7 @@ subst0 (There x) = Var x
 
 (>>=-) :: Term γ -> (γ -> Term δ) -> Term δ
 Var x    >>=- θ = θ x
-Lam nm f >>=- θ = with f $ \t -> Lam nm (\x -> t >>=- lift' x θ)
+Lam nm f >>=- θ = with f $ \(_,t) -> Lam nm (\x -> t >>=- lift' x θ)
 App t u  >>=- θ = App (t >>=- θ) (u >>=- θ)
 
 lift' :: x -> v ⇶ w → (v ▹ Zero) ⇶ (w ▹ x)
@@ -204,22 +206,33 @@ canη = canEta . fmap magic
 
 
 -- DeBrujn-style (?)
-
+{-
 openTerm :: Functor f => (forall w. w → f (v ▹ w)) -> v -> f v
 openTerm b x = fmap (elim id (const x)) (b fresh)
   where fresh = error "cannot identify fresh variables!"
-
+-}
     
-with :: (forall w. w → f (v ▹ w)) -> ((forall w. f (v ▹ w)) -> a) -> a
-with b k = k (b (error "cannot identify fresh variables!"))
+with :: (forall w. w → f (v ▹ w)) -> ((forall w. ((v ▹ w),f (v ▹ w))) -> a) -> a
+with b k = k (fresh,(b fresh))
+  where fresh = error "cannot identify fresh variables!"
 
+class Cmp a where
+  (=?=) :: a -> a -> Bool
+  
+instance Cmp Zero where
+  x =?= y = magic x
+  
+instance Cmp a => Cmp (a ▹ v) where
+  Here _ =?= Here _ = True
+  There x =?= There y = x =?= y
+  _ =?= _ = False
 
 rm :: [v ▹ a] -> [v]
 rm xs = [x | There x <- xs]
 
 freeVars :: Term v -> [v]
 freeVars (Var x) = [x]
-freeVars (Lam _ f) = with f $ \ t -> rm $ freeVars t
+freeVars (Lam _ f) = with f $ \ (_,t) -> rm $ freeVars t
 freeVars (App f a) = freeVars f ++ freeVars a
   
 firstOccurs :: Term (Zero ▹ a) -> Bool
@@ -229,8 +242,8 @@ isFirst (Here _) = True
 isFirst _ = False
 
 canEta :: Term Zero -> Bool
-canEta (Lam _ e') = with e' $ \t -> case t of
-  App e1 (Var (Here _)) -> not (firstOccurs e1)
+canEta (Lam _ e) = with e $ \(x,t) -> case t of
+  App e1 (Var y) -> x =?= y && not (firstOccurs e1)
   _ -> False
 canEta _ = False
 
