@@ -183,9 +183,99 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«In sum, our term representation allows to write terms with DeBruijn-indices, 
       but hides the complexity of juggling with indices.»
-  p""«In sec TODO we will see how this is true not only for term construction, 
-      but in general for term manipulation. Before showing examples of term manipulation, 
-      we describe the algebraic struture of terms using our representation.»
+
+  p""«
+   Our term representation features both concrete indices and higher-order representation of binders.
+   This means that one can take advantage of either aspect when analysing and manipulating terms.
+
+   One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
+   is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
+   This can be realised by applying the constant 1 at every function argument of a Lam constructor. One then needs
+   to adjust the type to forget the difference between the new variables and the others. The variable and application
+   cases offer no surprises. (We defer the description of the functor instance to the next section.)
+   »
+
+  [agdaP|
+  |size1 :: Term Int -> Int
+  |size1 (Var x) = x
+  |size1 (Lam _ g) = 1 + size1 (fmap untag (g 1))
+  |size1 (App t u) = 1 + size1 t + size1 u
+  |]
+
+  p""«
+   An other way to proceed is to simply pass a dummy object to the function arguments of Lam, and
+   use only the deBruijn index to compute results in the case of variables. Using this technique,
+   the size computation looks as follows:
+   »
+
+  [agdaP|
+  |size2 :: Term a -> Int
+  |size2 (Var _) = 1
+  |size2 (Lam g) = 1 + size2 (g ())
+  |size2 (App t u) = 1 + size2 t + size2 u
+  |]
+
+  p""«
+   One may however chose to combine the two approaches. 
+   This time we will assume that an arbitrary environment 
+   mapping free variables to a size. For each new variable,
+   we pass the size that we want to assign to it to the binding function, and 
+   we extend the environment to use that value on the new variable, or
+   lookup in the old environment otherwise.
+   »
+
+  [agdaP|  
+  |size :: (a -> Int) -> Term a -> Int
+  |size f (Var x) = f x
+  |size f (Lam _ g) = 1 + size (extend f) (g 1)
+  |size f (App t u) = 1 + size f t + size f u
+  |
+  |extend g (Here a) = a
+  |extend g (There b) = g b
+  |]
+
+  subsection $ «cata»
+  p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
+      Note that the algebra corresponds to the higher-order representation of lambda terms.»
+  [agdaP|
+  |cata :: (w -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term w -> a
+  |cata fv fl fa (Var x)   = fv x
+  |cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
+  |cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
+  |]
+
+  subsection $ «fresh names»
+  -- our debruijn indices are typed with the context where they are valid.
+  -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
+  -- a debruijn index in a given context is similar to a name.
+
+
+  p "" «A common use case:
+        One only wants to be able to check if an occurence of a variable is a reference to some previously bound variable. 
+        When traversing a binder, one wants to supply a fresh name to the subterm --- occurences may be check for equality to that fresh name.
+
+        »
+
+  [agdaP|
+  |-- recognizer of \x -> e1 x, where x does not occur free in e1
+  |canEta :: Term Zero -> Bool
+  |canEta (Lam _ e) = with e $ \x t -> case t of
+  |  App e1 (Var y) -> lk x == y && not (lk x `memberOf` e1)
+  |  _ -> False
+  |canEta _ = False
+  |]
+
+  [agdaP|
+  |-- recognizer of \x -> \y -> e1 x, where x does not occur free in e1
+  |recognize :: Term Zero -> Bool
+  |recognize t0 = case t0 of 
+  |    Lam _ f -> with f $ \x t1 -> case t1 of
+  |      Lam _ g -> with g $ \y t2 -> case t2 of
+  |        App e1 (Var y) -> y == lk x && not (lk x `memberOf` e1)
+  |        _ -> False   
+  |      _ -> False   
+  |    _ -> False   
+  |]
 
 
   -- NP
@@ -197,42 +287,10 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Renaming/Functor»
   subsection $ «Substitute/Monad»
   subsection $ «Traversable»
+  subsection $ «With»
 
   -- JP/NP
-  section $ «Examples» `labeled` examples
-  subsection $ «size»
-  [agdaP|
-  |sizeFO :: Term a -> Int
-  |sizeFO (Var _) = 1
-  |sizeFO (Lam g) = 1 + sizeFO (g fresh)
-  |sizeFO (App t u) = 1 + sizeFO t + sizeFO u
-  |]
-
-  p""«What if the environment would provide a size for free variables?»
-  [agdaP|  
-  |sizeHO :: (a -> Int) -> Term a -> Int
-  |sizeHO f (Var x) = f x
-  |sizeHO f (Lam _ g) = 1 + sizeHO (extend f) (g 1)
-  |sizeHO f (App t u) = 1 + sizeHO f t + sizeHO f u
-  |
-  |extend g (Here a) = a
-  |extend g (There b) = g b
-  |]
-
-  subsection $ «cata»
-  p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms. Note that the algebra corresponds to the higher-order representation of lambda terms.»
-  [agdaP|
-  |cata :: (b -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term b -> a
-  |cata fv fl fa (Var x)   = fv x
-  |cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
-  |cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
-  |]
-
-  subsection $ «fresh names»
-  -- our debruijn indices are typed with the context where they are valid.
-  -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
-  -- a debruijn index in a given context is similar to a name.
-
+  section $ «Bigger Examples» `labeled` examples
 
 
   subsection $ «free variables»
@@ -247,7 +305,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   subsection $ «member of»
-  subsection $ «η?»
   subsection $ «α-eq»
   [agdaP|
   |equiv :: (a -> a -> Bool) -> Term a -> Term a -> Bool

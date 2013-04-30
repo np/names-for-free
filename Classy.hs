@@ -180,6 +180,12 @@ sizeHO f (Var x) = f x
 sizeHO f (Lam _ g) = 1 + sizeHO (extend f) (g 1)
 sizeHO f (App t u) = 1 + sizeHO f t + sizeHO f u
 
+sizeM :: Term Int -> Int
+sizeM (Var x) = x
+sizeM (Lam _ g) = 1 + sizeM (fmap untag (g 1))
+sizeM (App t u) = 1 + sizeM t + sizeM u
+
+
 sizeFO :: Term a -> Int
 sizeFO (Var _) = 1
 sizeFO (Lam _ g) = 1 + sizeFO (g ())
@@ -224,8 +230,8 @@ openTerm b x = fmap (elim id (const x)) (b fresh)
   where fresh = error "cannot identify fresh variables!"
 -}
     
-with :: (forall v. v → f (w :▹ v)) -> (forall v. (v,f (w :▹ v)) -> a) -> a
-with b k = k (fresh,(b fresh))
+with :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
+with b k = k fresh (b fresh)
   where fresh = error "cannot query fresh variables!"
 
 instance Eq w => Eq (w :▹ v) where
@@ -242,11 +248,11 @@ rm xs = [x | There x <- xs]
 
 freeVars :: Term w -> [w]
 freeVars (Var x) = [x]
-freeVars (Lam _ f) = with f $ \ (_,t) -> rm $ freeVars t
+freeVars (Lam _ f) = with f $ \_ t -> rm $ freeVars t
 freeVars (App f a) = freeVars f ++ freeVars a
 
 canEta :: Term Zero -> Bool
-canEta (Lam _ e) = with e $ \(x,t) -> case t of
+canEta (Lam _ e) = with e $ \x t -> case t of
   App e1 (Var y) -> lk x == y && not (lk x `memberOf` e1)
   _ -> False
 canEta _ = False
@@ -255,8 +261,8 @@ canEta _ = False
 -- recognizer of \x -> \y -> f x
 recognize :: Term Zero -> Bool
 recognize t0 = case t0 of 
-    Lam _ f -> with f $ \(x,t1) -> case t1 of
-      Lam _ g -> with g $ \(y,t2) -> case t2 of
+    Lam _ f -> with f $ \x t1 -> case t1 of
+      Lam _ g -> with g $ \y t2 -> case t2 of
         (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
         _ -> False   
       _ -> False   
