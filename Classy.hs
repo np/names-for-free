@@ -10,7 +10,6 @@ import Control.Monad (join)
 -- Generic programming prelude
 
 data (▹) a b = There a | Here b 
-  deriving Eq
 data Zero
 
 elim :: (γ -> a) -> (v -> a) -> γ ▹ v -> a
@@ -45,6 +44,7 @@ data Term v where
   Var :: v → Term v
   Lam :: Name → (forall w. w → Term (v ▹ w)) → Term v
   App :: Term v → Term v → Term v
+   
 
 var :: forall a γ. (a ∈ γ) => a → Term γ
 var = Var . lk
@@ -81,9 +81,6 @@ cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
 extend g (Here a) = a
 extend g (There b) = g b
         
-size :: Term Zero -> Int
-size = cata magic (\f -> 1 + f 1) (\a b -> 1 + a + b)
-
 -----------------------------------------------------------
 -- Terms are monads
 -- (which means they support substitution as they should)
@@ -120,7 +117,7 @@ instance Functor Term where
 subst' :: (∀v. v → Term v) → Term w → Term w
 subst' t u = join (t u)
 
-
+{-
 -- Nbe (HOAS-style)
 eval :: Term v -> Term v
 eval (Var x) = Var x
@@ -147,7 +144,7 @@ App t u  >>=- θ = App (t >>=- θ) (u >>=- θ)
 lift' :: x -> v ⇶ w → (v ▹ Zero) ⇶ (w ▹ x)
 lift' _ θ (There x) = wk (θ x)
 lift' x _ (Here _) = var x 
-
+-}
 
 {-
 data Ne v where
@@ -175,6 +172,21 @@ yak (There x) = x
 yak (Here x) = Emb' (Var' x)
 -}
 
+-------------------
+-- Size
+
+sizeHO :: (a -> Int) -> Term a -> Int
+sizeHO f (Var x) = f x
+sizeHO f (Lam _ g) = 1 + sizeHO (extend f) (g 1)
+sizeHO f (App t u) = 1 + sizeHO f t + sizeHO f u
+
+sizeFO :: Term a -> Int
+sizeFO (Var _) = 1
+sizeFO (Lam _ g) = 1 + sizeFO (g ())
+sizeFO (App t u) = 1 + sizeFO t + sizeFO u
+
+sizeC :: Term Zero -> Int
+sizeC = cata magic (\f -> 1 + f 1) (\a b -> 1 + a + b)
 
 -----------------------
 -- Can eta contract ?
@@ -212,40 +224,57 @@ openTerm b x = fmap (elim id (const x)) (b fresh)
   where fresh = error "cannot identify fresh variables!"
 -}
     
-with :: (forall w. w → f (v ▹ w)) -> ((forall w. ((v ▹ w),f (v ▹ w))) -> a) -> a
+with :: (forall v. v → f (w ▹ v)) -> (forall v. (v,f (w ▹ v)) -> a) -> a
 with b k = k (fresh,(b fresh))
-  where fresh = error "cannot identify fresh variables!"
+  where fresh = error "cannot query fresh variables!"
 
-class Cmp a where
-  (=?=) :: a -> a -> Bool
+instance Eq w => Eq (w ▹ v) where
+  Here _ == Here _ = True
+  There x == There y = x == y
+  _ == _ = False
+
   
-instance Cmp Zero where
-  x =?= y = magic x
-  
-instance Cmp a => Cmp (a ▹ v) where
-  Here _ =?= Here _ = True
-  There x =?= There y = x =?= y
-  _ =?= _ = False
+memberOf :: Eq w => w -> Term w -> Bool
+memberOf x t = x `elem` freeVars t
 
 rm :: [v ▹ a] -> [v]
 rm xs = [x | There x <- xs]
 
-freeVars :: Term v -> [v]
+freeVars :: Term w -> [w]
 freeVars (Var x) = [x]
 freeVars (Lam _ f) = with f $ \ (_,t) -> rm $ freeVars t
 freeVars (App f a) = freeVars f ++ freeVars a
-  
-firstOccurs :: Term (Zero ▹ a) -> Bool
-firstOccurs t = any isFirst (freeVars t)
-
-isFirst (Here _) = True
-isFirst _ = False
 
 canEta :: Term Zero -> Bool
 canEta (Lam _ e) = with e $ \(x,t) -> case t of
-  App e1 (Var y) -> x =?= y && not (firstOccurs e1)
+  App e1 (Var y) -> lk x == y && not (lk x `memberOf` e1)
   _ -> False
 canEta _ = False
+
+
+-- recognizer of \x -> \y -> f x
+recognize :: Term Zero -> Bool
+recognize t0 = case t0 of 
+    Lam _ f -> with f $ \(x,t1) -> case t1 of
+      Lam _ g -> with g $ \(y,t2) -> case t2 of
+        (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
+        _ -> False   
+      _ -> False   
+    _ -> False   
+
+
+-------------
+-- α-eq
+
+fresh :: Zero
+fresh = error "cannot access free variables"
+
+
+instance Eq a => Eq (Term a) where
+  Var x == Var x' = x == x'
+  Lam _ g == Lam _ g' = -- with g $ \(_,t) -> with g' $ \(_,t') -> t == t'
+                        g fresh == g' fresh
+  App t u == App t' u' = t == t' && u == u'        
 
 -------------
 -- CPS
@@ -255,7 +284,7 @@ data Primop v :: * where
 --  Fals' :: Primop v
   Var' :: v -> Primop v
   Abs' :: (∀ w. w -> Term' (v ▹ w)) -> Primop v
-  (:-) :: v -> v -> Primop v 
+  (:-) :: v -> v -> Primop v  -- Pair
   Π1   :: v -> Primop v
   Π2   :: v -> Primop v
 
@@ -311,10 +340,10 @@ cps (App e1 e2) = splice (cps e1) $ \ f ->
                       App' (lk f) (lk p)
                       
 cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x -> 
-                                 Let (Π2 (lk p)) $ \k ->
-                                 splice (wk (cps (e' x))) $ \r -> 
-                                 App' (lk k) (lk r))
-                (\x -> Halt' (lk x))
+                                    Let (Π2 (lk p)) $ \k ->
+                                    splice (wk (cps (e' x))) $ \r -> 
+                                    App' (lk k) (lk r))
+                      (\x -> Halt' (lk x))
                  
 todo = error "todo!"                 
                   
@@ -333,14 +362,11 @@ instance (x ∈ γ) => x ∈ (γ ▹ y) where
 class a :< b where
   inj :: a → b
 
-instance a :< a where
-  inj = id
+instance a :< a where inj = id
 
-instance Zero :< a where
-  inj = magic
+instance Zero :< a where inj = magic
 
-instance (γ :< δ) => (γ ▹ v) :< (δ ▹ v) where
-  inj = mapu inj id
+instance (γ :< δ) => (γ ▹ v) :< (δ ▹ v) where  inj = mapu inj id
 
 instance (a :< c) => a :< (c ▹ b) where
   inj = There . inj

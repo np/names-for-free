@@ -78,7 +78,7 @@ body = {-slice .-} execWriter $ do -- {{{
   -- subsection $ «DeBruijn Indices»
   p""«A common way to represent variables is by the number of variables bound 
       between the occurence of a given variable {|x|} and its declaration.»
-  todo «cite»
+  notetodo «cite»
   p""«The main advantage of the technique two α-equivalent terms have exactly the same representation.»
   p""«A direct implementation of the technique may yield the following represtenation of untyped lambda terms:»
   [agdaP|
@@ -102,7 +102,7 @@ body = {-slice .-} execWriter $ do -- {{{
       That is, one parameterises the type of terms by a type that can represent free variables.
       If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is one free variable, etc.»
   p""«This representation in known as Nested Abstract Syntax»
-  todo «cite»
+  notetodo «cite»
   [agdaP|
   |data a ⊕ b = Inl a | Inr b
   |type Succ a = a ⊕ ()
@@ -183,6 +183,10 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«In sum, our term representation allows to write terms with DeBruijn-indices, 
       but hides the complexity of juggling with indices.»
+  p""«In sec TODO we will see how this is true not only for term construction, 
+      but in general for term manipulation. Before showing examples of term manipulation, 
+      we describe the algebraic struture of terms using our representation.»
+
 
   -- NP
   section $ «Term Structure» `labeled` termStructure
@@ -196,12 +200,64 @@ body = {-slice .-} execWriter $ do -- {{{
 
   -- JP/NP
   section $ «Examples» `labeled` examples
-  p "double-style remark" «»
   subsection $ «size»
-  subsection $ «free variables» -- maybe lift this upwards.
+  [agdaP|
+  |sizeFO :: Term a -> Int
+  |sizeFO (Var _) = 1
+  |sizeFO (Lam g) = 1 + sizeFO (g fresh)
+  |sizeFO (App t u) = 1 + sizeFO t + sizeFO u
+  |]
+
+  p""«What if the environment would provide a size for free variables?»
+  [agdaP|  
+  |sizeHO :: (a -> Int) -> Term a -> Int
+  |sizeHO f (Var x) = f x
+  |sizeHO f (Lam _ g) = 1 + sizeHO (extend f) (g 1)
+  |sizeHO f (App t u) = 1 + sizeHO f t + sizeHO f u
+  |
+  |extend g (Here a) = a
+  |extend g (There b) = g b
+  |]
+
+  subsection $ «cata»
+  p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms. Note that the algebra corresponds to the higher-order representation of lambda terms.»
+  [agdaP|
+  |cata :: (b -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term b -> a
+  |cata fv fl fa (Var x)   = fv x
+  |cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
+  |cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
+  |]
+
+  subsection $ «fresh names»
+  -- our debruijn indices are typed with the context where they are valid.
+  -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
+  -- a debruijn index in a given context is similar to a name.
+
+
+
+  subsection $ «free variables»
+  [agdaP|
+  |rm :: [w ⊕ a] -> [w]
+  |rm xs = [x | Inl x <- xs]
+  |
+  |freeVars :: Term w -> [w]
+  |freeVars (Var x) = [x]
+  |freeVars (Lam f) = with f $ \ (_,t) -> rm $ freeVars t
+  |freeVars (App f a) = freeVars f ++ freeVars a
+  |]
+
   subsection $ «member of»
   subsection $ «η?»
   subsection $ «α-eq»
+  [agdaP|
+  |equiv :: (a -> a -> Bool) -> Term a -> Term a -> Bool
+  |equiv f (Var x) (Var x') = f x x'
+  |equiv f (Lam _ g) (Lam _ g') = equiv f' (g fresh) (g' fresh)
+  |  where f' (Here _) (Here _) = True
+  |        f' (There x) (There x') = f x x'
+  |equiv f (App t u) (App t' u') = equiv f t t' && equiv f u u'        
+  |]
+
   subsection $ «nbe»
   subsection $ «CPS»
   subsection $ «closure conversion»
