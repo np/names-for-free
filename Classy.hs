@@ -416,6 +416,29 @@ instance Functor ((:▹) a) where
 
 testMe = freeVars ((Lam (Name "x") (\x -> App (var x) (var 'c'))) :: Term (a :▹ Char))
        
+         
+-----------------------------
+-- Krivine Abstract Machine
+
+data Env w' w where -- input (w) and output (w') contexts
+  Cons :: Closure w -> Env w' w -> Env (w' :▹ v) w
+  Nil :: Env w w 
+  
+look :: w' -> Env w' w -> Closure w
+look = undefined
+  
+data Closure w where
+  C :: Term w' -> Env w' w -> Closure w
+  
+type Stack w = [Closure w]  
+  
+kam :: Closure w -> Stack w -> Maybe (Closure w,Stack w)
+kam (C (Lam n f) ρ) (u:s) = with f $ \ x t -> Just (C t (Cons u ρ), s)
+kam (C (App t u) ρ) s    = Just (C t ρ,C u ρ:s)
+kam (C (Var x)   ρ) s    = Just (look x ρ,  s)
+kam _ _ = Nothing
+
+
 -- -}
 -- -}
 -- -}
