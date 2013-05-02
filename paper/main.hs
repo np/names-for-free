@@ -104,8 +104,8 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«This representation in known as Nested Abstract Syntax»
   notetodo «cite»
   [agdaP|
-  |data a ⊕ b = Inl a | Inr b
-  |type Succ a = a ⊕ ()
+  |data a ▹ b = Inl a | Inr b 
+  |type Succ a = a ▹ ()
   |              
   |data TmN a where
   |  Var :: a → TmN a
@@ -134,7 +134,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |data Tm w where
   |  Var :: w → Tm w
   |  App :: Tm w → Tm w → Tm w
-  |  Lam :: (∀ v. v → Tm (w ⊕ v)) → TmN a
+  |  Lam :: (∀ v. v → Tm (w ▹ v)) → TmN a
   |]
   p""«That is, instead of adding a concrete unique type in the recursive parameter of {|Lam|}, 
       we quantify universally over a type variable {|v|} and add this type variable to the type of free variables.»
@@ -147,7 +147,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   -- subsection $ «Safety»
-  p""«Now, if one were to make a mistake and forget one {|Inl|} when typing the term, GHC rejects the definition.»
+  p""«Now, if one makes a mistake and forgets one {|Inl|} when typing the term, GHC rejects the definition.»
   [agdaP|
   |oops_ = Lam $ \x → Lam $ \y → Var (Inr x) 
   |-- Couldn't match expected type `v1' with actual type `v'
@@ -155,16 +155,16 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«In fact, the possibility of making a mistake is inexistant (if we ignore diverging terms).»
 
-  p""«Ineed, because the type {|v|} corresponding to a bound variable is universally quantified, 
+  p""«Indeed, because the type {|v|} corresponding to a bound variable is universally quantified, 
       the only way to construct a value of its type is to use the variable bound by {|Lam|}.»
   p""«Conversely, in a closed context, if one considers the expression {|Var (f x)|}, only one possible value of {|f|} 
-      is admissible. Indeed, any context, the type of variables is {|w = w0 ⊕ v0 ⊕ v1 ⊕ ⋯ ⊕ vn|} where {|v0|}, {|v1|}, … , {|vn|} 
+      is admissible. Indeed, any context, the type of variables is {|w = w0 ▹ v0 ▹ v1 ▹ ⋯ ▹ vn|} where {|v0|}, {|v1|}, … , {|vn|} 
       are all distinct and universally quantified, and none of them occurs as part of {|w0|}. 
       Hence, there is only one injection function from a given {|vi|} to {|w|}.»
 
   -- subsection $ «Auto-inject»
   p""«Knowing that the injection functions are purely mechanical, one may wish to automate them.
-      Thanks the the powerful class mechanism of Haskell, this is feasible. 
+      Thanks the the powerful instance search mechanism implemented in GHC, this is feasible. 
       We can define a class {|v ∈ w|} capturing that {|v|} occurs as part of a sum {|w|}:»
   [agdaP|
   |class v ∈ w where
@@ -181,18 +181,18 @@ body = {-slice .-} execWriter $ do -- {{{
   |const_ = Lam $ \x → Lam $ \y → var x
   |]
 
-  p""«In sum, our term representation allows to write terms with DeBruijn-indices, 
-      but hides the complexity of juggling with indices.»
+  p""«Our term representation allows to construct terms with DeBruijn-indices, 
+      combined with the safety and convenience of named variables. These advantages
+      extend to the analysis and manipulation on terms.
 
-  p""«
-   Our term representation features both concrete indices and higher-order representation of binders.
-   This means that one can take advantage of either aspect when analysing and manipulating terms.
+   Indeed, because the representation contains both concrete indices and functions at
+   bindinding sites, one can take advantage of either aspect when analysing and manipulating terms.
 
    One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
    is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
    This can be realised by applying the constant 1 at every function argument of a Lam constructor. One then needs
-   to adjust the type to forget the difference between the new variables and the others. The variable and application
-   cases offer no surprises. (We defer the description of the functor instance to the next section.)
+   to adjust the type to forget the difference between the new variable and the others. The variable and application
+   cases then offer no surprises. (We defer the description of the functor instance to the next section.)
    »
 
   [agdaP|
@@ -217,7 +217,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«
    One may however chose to combine the two approaches. 
-   This time we will assume that an arbitrary environment 
+   This time we also assume an arbitrary environment 
    mapping free variables to a size. For each new variable,
    we pass the size that we want to assign to it to the binding function, and 
    we extend the environment to use that value on the new variable, or
@@ -229,54 +229,89 @@ body = {-slice .-} execWriter $ do -- {{{
   |size f (Var x) = f x
   |size f (Lam _ g) = 1 + size (extend f) (g 1)
   |size f (App t u) = 1 + size f t + size f u
-  |
+  |]
+  [agdaP|  
   |extend g (Here a) = a
   |extend g (There b) = g b
   |]
 
-  subsection $ «cata»
+  subsection $ «Catamorphism»
   p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
       Note that the algebra corresponds to the higher-order representation of lambda terms.»
   [agdaP|
-  |cata :: (w -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term w -> a
-  |cata fv fl fa (Var x)   = fv x
-  |cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
-  |cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
+  |type Algebra w a = (w → a, (a → a) → a, a → a → a)
+  |cata :: Algebra w a → Term w → a
+  |cata φ@(v,l,a) s = case s of
+  |   Var x   → v x
+  |   Lam f   → l (cata (extend v,l,a) . f)
+  |   App t u → a (cata φ t) (cata φ u)
   |]
 
-  subsection $ «fresh names»
+  subsection $ «DeBruijn indices as names»
   -- our debruijn indices are typed with the context where they are valid.
   -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
   -- a debruijn index in a given context is similar to a name.
 
 
-  p "" «A common use case:
-        One only wants to be able to check if an occurence of a variable is a reference to some previously bound variable. 
-        When traversing a binder, one wants to supply a fresh name to the subterm --- occurences may be check for equality to that fresh name.
+  p "" «A common use case is that one wants to be able to check if an occurence of
+        a variable is a reference to some previously bound variable. 
+        With deBruijn indices, one must (yet again) count the number of binders traversed 
+        between the variable bindings and its potential occurences --- as error prone as it gets.
+        Here as well, we can take advantage of polymorphism to ensure 
+        that no mistake happens. We provide a combinator {|unpack|}, which transforms
+        a binding structure
+        (of type {|forall v. v → Tm (w :▹ v)|}) into a sub-term with one more free variable 
+        {|Tm (w :▹ v)|} and a value (called {|x|} below) of type {|v|}, where {|v|} is 
+        bound existentially. We write the combinator in CPS in order to encode the existential:
+        »
+  [agdaP|
+  |unpack :: (forall v. v → Tm (w ▹ v)) → 
+  |          (forall v. v → Tm (w ▹ v) → a) → a
+  |]
 
+  p "" «     
+        Because {|v|} is existentially bound and occurs only positively in {|Tm|}, {|x|}
+        can never be used in a computation. It acts as a reference to a variable in a context,
+        but in a way which is only accesible to the type-checker.
+
+        That is, when facing for example a term {|t|} of type {|Tm (w ▹ v ▹ a ▹ b)|}, {|x|}
+        refers to the third free variable in {|t|}.
+
+        Using {|unpack|}, one can write a function recognising an eta-contractible term as follows:
+        (Recall that an a eta-contractible term has the form {|\x → e x|}, where {|x|} 
+        does not occur free in {|e|}.)
         »
 
   [agdaP|
-  |-- recognizer of \x -> e1 x, where x does not occur free in e1
-  |canEta :: Term Zero -> Bool
-  |canEta (Lam _ e) = with e $ \x t -> case t of
-  |  App e1 (Var y) -> lk x == y && not (lk x `memberOf` e1)
-  |  _ -> False
+  |canEta :: Term Zero → Bool
+  |canEta (Lam e) = unpack e $ \x t → case t of
+  |  App e1 (Var y) → y `isOccurenceOf` x && 
+  |                   not (x `occursIn` e1)
+  |  _ → False
   |canEta _ = False
   |]
 
+  p "" «In the above example, the functions {|isOccurenceOf|} and {|occursIn|} use the {|inj|}
+        function to lift {|x|} to a reference in the right context before comparing it to the
+        occurences.
+        The occurence checks do not get more complicated in the presence of multiple
+        binders. For example, the code which recognises the pattern {|\x y → e x|} is
+        as follows:»
+
   [agdaP|
-  |-- recognizer of \x -> \y -> e1 x, where x does not occur free in e1
-  |recognize :: Term Zero -> Bool
+  |recognize :: Term Zero → Bool
   |recognize t0 = case t0 of 
-  |    Lam _ f -> with f $ \x t1 -> case t1 of
-  |      Lam _ g -> with g $ \y t2 -> case t2 of
-  |        App e1 (Var y) -> y == lk x && not (lk x `memberOf` e1)
-  |        _ -> False   
-  |      _ -> False   
-  |    _ -> False   
+  |    Lam f → unpack f $ \x t1 → case t1 of
+  |      Lam g → unpack g $ \y t2 → case t2 of
+  |        App e1 (Var y) → y `isOccurenceOf` x && 
+  |                         not (x `occursIn` e1)
+  |        _ → False   
+  |      _ → False   
+  |    _ → False   
   |]
 
+  p""«Again, even though our representation is a variant of DeBruijn indices, the use of polymorphism
+      allows to refer to variables by name, while remaining safe.»
 
   -- NP
   section $ «Term Structure» `labeled` termStructure
@@ -295,19 +330,19 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «free variables»
   [agdaP|
-  |rm :: [w ⊕ a] -> [w]
+  |rm :: [w ▹ a] → [w]
   |rm xs = [x | Inl x <- xs]
   |
-  |freeVars :: Term w -> [w]
+  |freeVars :: Term w → [w]
   |freeVars (Var x) = [x]
-  |freeVars (Lam f) = with f $ \ (_,t) -> rm $ freeVars t
+  |freeVars (Lam f) = with f $ \ (_,t) → rm $ freeVars t
   |freeVars (App f a) = freeVars f ++ freeVars a
   |]
 
-  subsection $ «member of»
+  subsection $ «Member of»
   subsection $ «α-eq»
   [agdaP|
-  |equiv :: (a -> a -> Bool) -> Term a -> Term a -> Bool
+  |equiv :: (a → a → Bool) → Term a → Term a → Bool
   |equiv f (Var x) (Var x') = f x x'
   |equiv f (Lam _ g) (Lam _ g') = equiv f' (g fresh) (g' fresh)
   |  where f' (Here _) (Here _) = True
@@ -334,7 +369,39 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Syntax for free»
   p "+" «Forced to use catamorphism to analyse terms»
   subsection $ «McBride's "Classy Hack"»
-  subsection $ «NaPa/NomPa»
+  subsection $ «NomPa (nominal fragment)»
+
+  [agdaP|
+  |World :: Set -- abstract
+  |Binder :: Set -- abstract
+  |Name :: World → Set -- abstract
+  |(◃) :: Binder → World → World -- abstract
+  |data Tm α : Set where
+  |  Var :: Name α → Tm α
+  |  App :: Tm α → Tm α → Tm α
+  |  Lam :: (b : Binder) → Tm (b ◃ α) → Tm α
+  |]
+
+  p""«Our representation is an instance of Pouillard's NomPa framework, where:»
+  
+  [agdaP|
+  |World = ★
+  |Binder = (v : ★) × v
+  |Name w = w
+  |(v,_) ◃ w = w ▹ v
+  |]
+
+  p""«export is replaced by with»
+
+  p""«After this instanciation, dependent types are no longer required --- but impredicativity is.»
+  
+  
+  p""«Perhaps counter intuitively, our representation is an instance of the nominal fragment of NomPa,
+      while it appears to be closer to a DeBruijn representation. 
+      This suggests that the debruijn fragment of NomPa could be made 
+      closer to the nominal fragment by using the ideas of this paper.
+      »
+
   subsection $ «Multiple Binders/Rec/Pattern/Telescope»
 
   -- ??
@@ -352,7 +419,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p "" «impredicativity»
   p "getting rid of the injections by using a stronger type system" «»
 
-  p "acknowledgements" «Emil Axelsson wrote a definition of catamorphism on untyped lambda terms.»  
+  p "acknowledgements" «We thank Emil Axelsson for discussions on name binding.»  
   
   itemize $ do 
 --    it «PHOAS»

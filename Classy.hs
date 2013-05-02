@@ -229,10 +229,20 @@ openTerm :: Functor f => (forall w. w → f (v :▹ w)) -> v -> f v
 openTerm b x = fmap (elim id (const x)) (b fresh)
   where fresh = error "cannot identify fresh variables!"
 -}
+
+data Ex f w where
+  Ex :: v -> f (w :▹ v) -> Ex f w
     
+with' :: (forall v. v → f (w :▹ v)) -> Ex f w
+with' f = with f Ex
+
 with :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
 with b k = k fresh (b fresh)
   where fresh = error "cannot query fresh variables!"
+
+with'' :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
+with'' f k = case with' f of  Ex x t -> k x t
+
 
 instance Eq w => Eq (w :▹ v) where
   Here _ == Here _ = True
@@ -243,6 +253,12 @@ instance Eq w => Eq (w :▹ v) where
 memberOf :: Eq w => w -> Term w -> Bool
 memberOf x t = x `elem` freeVars t
 
+occursIn :: (Eq w, v :∈ w) => v -> Term w -> Bool
+occursIn x t = lk x `elem` freeVars t
+
+isOccurenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
+isOccurenceOf x y = x == lk y
+
 rm :: [v :▹ a] -> [v]
 rm xs = [x | There x <- xs]
 
@@ -252,8 +268,8 @@ freeVars (Lam _ f) = with f $ \_ t -> rm $ freeVars t
 freeVars (App f a) = freeVars f ++ freeVars a
 
 canEta :: Term Zero -> Bool
-canEta (Lam _ e) = with e $ \x t -> case t of
-  App e1 (Var y) -> lk x == y && not (lk x `memberOf` e1)
+canEta (Lam _ e) = case with' e of
+  Ex x (App e1 (Var y)) -> lk x == y && not (lk x `memberOf` e1)
   _ -> False
 canEta _ = False
 
@@ -264,6 +280,16 @@ recognize t0 = case t0 of
     Lam _ f -> with f $ \x t1 -> case t1 of
       Lam _ g -> with g $ \y t2 -> case t2 of
         (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
+        _ -> False   
+      _ -> False   
+    _ -> False   
+
+-- recognizer of \x -> \y -> f x
+recognize' :: Term Zero -> Bool
+recognize' t0 = case t0 of 
+    Lam _ f -> case with' f of
+      Ex x (Lam _ g) -> case with' g of 
+        Ex y (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
         _ -> False   
       _ -> False   
     _ -> False   
