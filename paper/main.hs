@@ -70,6 +70,7 @@ commentWhen False x = x
 
 body = {-slice .-} execWriter $ do -- {{{
   -- JP (when the rest is ready)
+  notetodo «ACM classification (JP: no clue how it's done these days!)»
   section $ «Intro» `labeled` intro
   subsection $ «Example final»
   
@@ -104,7 +105,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«This representation in known as Nested Abstract Syntax»
   notetodo «cite»
   [agdaP|
-  |data a ▹ b = Inl a | Inr b 
+  |data a ▹ b = There a | Here b 
   |type Succ a = a ▹ ()
   |              
   |data TmN a where
@@ -118,7 +119,7 @@ body = {-slice .-} execWriter $ do -- {{{
   [agdaP|
   |data Zero -- no constructor
   |constN :: TmN Zero
-  |constN = Lam $ Lam $ Var (Inl (Inr ()))
+  |constN = Lam $ Lam $ Var (There (Here ()))
   |]
   p ""«As promised, the type is explicit about {|constN|} being closed.»
   p "" «In passing, we remark that another valid type for closed terms is {|∀ a. TmN a|} 
@@ -130,6 +131,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   -- subsection $ «Our stuff»
   p""«To address this issue, we propose the following representation:»
+  notetodo «Frame this?»
   [agdaP|
   |data Tm w where
   |  Var :: w → Tm w
@@ -143,13 +145,13 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«The constant function is then represented as follows:»
   [agdaP|
   |const_ :: Tm
-  |const_ = Lam $ \x → Lam $ \y → Var (Inl (Inr x))
+  |const_ = Lam $ \x → Lam $ \y → Var (There (Here x))
   |]
 
   -- subsection $ «Safety»
-  p""«Now, if one makes a mistake and forgets one {|Inl|} when typing the term, GHC rejects the definition.»
+  p""«Now, if one makes a mistake and forgets one {|There|} when typing the term, GHC rejects the definition.»
   [agdaP|
-  |oops_ = Lam $ \x → Lam $ \y → Var (Inr x) 
+  |oops_ = Lam $ \x → Lam $ \y → Var (Here x) 
   |-- Couldn't match expected type `v1' with actual type `v'
   |]
 
@@ -165,7 +167,7 @@ body = {-slice .-} execWriter $ do -- {{{
   -- subsection $ «Auto-inject»
   p""«Knowing that the injection functions are purely mechanical, one may wish to automate them.
       Thanks the the powerful instance search mechanism implemented in GHC, this is feasible. 
-      We can define a class {|v ∈ w|} capturing that {|v|} occurs as part of a sum {|w|}:»
+      We can define a class {|v ∈ w|} capturing that {|v|} occurs as part of a context {|w|}:»
   [agdaP|
   |class v ∈ w where
   |  inj :: v → w
@@ -322,35 +324,80 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Renaming/Functor»
   subsection $ «Substitute/Monad»
   subsection $ «Traversable»
-  subsection $ «With»
+  subsection $ «Unpack»
+  
+  [agdaP|
+  |unpack b k = k fresh (b fresh)
+  |fresh = error "cannot query fresh variables!"
+  |]
 
   -- JP/NP
   section $ «Bigger Examples» `labeled` examples
 
-
   subsection $ «free variables»
   [agdaP|
   |rm :: [w ▹ a] → [w]
-  |rm xs = [x | Inl x <- xs]
+  |rm xs = [x | There x <- xs]
   |
   |freeVars :: Term w → [w]
   |freeVars (Var x) = [x]
-  |freeVars (Lam f) = with f $ \ (_,t) → rm $ freeVars t
+  |freeVars (Lam f) = unpack f $ \ _ t → rm $ freeVars t
   |freeVars (App f a) = freeVars f ++ freeVars a
   |]
 
-  subsection $ «Member of»
-  subsection $ «α-eq»
+  subsection $ «Occurence Test»
+
   [agdaP|
-  |equiv :: (a → a → Bool) → Term a → Term a → Bool
-  |equiv f (Var x) (Var x') = f x x'
-  |equiv f (Lam _ g) (Lam _ g') = equiv f' (g fresh) (g' fresh)
-  |  where f' (Here _) (Here _) = True
-  |        f' (There x) (There x') = f x x'
-  |equiv f (App t u) (App t' u') = equiv f t t' && equiv f u u'        
+  |instance Eq w => Eq (w ▹ v) where
+  |  Here _ == Here _ = True
+  |  There x == There y = x == y
+  |  _ == _ = False
   |]
 
+  [agdaP|
+  |occursIn :: (Eq w, v :∈ w) => v -> Term w -> Bool
+  |occursIn x t = lk x `elem` freeVars t
+  |
+  |isOccurenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
+  |isOccurenceOf x y = x == lk y
+  |]
+
+  subsection $ «α equivalence»
+
+  [agdaP|
+  |unpack2 :: (forall v. v → f (w ▹ v)) → 
+  |           (forall v. v → g (w ▹ v)) → 
+  |             
+  |           (forall v. v → f (w ▹ v) → 
+  |                          g (w ▹ v) → a) →
+  |           a 
+  |unpack2 f f' k = k fresh (f fresh) (f' fresh)          
+  |]
+
+
+  [agdaP|
+  |instance Eq a => Eq (Term a) where
+  |  Var x == Var x' = x == x'
+  |  Lam g == Lam g' = unpack2 g g' $ \_ t t' -> t == t'
+  |  App t u == App t' u' = t == t' && u == u'        
+  |]  
+
   subsection $ «nbe»
+  [agdaP|
+  |eval :: Term v -> Term v
+  |eval (Var x) = Var x
+  |eval (Lam n t) = Lam n (eval . t)
+  |eval (App t u) = app (eval t) (eval u)
+  |
+  |app :: Term v -> Term v -> Term v
+  |app (Lam _ t) u = subst0 =<< t u 
+  |app t u = App t u
+  |
+  |subst0 :: v :▹ Term v -> Term v
+  |subst0 (Here x) = x
+  |subst0 (There x) = Var x
+  |]
+
   subsection $ «CPS»
   subsection $ «closure conversion»
 
@@ -376,22 +423,22 @@ body = {-slice .-} execWriter $ do -- {{{
   |Binder :: Set -- abstract
   |Name :: World → Set -- abstract
   |(◃) :: Binder → World → World -- abstract
-  |data Tm α : Set where
+  |data Tm α where
   |  Var :: Name α → Tm α
   |  App :: Tm α → Tm α → Tm α
-  |  Lam :: (b : Binder) → Tm (b ◃ α) → Tm α
+  |  Lam :: (b :: Binder) → Tm (b ◃ α) → Tm α
   |]
-
+  notetodo «The left-pointing triangle does not appear correctly »
   p""«Our representation is an instance of Pouillard's NomPa framework, where:»
   
   [agdaP|
-  |World = ★
-  |Binder = (v : ★) × v
+  |World = *
+  |Binder = (v :: *) × v
   |Name w = w
   |(v,_) ◃ w = w ▹ v
   |]
 
-  p""«export is replaced by with»
+  p""«export is replaced by unpack»
 
   p""«After this instanciation, dependent types are no longer required --- but impredicativity is.»
   

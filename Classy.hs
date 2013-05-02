@@ -117,7 +117,7 @@ instance Functor Term where
 subst' :: (∀v. v → Term v) → Term w → Term w
 subst' t u = join (t u)
 
-{-
+
 -- Nbe (HOAS-style)
 eval :: Term v -> Term v
 eval (Var x) = Var x
@@ -135,7 +135,7 @@ subst0 :: v :▹ Term v -> Term v
 subst0 (Here x) = x
 subst0 (There x) = Var x
 
-
+{-
 (>>=-) :: Term γ -> (γ -> Term δ) -> Term δ
 Var x    >>=- θ = θ x
 Lam nm f >>=- θ = with f $ \(_,t) -> Lam nm (\x -> t >>=- lift' x θ)
@@ -240,6 +240,15 @@ with :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> 
 with b k = k fresh (b fresh)
   where fresh = error "cannot query fresh variables!"
 
+unpack2 :: (forall v. v → f (w :▹ v)) -> 
+           (forall v. v → g (w :▹ v)) -> 
+             
+           (forall v. v → f (w :▹ v) -> 
+                          g (w :▹ v) -> a) ->
+           a 
+unpack2 f f' k = k fresh (f fresh) (f' fresh)          
+  where fresh = error "cannot query fresh variables!"
+
 with'' :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
 with'' f k = case with' f of  Ex x t -> k x t
 
@@ -304,8 +313,7 @@ fresh = error "cannot access free variables"
 
 instance Eq a => Eq (Term a) where
   Var x == Var x' = x == x'
-  Lam _ g == Lam _ g' = -- with g $ \(_,t) -> with g' $ \(_,t') -> t == t'
-                        g fresh == g' fresh
+  Lam _ g == Lam _ g' = unpack2 g g' $ \_ t t' -> t == t'
   App t u == App t' u' = t == t' && u == u'        
 
 -------------
@@ -338,7 +346,7 @@ spliceAbs :: ∀ v   .
              (forall w. w  → Term' (v :▹ w) ) -> 
              (∀ w. w  → Term' (v :▹ w) ) -> 
              forall w. w  → Term' (v :▹ w) 
-spliceAbs e' e2 x = splice (e' x) (\ x₁ → fmap (mapu There id) (e2 x₁))
+spliceAbs e' e2 x = splice (e' x) (\ x₁ → wk (e2 x₁))
 
 -- in e1, substitude Halt' by an arbitrary continuation e2
 splice :: forall v  .
@@ -377,8 +385,7 @@ cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x ->
                                     App' (lk k) (lk r))
                       (\x -> Halt' (lk x))
                  
-todo = error "todo!"                 
-                  
+
 
 
 class x :∈ γ where
