@@ -4,11 +4,13 @@
 
 import Language.LaTeX
 
+import System.Cmd (system)
+import System.Directory (doesFileExist)
 import Control.Monad.Writer hiding (when)
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
-import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent)
+import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet)
 import NomPaKit hiding (when)
 import NomPaKit.QQ
 
@@ -32,7 +34,7 @@ import NomPaKit.QQ
 -- [keys|TODO|]
 
 -- citations
-[keys|citeTODO|]
+[keys|pouillard_unified_2012|]
 
 title = «Parametric Nested Abstract Syntax»
   -- «A Classy Kind of Nested Abstract Syntax»
@@ -378,11 +380,12 @@ body = {-slice .-} execWriter $ do -- {{{
   [agdaP|
   |instance Eq a => Eq (Term a) where
   |  Var x == Var x' = x == x'
-  |  Lam g == Lam g' = unpack2 g g' $ \_ t t' -> t == t'
+  |  Lam g == Lam g' = g () == g' ()
+  |  -- or: Lam g == Lam g' = unpack2 g g' $ \_ t t' -> t == t'
   |  App t u == App t' u' = t == t' && u == u'        
   |]  
 
-  subsection $ «nbe»
+  subsection $ «Normalisation by evaluation»
   [agdaP|
   |eval :: Term v -> Term v
   |eval (Var x) = Var x
@@ -418,18 +421,36 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «McBride's "Classy Hack"»
   subsection $ «NomPa (nominal fragment)»
 
+  p""«{citet[pouillardunified2012]} describe an interface for names and binders which provides maximum safety.
+      The library is writen in Agda, using dependent types. The interface makes use of an abstract notion 
+      of {|World|}s (set of names), {|Binder|}s (name declaration), and {|Name|}s (the occurence of a name).
+
+      A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator.
+     »
+
   [agdaP|
-  |World :: Set -- abstract
-  |Binder :: Set -- abstract
-  |Name :: World → Set -- abstract
-  |(◃) :: Binder → World → World -- abstract
+  |-- Abstract interface
+  |World :: *
+  |Binder :: * 
+  |Name :: World → *
+  |Empty :: World 
+  |(◃) :: Binder → World → World
+  |]
+
+  p""«
+  A {|Name|} set is indexed by a {|World|}: this ties occurences to the context where they make sense.
+  On top of these abstract notions, one can construct the following representation of terms:
+  »
+  
+  [agdaP|
   |data Tm α where
   |  Var :: Name α → Tm α
   |  App :: Tm α → Tm α → Tm α
   |  Lam :: (b :: Binder) → Tm (b ◃ α) → Tm α
   |]
   notetodo «The left-pointing triangle does not appear correctly »
-  p""«Our representation is an instance of Pouillard's NomPa framework, where:»
+  p""«Our representation is an instance of Pouillard's NomPa framework, 
+      where we instanciate the abstract interface as follows:»
   
   [agdaP|
   |World = *
@@ -445,7 +466,7 @@ body = {-slice .-} execWriter $ do -- {{{
   
   p""«Perhaps counter intuitively, our representation is an instance of the nominal fragment of NomPa,
       while it appears to be closer to a DeBruijn representation. 
-      This suggests that the debruijn fragment of NomPa could be made 
+      This suggests that the ``DeBruijn'' fragment of NomPa could be made 
       closer to the nominal fragment by using the ideas of this paper.
       »
 
@@ -492,6 +513,11 @@ appendix = execWriter $ do
 -- }}}
 
 main = do -- {{{
+  let jpbib = "../../gitroot/bibtex/jp.bib"
+  e <- doesFileExist jpbib
+  unless (not e) $ do putStrLn "refreshing bib"
+                      system $ "cp " ++ jpbib ++ " ." 
+                      return ()
   let base = "out"
   writeAgdaTo "PaperCode.hs" $ doc
   quickView myViewOpts{basedir=base,showoutput=False,pdfviewer="echo"} "paper" doc
