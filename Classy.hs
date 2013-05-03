@@ -48,8 +48,8 @@ data Term v where
   App :: Term v → Term v → Term v
    
 
-var :: forall a γ. (a :∈ γ) => a → Term γ
-var = Var . lk
+var :: Monad m => forall a γ. (a :∈ γ) => a → m γ
+var = return . lk
 
 lam = Lam
 
@@ -87,15 +87,14 @@ extend g (There b) = g b
 -- Terms are monads
 -- (which means they support substitution as they should)
 
-
 wk :: (Functor f, γ :< δ) => f γ -> f δ
 wk = fmap inj
 
 -- Kleisli arrows arising from the Term monad
-type v :=> w = v → Term w
+type Kl m v w = v → m w
 
--- Union is a functor in the category of Kleisli arrows (:=>)
-lift :: v :=> w → (v :▹ x) :=> (w :▹ x)
+-- Union is a functor in the category of Kleisli arrows
+lift :: (Functor f, Monad f) => Kl f v w → Kl f (v :▹ x) (w :▹ x)
 lift θ (There x) = wk (θ x)
 lift _ (Here x) = var x
 
@@ -368,9 +367,6 @@ splicePrim (y :- y') e2 = y :- y'
 splicePrim (Π1 y) e2 = Π1 y
 splicePrim (Π2 y) e2 = Π2 y  
 
-var' :: forall a b. (a :∈ b) => a → Primop b
-var' = Var' . lk
-
 cps :: Term v -> Term' v
 -- cps Tru = Let Tru' (Halt' . There)
 -- cps Fals = Let Fals' (Halt' . There) 
@@ -445,9 +441,12 @@ kam _ _ = Nothing
 -- Closure conversion 
 -- following Guillemette&Monnier, A Type-Preserving Closure Conversion in Haskell, fig 2.
 
-instance Functor w where
-instance Monad w where
+instance Functor LC where
+  fmap f t = t >>= return . f
 
+instance Monad LC where
+  return = VarC
+  
 data LC w where
   VarC :: w -> LC w
   Closure :: (forall vx venv. vx -> venv -> LC (Zero :▹ venv :▹ vx)) -> -- ^ code
@@ -458,22 +457,30 @@ data LC w where
   Index :: w -> Int -> LC w
   AppC :: LC w -> LC w -> LC w
  
-varC :: forall a γ. (a :∈ γ) => a → LC γ
-varC = VarC . lk
-
 cc :: forall w. Eq w => Term w -> LC w  
 cc (Var x) = VarC x
 cc (Lam _ f) = unpack f $ \x e -> 
   let yn = nub $ rm $ freeVars e 
       
   in Closure (\x' env -> subst (\z -> case z of
-                                             Here _ -> varC x' -- x becomes x'
+                                             Here _ -> var x' -- x becomes x'
                                              There w -> fmap There (Index (lk env) (fromJust $ elemIndex w yn))
                                                         -- other free vars are looked up in the env.
                                              -- unfortunately wk fails here.
                                          ) (cc e)) 
              (Tuple $ map VarC yn)
-cc (App e1 e2) = LetOpen (cc e1) (\xf xenv -> (varC xf `AppC` wk (cc e2)) `AppC` varC xenv)
+cc (App e1 e2) = LetOpen (cc e1) (\xf xenv -> (var xf `AppC` wk (cc e2)) `AppC` var xenv)
+
+-- Possibly nicer version.
+cc' :: forall w. Eq w => Term w -> LC w  
+cc' (Var x) = VarC x
+cc' t0@(Lam _ f) = 
+  let yn = nub $ freeVars t0
+  in Closure (\x env -> subst (lift (\w -> (Index (lk env) (fromJust $ elemIndex w yn))))
+                                           (cc' (f x)))
+             (Tuple $ map VarC yn)
+cc' (App e1 e2) = LetOpen (cc' e1) (\xf xenv -> (var xf `AppC` wk (cc' e2)) `AppC` var xenv)
+
 
 -----------------------
 -- 
