@@ -456,13 +456,13 @@ body = {-slice .-} execWriter $ do -- {{{
   |World = *
   |Binder = (v :: *) × v
   |Name w = w
+  |Empty = Zero
   |(v,_) ◃ w = w ▹ v
   |]
 
-  p""«export is replaced by unpack»
+  p""«export is replaced by unpack (?)»
 
-  p""«After this instanciation, dependent types are no longer required --- but impredicativity is.»
-  
+  p""«After this instantiation, dependent types are no longer required --- but impredicativity is.»
   
   p""«Perhaps counter intuitively, our representation is an instance of the nominal fragment of NomPa,
       while it appears to be closer to a DeBruijn representation. 
@@ -482,10 +482,23 @@ body = {-slice .-} execWriter $ do -- {{{
 
   -- JP
   section $ «Discussion» `labeled` discussion
+
   p "non-intrusive" «the approach can be used locally»
+
   p "" «more remarks about safetly»
+
   p "" «impredicativity»
-  p "getting rid of the injections by using a stronger type system" «»
+
+  p "getting rid of the injections by using a stronger type system" «
+    We use the powerful GHC instance search in a very specific way: only to discover in injections. 
+    This suggests that a special-purpose type-system (featuring a form of subtyping) 
+    could be built to take care of those injections automatically.
+    An obvious benefit would be some additional shortening of programs manipulating terms. 
+    A more subtle one is that, since injections would not be present at all, the performance 
+    would be increased. Additionally, this simplification of programs would imply an
+    even greater simplification of the proofs about them; indeed, a variation in complexity in
+    an object usually yields a greater variation in complexity in proofs about it.
+  »
 
   p "acknowledgements" «We thank Emil Axelsson for discussions on name binding.»  
   
