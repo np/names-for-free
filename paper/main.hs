@@ -35,7 +35,8 @@ import NomPaKit.QQ
 
 -- citations
 [keys|pouillard_unified_2012
-      mcbride_am_2010|]
+      mcbride_am_2010
+     |]
 
 title = «Parametric Nested Abstract Syntax»
   -- «A Classy Kind of Nested Abstract Syntax»
@@ -420,7 +421,7 @@ body = {-slice .-} execWriter $ do -- {{{
   -- the point of types isn’t the crap you’re not allowed to write,
   -- it’s the other crap you don’t want to bother figuring out.
 
-  p "" «{cite mcbride_am_2010} has devised a set of combinators to construct 
+  p "" «{citet[mcbrideam2010]} has devised a set of combinators to construct 
         lambda terms in de Brujin representation, with the ability to refer to 
         bound variables by name. Terms constructed using McBride's technique are 
         textually identical to terms constructed using ours. Another point of 
@@ -436,12 +437,16 @@ body = {-slice .-} execWriter $ do -- {{{
         simpler, at the expense of {|lam|}:
         »
   [agdaP|
-  |lam :: String -> ((forall n. (Leq (S m) n => Fin n)) -> Term (S m)) -> Term m
-  |var :: Fin n -> Term n
+  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Term (S m))
+  |        → Term m
+  |var :: Fin n → Term n
   |]
   p "" «The above types also reveal somewhat less precise types that what we use.
-        Notably, the {|Leq|} class captures only one aspect of context inclusion (|{:<}|),
-        namely that one context should be smaller than another.»
+        Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|:<|}
+        in our development),
+        namely that one context should be smaller than another.
+        This means, for example, that the class constraint {|w :< w'|} can be meaning fully resolved
+        in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
 
   subsection $ «NomPa (nominal fragment)»
 
@@ -473,6 +478,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |  Lam :: (b :: Binder) → Tm (b ◃ α) → Tm α
   |]
   notetodo «The left-pointing triangle does not appear correctly »
+
+  notetodo «The rest of the section is wrong.»
   p""«Our representation is an instance of Pouillard's NomPa framework, 
       where we instanciate the abstract interface as follows:»
   
