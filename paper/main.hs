@@ -34,7 +34,8 @@ import NomPaKit.QQ
 -- [keys|TODO|]
 
 -- citations
-[keys|pouillard_unified_2012|]
+[keys|pouillard_unified_2012
+      mcbride_am_2010|]
 
 title = «Parametric Nested Abstract Syntax»
   -- «A Classy Kind of Nested Abstract Syntax»
@@ -364,24 +365,18 @@ body = {-slice .-} execWriter $ do -- {{{
   |isOccurenceOf x y = x == lk y
   |]
 
-  subsection $ «α equivalence»
+  subsection $ «Test of α-equivalence»
+  p""«
+   Testing for α-equivalent terms is straightforward. Our representation contains debruijn indices, so
+   we only need to ignore the higher-order aspect. This can be done by simply applying dummy elements
+   at every binding site. Additionally, as a natural refinement over the mere α-equivalence test, we allow
+   for an equality test to be supplied for free variables. This equality test is provided by an {|Eq|} instance:
+   »
 
   [agdaP|
-  |unpack2 :: (forall v. v → f (w ▹ v)) → 
-  |           (forall v. v → g (w ▹ v)) → 
-  |             
-  |           (forall v. v → f (w ▹ v) → 
-  |                          g (w ▹ v) → a) →
-  |           a 
-  |unpack2 f f' k = k fresh (f fresh) (f' fresh)          
-  |]
-
-
-  [agdaP|
-  |instance Eq a => Eq (Term a) where
+  |instance Eq w => Eq (Term w) where
   |  Var x == Var x' = x == x'
   |  Lam g == Lam g' = g () == g' ()
-  |  -- or: Lam g == Lam g' = unpack2 g g' $ \_ t t' -> t == t'
   |  App t u == App t' u' = t == t' && u == u'        
   |]  
 
@@ -402,6 +397,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   subsection $ «CPS»
+
+
   subsection $ «closure conversion»
 
   -- NP
@@ -419,6 +416,33 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Syntax for free»
   p "+" «Forced to use catamorphism to analyse terms»
   subsection $ «McBride's "Classy Hack"»
+  
+  -- the point of types isn’t the crap you’re not allowed to write,
+  -- it’s the other crap you don’t want to bother figuring out.
+
+  p "" «{cite mcbride_am_2010} has devised a set of combinators to construct 
+        lambda terms in de Brujin representation, with the ability to refer to 
+        bound variables by name. Terms constructed using McBride's technique are 
+        textually identical to terms constructed using ours. Another point of 
+        similiarity is the use of instance search to recover the indices from a 
+        host-language variable name.
+
+        Even though McBride's combinators use polymorphism in a way similar to ours,
+        a difference is that they produce a plain de Brujin representation, 
+        while we keep the polymorphism throughout.
+
+        Another difference is that McBride integrate the injection in the abstraction
+        constructor rather than the variable one. The type of the {|var|} combinator becomes then
+        simpler, at the expense of {|lam|}:
+        »
+  [agdaP|
+  |lam :: String -> ((forall n. (Leq (S m) n => Fin n)) -> Term (S m)) -> Term m
+  |var :: Fin n -> Term n
+  |]
+  p "" «The above types also reveal somewhat less precise types that what we use.
+        Notably, the {|Leq|} class captures only one aspect of context inclusion (|{:<}|),
+        namely that one context should be smaller than another.»
+
   subsection $ «NomPa (nominal fragment)»
 
   p""«{citet[pouillardunified2012]} describe an interface for names and binders which provides maximum safety.
@@ -427,7 +451,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
       A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator.
      »
-
+  notetodo «Do not output this in "PaperCode.hs"» 
   [agdaP|
   |-- Abstract interface
   |World :: *
@@ -459,6 +483,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |Empty = Zero
   |(v,_) ◃ w = w ▹ v
   |]
+
+  p""«no loss of precision by doing this instanciation (?)»
 
   p""«export is replaced by unpack (?)»
 
