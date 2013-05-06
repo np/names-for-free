@@ -130,7 +130,7 @@ body = {-slice .-} execWriter $ do -- {{{
        --- literally: the type of terms which have an unknown number of free variables.
        Indeed, because {|a|} is universally quantified, there is no way to construct an inhabitant of it; 
        one cannot possibly refer to any free variable.»
-  p""«Another drawback of using DeBruijn indices is that it is easy to make a mistake
+  p""«Another drawback of using de Bruijn indices is that it is easy to make a mistake
       when counting the number of binders between the declaration of a variable and its occurence.»
 
   -- subsection $ «Our stuff»
@@ -187,7 +187,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |const_ = Lam $ \x → Lam $ \y → var x
   |]
 
-  p""«Our term representation allows to construct terms with DeBruijn-indices, 
+  p""«Our term representation allows to construct terms with de Bruijn-indices, 
       combined with the safety and convenience of named variables. These advantages
       extend to the analysis and manipulation on terms.
 
@@ -210,7 +210,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«
    An other way to proceed is to simply pass a dummy object to the function arguments of Lam, and
-   use only the deBruijn index to compute results in the case of variables. Using this technique,
+   use only the de Bruijn index to compute results in the case of variables. Using this technique,
    the size computation looks as follows:
    »
 
@@ -253,7 +253,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |   App t u → a (cata φ t) (cata φ u)
   |]
 
-  subsection $ «DeBruijn indices as names»
+  subsection $ «De Bruijn indices as names»
   -- our debruijn indices are typed with the context where they are valid.
   -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
   -- a debruijn index in a given context is similar to a name.
@@ -261,7 +261,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p "" «A common use case is that one wants to be able to check if an occurence of
         a variable is a reference to some previously bound variable. 
-        With deBruijn indices, one must (yet again) count the number of binders traversed 
+        With de Bruijn indices, one must (yet again) count the number of binders traversed 
         between the variable bindings and its potential occurences --- as error prone as it gets.
         Here as well, we can take advantage of polymorphism to ensure 
         that no mistake happens. We provide a combinator {|unpack|}, which transforms
@@ -316,7 +316,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |    _ → False   
   |]
 
-  p""«Again, even though our representation is a variant of DeBruijn indices, the use of polymorphism
+  p""«Again, even though our representation is a variant of de Bruijn indices, the use of polymorphism
       allows to refer to variables by name, while remaining safe.»
 
   -- NP
@@ -368,7 +368,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Test of α-equivalence»
   p""«
-   Testing for α-equivalent terms is straightforward. Our representation contains debruijn indices, so
+   Testing for α-equivalent terms is straightforward. Our representation contains de Bruijn indices, so
    we only need to ignore the higher-order aspect. This can be done by simply applying dummy elements
    at every binding site. Additionally, as a natural refinement over the mere α-equivalence test, we allow
    for an equality test to be supplied for free variables. This equality test is provided by an {|Eq|} instance:
@@ -498,8 +498,8 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«After this instantiation, dependent types are no longer required --- but impredicativity is.»
   
   p""«Perhaps counter intuitively, our representation is an instance of the nominal fragment of NomPa,
-      while it appears to be closer to a DeBruijn representation. 
-      This suggests that the ``DeBruijn'' fragment of NomPa could be made 
+      while it appears to be closer to a de Bruijn representation. 
+      This suggests that the ``de Bruijn'' fragment of NomPa could be made 
       closer to the nominal fragment by using the ideas of this paper.
       »
 
