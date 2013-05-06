@@ -358,7 +358,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |
   |instance Zero :< a where injMany = magic
   |
-  |instance (γ :< δ) ⇒ (γ :▹ v) :< (δ :▹ v) where  injMany = mapu injMany id
+  |instance (γ :< δ) ⇒ (γ :▹ v) :< (δ :▹ v) where
+  |  injMany = mapu injMany id
   |
   |instance (a :< c) ⇒ a :< (c :▹ b) where
   |  injMany = There . injMany
@@ -454,7 +455,7 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «CPS»
 
 
-  subsection $ «closure conversion»
+  subsection $ «Closure Conversion»
 
   -- NP
   section $ «Comparisons» `labeled` comparison
