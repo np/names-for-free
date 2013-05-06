@@ -80,7 +80,10 @@ body = {-slice .-} execWriter $ do -- {{{
   section $ «Intro» `labeled` intro
   subsection $ «Example final»
   [agdaP|
-  |{-# LANGUAGE RankNTypes, UnicodeSyntax, TypeOperators, GADTs, MultiParamTypeClasses, FlexibleInstances, UndecidableInstances, IncoherentInstances #-} 
+  |{-# LANGUAGE RankNTypes, UnicodeSyntax, 
+  |    TypeOperators, GADTs, MultiParamTypeClasses, 
+  |    FlexibleInstances, UndecidableInstances, 
+  |    IncoherentInstances #-} 
   |]
   
   -- JP
@@ -126,14 +129,16 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«Using this representation, the representation of the constant function {|\x y → x|} is the following:»
   [agdaP|
-  |data Zero -- no constructor
-  |magic :: Zero -> a
-  |magic _ = error "magic!"
-  |
   |constN :: TmN Zero
   |constN = LamN $ LamN $ VarN (There (Here ()))
   |]
-  p ""«As promised, the type is explicit about {|constN|} being closed.»
+  p ""«As promised, the type is explicit about {|constN|} being a close term: this 
+       is ensured by using the empty type {|Zero|} as an argument to {|TmN|}.»
+  [agdaP|
+  |data Zero -- no constructor
+  |magic :: Zero -> a
+  |magic _ = error "magic!"
+  |]
   p "" «In passing, we remark that another valid type for closed terms is {|∀ a. TmN a|} 
        --- literally: the type of terms which have an unknown number of free variables.
        Indeed, because {|a|} is universally quantified, there is no way to construct an inhabitant of it; 
@@ -186,7 +191,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]  
   p""«We can then wrap the injection function and {|Var|} in a convenient package:»
   [agdaP|
-  |var :: forall v w. (v ∈ w) => v → Tm w
+  |var :: forall v w. (v ∈ w) ⇒ v → Tm w
   |var = Var . inj
   |]
   p""«and the constant function can be conveniently written:»
@@ -341,7 +346,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |instance x ∈ (γ ▹ x) where
   |  inj = Here
   |  
-  |instance (x ∈ γ) => x ∈ (γ ▹ y) where
+  |instance (x ∈ γ) ⇒ x ∈ (γ ▹ y) where
   |  inj = There . inj
   |]
 
@@ -353,9 +358,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |
   |instance Zero :< a where injMany = magic
   |
-  |instance (γ :< δ) => (γ :▹ v) :< (δ :▹ v) where  injMany = mapu injMany id
+  |instance (γ :< δ) ⇒ (γ :▹ v) :< (δ :▹ v) where  injMany = mapu injMany id
   |
-  |instance (a :< c) => a :< (c :▹ b) where
+  |instance (a :< c) ⇒ a :< (c :▹ b) where
   |  injMany = There . injMany
   |]
 
@@ -401,17 +406,17 @@ body = {-slice .-} execWriter $ do -- {{{
   |instance Eq Zero where
   |  (==) = magic
   |
-  |instance Eq w => Eq (w ▹ v) where
+  |instance Eq w ⇒ Eq (w ▹ v) where
   |  Here _ == Here _ = True
   |  There x == There y = x == y
   |  _ == _ = False
   |]
 
   [agdaP|
-  |occursIn :: (Eq w, v ∈ w) => v -> Tm w -> Bool
+  |occursIn :: (Eq w, v ∈ w) ⇒ v -> Tm w -> Bool
   |occursIn x t = inj x `elem` freeVars t
   |
-  |isOccurenceOf :: (Eq w, v ∈ w) => w -> v -> Bool
+  |isOccurenceOf :: (Eq w, v ∈ w) ⇒ w -> v -> Bool
   |isOccurenceOf x y = x == inj y
   |]
 
@@ -424,7 +429,7 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|
-  |instance Eq w => Eq (Tm w) where
+  |instance Eq w ⇒ Eq (Tm w) where
   |  Var x == Var x' = x == x'
   |  Lam g == Lam g' = g () == g' ()
   |  App t u == App t' u' = t == t' && u == u'        
@@ -526,8 +531,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |  App :: Tm α → Tm α → Tm α
   |  Lam :: (b :: Binder) → Tm (b ◅ α) → Tm α
   |]
-  notetodo «The left-pointing triangle does not appear correctly »
-
   notetodo «The rest of the section is wrong.»
   p""«Our representation is an instance of Pouillard's NomPa framework, 
       where we instanciate the abstract interface as follows:»
