@@ -72,11 +72,16 @@ commentWhen :: Bool -> ParItemW -> ParItemW
 commentWhen True  x = doComment x
 commentWhen False x = x
 
+commentCode = commentWhen True
+
 body = {-slice .-} execWriter $ do -- {{{
   -- JP (when the rest is ready)
   notetodo «ACM classification (JP: no clue how it's done these days!)»
   section $ «Intro» `labeled` intro
   subsection $ «Example final»
+  [agdaP|
+  |{-# LANGUAGE RankNTypes, UnicodeSyntax, TypeOperators, GADTs, MultiParamTypeClasses, FlexibleInstances, UndecidableInstances, IncoherentInstances #-} 
+  |]
   
   -- JP
   section $ «Overview» `labeled` overview
@@ -89,14 +94,14 @@ body = {-slice .-} execWriter $ do -- {{{
   [agdaP|
   |data Nat = Zero | Succ Nat
   |data TmDB where
-  |  Var :: Nat → TmDB
-  |  App :: TmDB → TmDB → TmDB
-  |  Lam :: TmDB → TmDB
+  |  VarDB :: Nat → TmDB
+  |  AppDB :: TmDB → TmDB → TmDB
+  |  LamDB :: TmDB → TmDB
   |]
   p""«Using this representation, the representation of the constant function {|\x y -> x|} is the following:»
   [agdaP|
   |constDB :: TmDB
-  |constDB = Lam $ Lam $ Var (Succ Zero)
+  |constDB = LamDB $ LamDB $ VarDB (Succ Zero)
   |]
 
   p""«However, such a direct implementation is naïve. It cannot distinguish between open and closed terms. 
@@ -113,17 +118,20 @@ body = {-slice .-} execWriter $ do -- {{{
   |type Succ a = a ▹ ()
   |              
   |data TmN a where
-  |  Var :: a → TmN a
-  |  App :: TmN a → TmN a → TmN a
-  |  Lam :: TmN (Succ a) → TmN a
+  |  VarN :: a → TmN a
+  |  AppN :: TmN a → TmN a → TmN a
+  |  LamN :: TmN (Succ a) → TmN a
   |]
   p""«The recursive case {|Lam|} changes the parameter type, increasing its cardinality by one.»
 
   p""«Using this representation, the representation of the constant function {|\x y → x|} is the following:»
   [agdaP|
   |data Zero -- no constructor
+  |magic :: Zero -> a
+  |magic _ = error "magic!"
+  |
   |constN :: TmN Zero
-  |constN = Lam $ Lam $ Var (There (Here ()))
+  |constN = LamN $ LamN $ VarN (There (Here ()))
   |]
   p ""«As promised, the type is explicit about {|constN|} being closed.»
   p "" «In passing, we remark that another valid type for closed terms is {|∀ a. TmN a|} 
@@ -140,7 +148,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |data Tm w where
   |  Var :: w → Tm w
   |  App :: Tm w → Tm w → Tm w
-  |  Lam :: (∀ v. v → Tm (w ▹ v)) → TmN a
+  |  Lam :: (∀ v. v → Tm (w ▹ v)) → Tm w
   |]
   p""«That is, instead of adding a concrete unique type in the recursive parameter of {|Lam|}, 
       we quantify universally over a type variable {|v|} and add this type variable to the type of free variables.»
@@ -148,13 +156,13 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«The constant function is then represented as follows:»
   [agdaP|
-  |const_ :: Tm
-  |const_ = Lam $ \x → Lam $ \y → Var (There (Here x))
+  |constTm :: Tm Zero
+  |constTm = Lam $ \x → Lam $ \y → Var (There (Here x))
   |]
 
   -- subsection $ «Safety»
   p""«Now, if one makes a mistake and forgets one {|There|} when typing the term, GHC rejects the definition.»
-  [agdaP|
+  commentCode [agdaP|
   |oops_ = Lam $ \x → Lam $ \y → Var (Here x) 
   |-- Couldn't match expected type `v1' with actual type `v'
   |]
@@ -183,7 +191,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
   p""«and the constant function can be conveniently written:»
   [agdaP|
-  |const_ :: Tm
+  |const_ :: Tm Zero
   |const_ = Lam $ \x → Lam $ \y → var x
   |]
 
@@ -202,10 +210,16 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|
-  |size1 :: Term Int -> Int
+  |size1 :: Tm Int -> Int
   |size1 (Var x) = x
-  |size1 (Lam _ g) = 1 + size1 (fmap untag (g 1))
+  |size1 (Lam g) = 1 + size1 (fmap untag (g 1))
   |size1 (App t u) = 1 + size1 t + size1 u
+  |]
+
+  [agdaP|
+  |untag :: a ▹ a -> a
+  |untag (There x) = x 
+  |untag (Here x) = x 
   |]
 
   p""«
@@ -215,7 +229,7 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|
-  |size2 :: Term a -> Int
+  |size2 :: Tm a -> Int
   |size2 (Var _) = 1
   |size2 (Lam g) = 1 + size2 (g ())
   |size2 (App t u) = 1 + size2 t + size2 u
@@ -231,9 +245,9 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|  
-  |size :: (a -> Int) -> Term a -> Int
+  |size :: (a -> Int) -> Tm a -> Int
   |size f (Var x) = f x
-  |size f (Lam _ g) = 1 + size (extend f) (g 1)
+  |size f (Lam g) = 1 + size (extend f) (g 1)
   |size f (App t u) = 1 + size f t + size f u
   |]
   [agdaP|  
@@ -246,7 +260,7 @@ body = {-slice .-} execWriter $ do -- {{{
       Note that the algebra corresponds to the higher-order representation of lambda terms.»
   [agdaP|
   |type Algebra w a = (w → a, (a → a) → a, a → a → a)
-  |cata :: Algebra w a → Term w → a
+  |cata :: Algebra w a → Tm w → a
   |cata φ@(v,l,a) s = case s of
   |   Var x   → v x
   |   Lam f   → l (cata (extend v,l,a) . f)
@@ -266,8 +280,8 @@ body = {-slice .-} execWriter $ do -- {{{
         Here as well, we can take advantage of polymorphism to ensure 
         that no mistake happens. We provide a combinator {|unpack|}, which transforms
         a binding structure
-        (of type {|forall v. v → Tm (w :▹ v)|}) into a sub-term with one more free variable 
-        {|Tm (w :▹ v)|} and a value (called {|x|} below) of type {|v|}, where {|v|} is 
+        (of type {|forall v. v → Tm (w ▹ v)|}) into a sub-term with one more free variable 
+        {|Tm (w ▹ v)|} and a value (called {|x|} below) of type {|v|}, where {|v|} is 
         bound existentially. We write the combinator in CPS in order to encode the existential:
         »
   [agdaP|
@@ -289,7 +303,7 @@ body = {-slice .-} execWriter $ do -- {{{
         »
 
   [agdaP|
-  |canEta :: Term Zero → Bool
+  |canEta :: Tm Zero → Bool
   |canEta (Lam e) = unpack e $ \x t → case t of
   |  App e1 (Var y) → y `isOccurenceOf` x && 
   |                   not (x `occursIn` e1)
@@ -305,7 +319,7 @@ body = {-slice .-} execWriter $ do -- {{{
         as follows:»
 
   [agdaP|
-  |recognize :: Term Zero → Bool
+  |recognize :: Tm Zero → Bool
   |recognize t0 = case t0 of 
   |    Lam f → unpack f $ \x t1 → case t1 of
   |      Lam g → unpack g $ \y t2 → case t2 of
@@ -323,10 +337,42 @@ body = {-slice .-} execWriter $ do -- {{{
   section $ «Term Structure» `labeled` termStructure
   p "" $ «Laws»
   subsection $ «Contexts, inclusion and membership»
+  [agdaP|
+  |instance x ∈ (γ ▹ x) where
+  |  inj = Here
+  |  
+  |instance (x ∈ γ) => x ∈ (γ ▹ y) where
+  |  inj = There . inj
+  |]
+
+  commentCode [agdaP|
+  |class a :< b where
+  |  injMany :: a → b
+  |
+  |instance a :< a where injMany = id
+  |
+  |instance Zero :< a where injMany = magic
+  |
+  |instance (γ :< δ) => (γ :▹ v) :< (δ :▹ v) where  injMany = mapu injMany id
+  |
+  |instance (a :< c) => a :< (c :▹ b) where
+  |  injMany = There . injMany
+  |]
+
   p "" $ «free theorems»
   p "auto-weakening, type-class hack" mempty
+
   subsection $ «Renaming/Functor»
+  [agdaP|
+  |instance Functor Tm where
+  |]
+
   subsection $ «Substitute/Monad»
+
+  [agdaP|
+  |instance Monad Tm where
+  |]
+
   subsection $ «Traversable»
   subsection $ «Unpack»
   
@@ -343,7 +389,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |rm :: [w ▹ a] → [w]
   |rm xs = [x | There x <- xs]
   |
-  |freeVars :: Term w → [w]
+  |freeVars :: Tm w → [w]
   |freeVars (Var x) = [x]
   |freeVars (Lam f) = unpack f $ \ _ t → rm $ freeVars t
   |freeVars (App f a) = freeVars f ++ freeVars a
@@ -352,6 +398,9 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Occurence Test»
 
   [agdaP|
+  |instance Eq Zero where
+  |  (==) = magic
+  |
   |instance Eq w => Eq (w ▹ v) where
   |  Here _ == Here _ = True
   |  There x == There y = x == y
@@ -359,11 +408,11 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |occursIn :: (Eq w, v :∈ w) => v -> Term w -> Bool
-  |occursIn x t = lk x `elem` freeVars t
+  |occursIn :: (Eq w, v ∈ w) => v -> Tm w -> Bool
+  |occursIn x t = inj x `elem` freeVars t
   |
-  |isOccurenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
-  |isOccurenceOf x y = x == lk y
+  |isOccurenceOf :: (Eq w, v ∈ w) => w -> v -> Bool
+  |isOccurenceOf x y = x == inj y
   |]
 
   subsection $ «Test of α-equivalence»
@@ -375,7 +424,7 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|
-  |instance Eq w => Eq (Term w) where
+  |instance Eq w => Eq (Tm w) where
   |  Var x == Var x' = x == x'
   |  Lam g == Lam g' = g () == g' ()
   |  App t u == App t' u' = t == t' && u == u'        
@@ -383,16 +432,16 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Normalisation by evaluation»
   [agdaP|
-  |eval :: Term v -> Term v
+  |eval :: Tm v -> Tm v
   |eval (Var x) = Var x
-  |eval (Lam n t) = Lam n (eval . t)
+  |eval (Lam t) = Lam (eval . t)
   |eval (App t u) = app (eval t) (eval u)
   |
-  |app :: Term v -> Term v -> Term v
-  |app (Lam _ t) u = subst0 =<< t u 
+  |app :: Tm v -> Tm v -> Tm v
+  |app (Lam t) u = subst0 =<< t u 
   |app t u = App t u
   |
-  |subst0 :: v :▹ Term v -> Term v
+  |subst0 :: v ▹ Tm v -> Tm v
   |subst0 (Here x) = x
   |subst0 (There x) = Var x
   |]
@@ -436,10 +485,11 @@ body = {-slice .-} execWriter $ do -- {{{
         constructor rather than the variable one. The type of the {|var|} combinator becomes then
         simpler, at the expense of {|lam|}:
         »
-  [agdaP|
-  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Term (S m))
-  |        → Term m
-  |var :: Fin n → Term n
+  
+  commentCode [agdaP|
+  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m))
+  |        → Tm m
+  |var :: Fin n → Tm n
   |]
   p "" «The above types also reveal somewhat less precise types that what we use.
         Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|:<|}
@@ -456,14 +506,13 @@ body = {-slice .-} execWriter $ do -- {{{
 
       A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator.
      »
-  notetodo «Do not output this in "PaperCode.hs"» 
-  [agdaP|
+  commentCode [agdaP|
   |-- Abstract interface
   |World :: *
   |Binder :: * 
   |Name :: World → *
   |Empty :: World 
-  |(◃) :: Binder → World → World
+  |(◅) :: Binder → World → World
   |]
 
   p""«
@@ -471,11 +520,11 @@ body = {-slice .-} execWriter $ do -- {{{
   On top of these abstract notions, one can construct the following representation of terms:
   »
   
-  [agdaP|
+  commentCode [agdaP|
   |data Tm α where
   |  Var :: Name α → Tm α
   |  App :: Tm α → Tm α → Tm α
-  |  Lam :: (b :: Binder) → Tm (b ◃ α) → Tm α
+  |  Lam :: (b :: Binder) → Tm (b ◅ α) → Tm α
   |]
   notetodo «The left-pointing triangle does not appear correctly »
 
@@ -483,12 +532,12 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«Our representation is an instance of Pouillard's NomPa framework, 
       where we instanciate the abstract interface as follows:»
   
-  [agdaP|
+  commentCode [agdaP|
   |World = *
   |Binder = (v :: *) × v
   |Name w = w
   |Empty = Zero
-  |(v,_) ◃ w = w ▹ v
+  |(v,_) ◅ w = w ▹ v
   |]
 
   p""«no loss of precision by doing this instanciation (?)»
