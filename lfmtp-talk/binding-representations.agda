@@ -696,18 +696,19 @@ data ⟦Tmᴹ⟧ {A₁ A₂} (Aᵣ : A₁ → A₂ → Set) : ⟦Set₀⟧ (Tm�
 ⟨_⟩ᴿ : ∀ {A B : Set} → (A → B) → A → B → Set
 ⟨ f ⟩ᴿ x y = f x ≡ y
 
-map?⇒⟦Maybe⟧ : ∀ {A B : Set} (f : A → B) → ⟨ map? f ⟩ᴿ ⇒ ⟦Maybe⟧ ⟨ f ⟩ᴿ
-map?⇒⟦Maybe⟧ f {just x}  ≡.refl = ⟦just⟧ ≡.refl
-map?⇒⟦Maybe⟧ f {nothing} ≡.refl = ⟦nothing⟧
+module _ {A B : Set} (f : A → B) where
+    map?⇒⟦Maybe⟧ : ⟨ map? f ⟩ᴿ ⇒ ⟦Maybe⟧ ⟨ f ⟩ᴿ
+    map?⇒⟦Maybe⟧ {just x}  ≡.refl = just ≡.refl
+    map?⇒⟦Maybe⟧ {nothing} ≡.refl = nothing
 
-⟦Maybe⟧⇒map? : ∀ {A B} (f : A → B) → ⟦Maybe⟧ ⟨ f ⟩ᴿ ⇒ ⟨ map? f ⟩ᴿ
-⟦Maybe⟧⇒map? f (⟦just⟧ ≡.refl) = ≡.refl
-⟦Maybe⟧⇒map? f ⟦nothing⟧       = ≡.refl
+    ⟦Maybe⟧⇒map? : ⟦Maybe⟧ ⟨ f ⟩ᴿ ⇒ ⟨ map? f ⟩ᴿ
+    ⟦Maybe⟧⇒map? (just ≡.refl) = ≡.refl
+    ⟦Maybe⟧⇒map? nothing       = ≡.refl
 
 ⟦Maybe⟧-⇒ : ∀ {A₁ A₂ : Set} {Aᵣ Aᵣ′ : A₁ → A₂ → Set} (Aᵣ⇒Aᵣ′ : Aᵣ ⇒ Aᵣ′)
             → ⟦Maybe⟧ Aᵣ ⇒ ⟦Maybe⟧ Aᵣ′
-⟦Maybe⟧-⇒ Aᵣ⇒Aᵣ′ (⟦just⟧ pf) = ⟦just⟧ (Aᵣ⇒Aᵣ′ pf)
-⟦Maybe⟧-⇒ _      ⟦nothing⟧  = ⟦nothing⟧
+⟦Maybe⟧-⇒ Aᵣ⇒Aᵣ′ (just pf) = just (Aᵣ⇒Aᵣ′ pf)
+⟦Maybe⟧-⇒ _      nothing   = nothing
 
 ⟦Tmᴹ⟧-⇒ : ∀ {A₁ A₂ : Set} {Aᵣ Aᵣ′ : A₁ → A₂ → Set}
                 → Aᵣ ⇒ Aᵣ′
@@ -738,11 +739,12 @@ module ⟦Tmᴹ⟧⇔mapᴹ where
             = ≡.refl
     -- }}}
 
-    mapᴹ⇒⟦Tmᴹ⟧ : ∀ {A B} (f : A → B) → ⟨ mapᴹ f ⟩ᴿ ⇒ ⟦Tmᴹ⟧ ⟨ f ⟩ᴿ
-    mapᴹ⇒⟦Tmᴹ⟧ f {t} ≡.refl = [ f ] t
+    module _ {A B : Set} (f : A → B) where
+        mapᴹ⇒⟦Tmᴹ⟧ : ⟨ mapᴹ f ⟩ᴿ ⇒ ⟦Tmᴹ⟧ ⟨ f ⟩ᴿ
+        mapᴹ⇒⟦Tmᴹ⟧ {t} ≡.refl = [ f ] t
 
-    ⟦Tmᴹ⟧⇒mapᴹ : ∀ {A B} (f : A → B) → ⟦Tmᴹ⟧ ⟨ f ⟩ᴿ ⇒ ⟨ mapᴹ f ⟩ᴿ
-    ⟦Tmᴹ⟧⇒mapᴹ f = [ f ]'
+        ⟦Tmᴹ⟧⇒mapᴹ : ⟦Tmᴹ⟧ ⟨ f ⟩ᴿ ⇒ ⟨ mapᴹ f ⟩ᴿ
+        ⟦Tmᴹ⟧⇒mapᴹ = [ f ]'
 
 module Tmᴹ-param where
     open ⟦Tmᴹ⟧⇔mapᴹ
