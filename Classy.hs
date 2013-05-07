@@ -3,10 +3,16 @@
              UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables #-}
 module Classy where
 
+import Prelude hiding (sequence)
 import Data.String
 import Data.List (nub,elemIndex)
 import Data.Maybe (fromJust)
 import Control.Monad (join)
+import Data.Functor
+import Control.Applicative
+import Data.Traversable
+import Data.Foldable
+import Data.Monoid
 
 --------------------------------
 -- Generic programming prelude
@@ -51,13 +57,32 @@ data Term v where
 var :: Monad m => forall a γ. (a :∈ γ) => a → m γ
 var = return . lk
 
+lam :: Name → (forall w. w → Term (v ∪ w)) → Term v
 lam = Lam
 
-id' :: Term Zero
+-- A closed term can be given the 'Term Zero' type.
+-- More generally any type can be used as the type
+-- of the free variables of a closed term including
+-- a polymorphic type.
+idZero :: Term Zero
+idZero = lam "x" (\x → var x)
+
+
+-- fmap magic, wk...
+
+id' :: Term a
 id' = lam "x" (\x → var x)
 
-const' :: Term Zero
-const' = lam "x" (\x → lam "y" (\y → var x))
+const' :: Term a
+const' = lam "x" (\x → lam "y" (\_y → var x))
+
+testfv :: Term String
+testfv = Var "x1" `App` Lam "x2" (\x2->
+           Var (Inl "x3") `App` var x2)
+
+(@@) :: Term a -> Term a -> Term a
+Lam _ f @@ u = f u >>= subst0
+t       @@ u = App t u
 
 -- oops' = lam "x" (\x → lam "y" (\y → Var (Here x)))
 
@@ -67,19 +92,50 @@ const' = lam "x" (\x → lam "y" (\y → var x))
 instance Show x => Show (Term x) where
   show = disp
 
+-- half broken since names are never freshen
 disp :: Show x => Term x → String
 disp (Var x)    = show x
 disp (App a b)  = "(" ++ disp a ++ ")" ++ disp b
 disp (Lam nm f) = "λ" ++ unName nm ++ "." ++ disp (f nm)
 
+data Disp a = Disp { dispVar :: a -> String
+                   , curDispId :: Int }
+
+extDisp :: Name -> Disp a -> Disp (a ∪ w)
+extDisp nm (Disp v n) = Disp v' (n+1) where
+  v' (Inl a) = v a
+  v' (Inr _) = show (mkName nm n)
+
+mkName :: Name -> Int -> Name
+mkName (Name nm) i = Name $ nm ++ show i
+
+--dispVar :: Disp a -> Term a → ShowS
+
+text :: String -> ShowS
+text s1 s2 = s1 ++ s2
+
+disp' :: Disp a -> Term a → ShowS
+disp' d (Var x)    = text (dispVar d x)
+disp' d (App a b)  = text "(" . disp' d a . text ")" . disp' d b
+disp' d (Lam nm f) = text "λ" . text (show nm') . text "." . disp' d' (f ())
+  where d'  = extDisp nm d
+        nm' = mkName nm (curDispId d)
+
+dispZero :: Term Zero -> String
+dispZero t = disp' (Disp magic 0) t ""
+
+printZero :: Term Zero -> IO ()
+printZero = putStrLn . dispZero
+
 ---------------------
 -- Catamorphism
 
 cata :: (b -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term b -> a
-cata fv fl fa (Var x)   = fv x
+cata fv _  _  (Var x)   = fv x
 cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
 cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
   
+extend :: (a -> b) -> (a ∪ b) -> b
 extend g (Here a) = a
 extend g (There b) = g b
         
@@ -341,6 +397,88 @@ instance Functor Term' where
 mapu :: (u -> u') -> (v -> v') -> (u :▹ v) -> (u' :▹ v')
 mapu f g (There x) = There (f x)
 mapu f g (Here x) = Here (g x)
+
+instance Traversable Term where
+  traverse f (Var x) =
+    Var <$> f x
+  traverse f (App t u) =
+    App <$> traverse f t <*> traverse f u
+  traverse f (Lam nm b) =
+    (\t -> Lam nm (bind t)) <$>
+      traverse (traverseu f pure) (b ())
+
+type Binding f a = forall b. b -> f (a ∪ b)
+
+bind :: Functor f => f (a ∪ ()) -> Binding f a
+bind t x = fmap (mapu id (const x)) t
+
+traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
+                              a ∪ b -> f (a' ∪ b')
+traverseu f _ (Inl x) = Inl <$> f x
+traverseu _ g (Inr x) = Inr <$> g x
+
+fv' :: Term a -> [a]
+fv' = toList
+
+memberOf :: Eq a => a -> Term a -> Bool
+x `memberOf` t = getAny $ foldMap (Any . (==x)) t
+
+type Succ a = a ∪ ()
+
+instance Applicative ((∪) ()) where
+  pure = Inr
+  Inr f <*> Inr x = Inr (f x)
+  _     <*> _     = Inl ()
+
+instance Monad ((∪) ()) where
+  return = Inr
+  Inr x >>= f = f x
+  Inl _ >>= _ = Inl ()
+
+type Cmp a b = a -> b -> Bool
+
+succCmp :: Cmp a b -> Cmp (Succ a) (Succ b)
+succCmp f (Inl x)  (Inl y)  = f x y
+succCmp _ (Inr ()) (Inr ()) = True
+succCmp _ _        _        = False
+
+cmpTerm :: Cmp a b -> Cmp (Term a) (Term b)
+cmpTerm cmp (Var x1) (Var x2) = cmp x1 x2
+cmpTerm cmp (App t1 u1) (App t2 u2) =
+  cmpTerm cmp t1 t2 && cmpTerm cmp u1 u2
+cmpTerm cmp (Lam _ f1) (Lam _ f2) =
+  cmpTerm (succCmp cmp) (f1 ()) (f2 ())
+cmpTerm _ _ _ = False
+
+instance Eq a => Eq (Term a) where
+  (==) = cmpTerm (==)
+
+
+close :: Term (Succ a) -> Maybe (Term a)
+close = traverse succToMaybe
+
+succToMaybe :: Succ a -> Maybe a
+succToMaybe (Inl a) = Just a
+succToMaybe (Inr _) = Nothing
+
+canη' :: Eq a => Term a -> Bool
+canη' (Lam _ t)
+  | App u (Var (Inr ())) <- t ()
+    = not (Inr () `memberOf` u)
+canη' _ = False
+
+ηred :: Term a -> Term a
+ηred (Lam _ t)
+  | App u (Var (Inr ())) <- t ()
+  , Just u' <- close u
+  = u'
+ηred t = t
+
+ηexp :: Term a -> Term a
+ηexp t = Lam "x" $ \x-> App (wk t) (var x)
+
+instance Foldable Term where
+  foldMap = foldMapDefault
 
   
 spliceAbs :: ∀ v   .
