@@ -351,17 +351,17 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   commentCode [agdaP|
-  |class a :< b where
+  |class a ⊆ b where
   |  injMany :: a → b
   |
-  |instance a :< a where injMany = id
+  |instance a ⊆ a where injMany = id
   |
-  |instance Zero :< a where injMany = magic
+  |instance Zero ⊆ a where injMany = magic
   |
-  |instance (γ :< δ) ⇒ (γ :▹ v) :< (δ :▹ v) where
+  |instance (γ ⊆ δ) ⇒ (γ ▹ v) ⊆ (δ ▹ v) where
   |  injMany = mapu injMany id
   |
-  |instance (a :< c) ⇒ a :< (c :▹ b) where
+  |instance (a ⊆ c) ⇒ a ⊆ (c ▹ b) where
   |  injMany = There . injMany
   |]
 
@@ -438,17 +438,17 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Normalisation by evaluation»
   [agdaP|
-  |eval :: Tm v -> Tm v
+  |eval :: Tm w -> Tm w
   |eval (Var x) = Var x
   |eval (Lam t) = Lam (eval . t)
   |eval (App t u) = app (eval t) (eval u)
   |
-  |app :: Tm v -> Tm v -> Tm v
+  |app :: Tm w -> Tm w -> Tm w
   |app (Lam t) u = subst0 =<< t u 
   |app t u = App t u
   |
-  |subst0 :: v ▹ Tm v -> Tm v
-  |subst0 (Here x) = x
+  |subst0 :: w ▹ Tm w -> Tm w
+  |subst0 (Here  x) = x
   |subst0 (There x) = Var x
   |]
 
@@ -498,10 +498,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |var :: Fin n → Tm n
   |]
   p "" «The above types also reveal somewhat less precise types that what we use.
-        Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|:<|}
+        Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|⊆|}
         in our development),
         namely that one context should be smaller than another.
-        This means, for example, that the class constraint {|w :< w'|} can be meaning fully resolved
+        This means, for example, that the class constraint {|w ⊆ w'|} can be meaning fully resolved
         in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
 
   subsection $ «NomPa (nominal fragment)»
