@@ -292,7 +292,8 @@ body = {-slice .-} execWriter $ do -- {{{
         a binding structure
         (of type {|forall v. v → Tm (w ▹ v)|}) into a sub-term with one more free variable 
         {|Tm (w ▹ v)|} and a value (called {|x|} below) of type {|v|}, where {|v|} is 
-        bound existentially. We write the combinator in CPS in order to encode the existential:
+        bound existentially. We write the combinator in continuation-passing style
+        in order to encode the existential as a universal quantifier:
         »
   [agdaP|
   |unpack :: (forall v. v → tm (w ▹ v)) → 
@@ -391,11 +392,11 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   subsection $ «Pack/Unpack»
-  
+
   [agdaP|
   |unpack b k = k fresh (b fresh)
   |fresh = error "cannot query fresh variables!"
-  |
+  |-- Note that pack is very generous: it accepts any v'
   |pack :: Functor tm => v' -> tm (w ▹ v') -> (forall v. v -> tm (w ▹ v))
   |pack x t = \y -> fmap (mapu id (const y)) t
   |]
@@ -413,7 +414,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
+  |traverseu :: Functor f => (a -> f a') -> (b -> f b') ->
   |                              a ▹ b -> f (a' ▹ b')
   |traverseu f _ (There x) = There <$> f x
   |traverseu _ g (Here x) = Here <$> g x
