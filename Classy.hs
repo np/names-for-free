@@ -403,14 +403,17 @@ instance Traversable Term where
     Var <$> f x
   traverse f (App t u) =
     App <$> traverse f t <*> traverse f u
-  traverse f (Lam nm b) =
-    (\t -> Lam nm (bind t)) <$>
+  traverse f (Lam nm b) = lam' <$> 
       traverse (traverseu f pure) (b ())
 
 type Binding f a = forall b. b -> f (a ∪ b)
 
-bind :: Functor f => f (a ∪ ()) -> Binding f a
-bind t x = fmap (mapu id (const x)) t
+lam' :: Name → (Term (w :▹ v)) → Term w
+lam' nm = Lam nm . pack
+
+
+pack :: Functor f => f (a ∪ ()) -> Binding f a
+pack t x = fmap (mapu id (const x)) t
 
 traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
                               a ∪ b -> f (a' ∪ b')

@@ -84,6 +84,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |    TypeOperators, GADTs, MultiParamTypeClasses, 
   |    FlexibleInstances, UndecidableInstances, 
   |    IncoherentInstances #-} 
+  |import Prelude hiding (elem)
+  |import Data.Foldable
+  |import Data.Traversable
+  |import Control.Applicative
   |]
   
   -- JP
@@ -182,7 +186,8 @@ body = {-slice .-} execWriter $ do -- {{{
       Hence, there is only one injection function from a given {|vi|} to {|w|}.»
 
   -- subsection $ «Auto-inject»
-  p""«Knowing that the injection functions are purely mechanical, one may wish to automate them.
+  p""«Knowing that the injection functions are uniquely determined by their type, 
+      one may wish to infer them mechanically.
       Thanks the the powerful instance search mechanism implemented in GHC, this is feasible. 
       We can define a class {|v ∈ w|} capturing that {|v|} occurs as part of a context {|w|}:»
   [agdaP|
@@ -290,8 +295,8 @@ body = {-slice .-} execWriter $ do -- {{{
         bound existentially. We write the combinator in CPS in order to encode the existential:
         »
   [agdaP|
-  |unpack :: (forall v. v → Tm (w ▹ v)) → 
-  |          (forall v. v → Tm (w ▹ v) → a) → a
+  |unpack :: (forall v. v → tm (w ▹ v)) → 
+  |          (forall v. v → tm (w ▹ v) → a) → a
   |]
 
   p "" «     
@@ -350,6 +355,12 @@ body = {-slice .-} execWriter $ do -- {{{
   |  inj = There . inj
   |]
 
+  [agdaP|
+  |mapu :: (u -> u') -> (v -> v') -> (u ▹ v) -> (u' ▹ v')
+  |mapu f g (There x) = There (f x)
+  |mapu f g (Here x) = Here (g x)
+  |]
+
   commentCode [agdaP|
   |class a ⊆ b where
   |  injMany :: a → b
@@ -379,12 +390,41 @@ body = {-slice .-} execWriter $ do -- {{{
   |instance Monad Tm where
   |]
 
-  subsection $ «Traversable»
-  subsection $ «Unpack»
+  subsection $ «Pack/Unpack»
   
   [agdaP|
   |unpack b k = k fresh (b fresh)
   |fresh = error "cannot query fresh variables!"
+  |
+  |pack :: Functor tm => v' -> tm (w ▹ v') -> (forall v. v -> tm (w ▹ v))
+  |pack x t = \y -> fmap (mapu id (const y)) t
+  |]
+
+  [agdaP|
+  |lam' :: v -> Tm (w ▹ v) -> Tm w
+  |lam' x t = Lam (pack x t)
+  |]
+
+  subsection $ «Traversable»
+
+  [agdaP|
+  |instance Foldable Tm where
+  |  foldMap = foldMapDefault
+  |]
+
+  [agdaP|
+  |traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
+  |                              a ▹ b -> f (a' ▹ b')
+  |traverseu f _ (There x) = There <$> f x
+  |traverseu _ g (Here x) = Here <$> g x
+  |
+  |instance Traversable Tm where
+  |  traverse f (Var x) =
+  |    Var <$> f x
+  |  traverse f (App t u) =
+  |    App <$> traverse f t <*> traverse f u
+  |  traverse f (Lam g) = unpack g $ \x b -> 
+  |                       lam' x <$> traverse (traverseu f pure) b
   |]
 
   -- JP/NP
