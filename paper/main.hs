@@ -389,7 +389,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |wk :: (Functor f, γ ⊆ δ) => f γ → f δ
+  |wk :: (Functor f, γ ⊆ δ) ⇒ f γ → f δ
   |wk = fmap injMany
   |]
 
@@ -406,7 +406,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
 
   [agdaP|
-  |subst :: Monad m => (v → m w) → m v → m w
+  |subst :: Monad m ⇒ (v → m w) → m v → m w
   |subst = (=<<)
   |]
 
@@ -415,7 +415,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |type Kl m v w = v → m w
   |
   |-- Union is a functor in the category of Kleisli arrows
-  |lift :: (Functor f, Monad f) => Kl f v w → Kl f (v ▹ x) (w ▹ x)
+  |lift :: (Functor f, Monad f) ⇒ Kl f v w → Kl f (v ▹ x) (w ▹ x)
   |lift θ (There x) = wk (θ x)
   |lift _ (Here x) = var x
   |]
@@ -427,7 +427,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |unpack b k = k fresh (b fresh)
   |fresh = error "cannot query fresh variables!"
   |-- Note that pack is very generous: it accepts any v'
-  |pack :: Functor tm => v' → tm (w ▹ v') → (∀ v. v → tm (w ▹ v))
+  |pack :: Functor tm ⇒ v' → tm (w ▹ v') → (∀ v. v → tm (w ▹ v))
   |pack x t = \y → fmap (mapu id (const y)) t
   |]
 
@@ -444,7 +444,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |traverseu :: Functor f => (a → f a') → (b → f b') →
+  |traverseu :: Functor f ⇒ (a → f a') → (b → f b') →
   |                              a ▹ b → f (a' ▹ b')
   |traverseu f _ (There x) = There <$> f x
   |traverseu _ g (Here x) = Here <$> g x
@@ -518,7 +518,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |app (Lam t) u = subst0 =<< t u 
   |app t u = App t u
   |
-  |subst0 :: Monad tm => w ▹ tm w → tm w
+  |subst0 :: Monad tm ⇒ w ▹ tm w → tm w
   |subst0 (Here  x) = x
   |subst0 (There x) = return x
   |]
@@ -537,19 +537,19 @@ body = {-slice .-} execWriter $ do -- {{{
   |  App'  :: a → a → Tm' a
   |  Let   :: Primop a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
   |
-  |(<:>) :: (v ∈ a, v' ∈ a) => v → v' → Primop a 
+  |(<:>) :: (v ∈ a, v' ∈ a) ⇒ v → v' → Primop a 
   |x <:> y = Pair (inj x) (inj y)
   |
-  |π1 :: (v ∈ a) => v → Primop a
+  |π1 :: (v ∈ a) ⇒ v → Primop a
   |π1 = Π1 . inj
   |
-  |π2 :: (v ∈ a) => v → Primop a
+  |π2 :: (v ∈ a) ⇒ v → Primop a
   |π2 = Π2 . inj
   |
-  |app' :: (v ∈ a, v' ∈ a) => v → v' → Tm' a 
+  |app' :: (v ∈ a, v' ∈ a) ⇒ v → v' → Tm' a 
   |app' x y = App' (inj x) (inj y)
   |
-  |halt' :: (v ∈ a) => v → Tm' a 
+  |halt' :: (v ∈ a) ⇒ v → Tm' a 
   |halt' = Halt' . inj
   |  
   |instance Functor Tm' where 
@@ -596,24 +596,33 @@ body = {-slice .-} execWriter $ do -- {{{
   |instance Monad LC where
   |data LC w where
   |  VarC :: w → LC w
-  |  Closure :: (∀ vx venv. vx → venv → LC (Zero ▹ venv ▹ vx)) →
-  |             LC w → 
-  |             LC w
-  |  LetOpen :: LC w → (∀ vf venv. vf → venv → LC (w ▹ vf ▹ venv)) → LC w
+  |  Clos :: (∀ vx venv. vx → venv → 
+  |           LC (Zero ▹ venv ▹ vx)) →
+  |           LC w → 
+  |           LC w
+  |  LetOpen :: LC a → 
+  |             (∀ vf venv. vf → venv → 
+  |              LC (a ▹ vf ▹ venv)) → LC a
   |  Tuple :: [LC w] → LC w
   |  Index :: w → Int → LC w
   |  AppC :: LC w → LC w → LC w
+  |($$) = AppC
+  |idx :: (v ∈ a) ⇒ v → Int → LC a
+  |idx env = Index (inj env)
+  |infixl $$
   | 
-  |cc' :: ∀ w. Eq w => Tm w → LC w  
-  |cc' (Var x) = VarC x
-  |cc' t0@(Lam f) = 
+  |cc :: ∀ w. Eq w ⇒ Tm w → LC w  
+  |cc (Var x) = VarC x
+  |cc t0@(Lam f) = 
   |  let yn = nub $ freeVars t0
-  |  in Closure (\x env → subst (lift (\w → (Index (inj env) (indexOf w yn))))
-  |                                           (cc' (f x)))
-  |             (Tuple $ map VarC yn)
-  |cc' (App e1 e2) = LetOpen (cc' e1) (\xf xenv → (var xf `AppC` wk (cc' e2)) `AppC` var xenv)
+  |  in Clos (\x env → cc (f x) >>= 
+  |                   (lift $ \w → idx env (indexOf w yn)))
+  |          (Tuple $ map VarC yn)
+  |cc (App e1 e2) = 
+  |  LetOpen (cc e1) 
+  |          (\f env → var f $$ wk (cc e2) $$ var env)
   |
-  |indexOf :: Eq a => a → [a] → Int
+  |indexOf :: Eq a ⇒ a → [a] → Int
   |indexOf x [] = error "index not found"
   |indexOf x (y:ys) | x == y = 0
   |                 | otherwise = 1 + indexOf x ys
