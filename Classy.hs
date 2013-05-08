@@ -438,12 +438,15 @@ instance Traversable Term where
   traverse f (App t u) =
     App <$> traverse f t <*> traverse f u
   traverse f (Lam nm b) = unpack b $ \x b' -> 
-      lam' nm x <$> traverse (traverseu f pure) b'
+      lam'' nm x <$> traverse (traverseu f pure) b'
 
 type Binding f a = forall v. v -> f (a ∪ v)
 
 lam' :: Name → v -> Term (w :▹ v) → Term w
 lam' nm x t = Lam nm (pack x t)
+
+lam'' :: Insert v a b => Name → v -> Term b → Term a
+lam'' nm x t = Lam nm (pack' x t)
 
 -- pack :: (Functor f,v ∈ a) => v -> f a -> Binding (Diff a v) a
 pack :: Functor f => v -> f (a :▹ v) -> Binding f a
