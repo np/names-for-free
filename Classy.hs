@@ -83,8 +83,7 @@ testfv = Var "x1" `App` Lam "x2" (\x2->
            Var (There "x3") `App` var x2)
 
 (@@) :: Term a -> Term a -> Term a
-Lam _ f @@ u = f u >>= subst0
-t       @@ u = App t u
+(@@) = app
 
 -- oops' = lam "x" (\x → lam "y" (\y → Var (Here x)))
 
@@ -166,6 +165,7 @@ instance Monad Term where
 subst :: Monad m => (v → m w) → m v → m w
 subst = (=<<)
 
+
 -- As with any monad, fmap can be derived from bind and return.
 -- This is a bit nasty here though. Indeed the definition of bind
 -- uses lift which uses wk which uses fmap.
@@ -183,13 +183,13 @@ eval (Var x) = Var x
 eval (Lam n t) = Lam n (eval . t)
 eval (App t u) = app (eval t) (eval u)
 
-app :: Term v -> Term v -> Term v
+app :: Term a -> Term a -> Term a
 app (Lam _ t) u = subst0 =<< t u 
 app t u = App t u
 
-subst0 :: v :▹ Term v -> Term v
+subst0 :: Monad tm => v :▹ tm v -> tm v
 subst0 (Here x) = x
-subst0 (There x) = Var x
+subst0 (There x) = return x
 
 {-
 (>>=-) :: Term γ -> (γ -> Term δ) -> Term δ
@@ -395,7 +395,7 @@ instance Traversable Term where
   traverse f (Lam nm b) = lam' nm () <$> 
       traverse (traverseu f pure) (b ())
 
-type Binding f a = forall b. b -> f (a ∪ b)
+type Binding f a = forall v. v -> f (a ∪ v)
 
 lam' :: Name → v -> Term (w :▹ v) → Term w
 lam' nm x t = Lam nm (pack x t)
@@ -403,6 +403,12 @@ lam' nm x t = Lam nm (pack x t)
 -- pack :: (Functor f,v ∈ a) => v -> f a -> Binding (Diff a v) a
 pack :: Functor f => v -> f (a :▹ v) -> Binding f a
 pack _ t x = fmap (mapu id (const x)) t
+
+-- Generalisation
+pack' :: forall f v a b w. (Functor f, Insert v a b) => v -> f b -> (w -> f (a :▹ w))
+pack' _ t x = fmap (shuffle cx) t
+  where cx :: v -> w
+        cx _ = x
 
 traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
                               a ∪ b -> f (a' ∪ b')
@@ -526,7 +532,19 @@ cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x ->
                       (\x -> Halt' (lk x))
                  
 
-    
+class Insert v a b where    
+  shuffle :: (v -> w) -> b -> a :▹ w
+
+instance Insert v a (a :▹ v) where
+  shuffle f (Here x) = Here (f x)
+  shuffle f (There x) = There x
+  
+instance Insert v a b => Insert v (a :▹ v') (b :▹ v') where
+  shuffle f (Here x) = There (Here x)
+  shuffle f (There x) = case shuffle f x of
+    Here y -> Here y
+    There y -> There (There y)
+                  
 class x :∈ γ where
   -- type Diff γ x -- GHC refuses overlapping type family instances!
   lk :: x -> γ
