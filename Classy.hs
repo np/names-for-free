@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types,
              UnicodeSyntax, TypeOperators, GADTs, OverlappingInstances,
-             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables #-}
+             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 module Classy where
 
 import Prelude hiding (sequence,elem)
@@ -400,8 +400,8 @@ type Binding f a = forall b. b -> f (a ∪ b)
 lam' :: Name → v -> Term (w :▹ v) → Term w
 lam' nm x t = Lam nm (pack x t)
 
-
-pack :: Functor f => v -> f (a ∪ v) -> Binding f a
+-- pack :: (Functor f,v ∈ a) => v -> f a -> Binding (Diff a v) a
+pack :: Functor f => v -> f (a :▹ v) -> Binding f a
 pack _ t x = fmap (mapu id (const x)) t
 
 traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
@@ -526,15 +526,18 @@ cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x ->
                       (\x -> Halt' (lk x))
                  
 
-
-
+    
 class x :∈ γ where
+  -- type Diff γ x -- GHC refuses overlapping type family instances!
   lk :: x -> γ
   
-instance x :∈ (γ :▹ x) where
-  lk = Here
   
+instance x :∈ (γ :▹ x) where
+  -- type Diff (γ :▹ x) x  = γ
+  lk = Here
+
 instance (x :∈ γ) => x :∈ (γ :▹ y) where
+  -- type Diff (γ :▹ y) x = Diff γ x :▹ y 
   lk = There . lk
 
 
