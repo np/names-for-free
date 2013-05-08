@@ -73,6 +73,12 @@ commentWhen True  x = doComment x
 commentWhen False x = x
 
 commentCode = commentWhen True
+  
+unpackTypeSig =  [agdaP|
+  |unpack :: (forall v. v → tm (w ▹ v)) → 
+  |          (forall v. v → tm (w ▹ v) → a) → a
+  |]
+
 
 body = {-slice .-} execWriter $ do -- {{{
   -- JP (when the rest is ready)
@@ -88,6 +94,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |import Data.Foldable
   |import Data.Traversable
   |import Control.Applicative
+  |import Data.List (nub,elemIndex)
   |]
   
   -- JP
@@ -173,12 +180,12 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«Now, if one makes a mistake and forgets one {|There|} when typing the term, GHC rejects the definition.»
   commentCode [agdaP|
   |oops_ = Lam $ \x → Lam $ \y → Var (Here x) 
-  |-- Couldn't match expected type `v1' with actual type `v'
+  |-- Couldn't match expected type `v1' 
+  |--             with actual type `v'
   |]
 
-  p""«In fact, the possibility of making a mistake is inexistant (if we ignore diverging terms).»
-
-  p""«Indeed, because the type {|v|} corresponding to a bound variable is universally quantified, 
+  p""«In fact, the possibility of making a mistake is inexistant (if we ignore diverging terms). 
+      Indeed, because the type {|v|} corresponding to a bound variable is universally quantified, 
       the only way to construct a value of its type is to use the variable bound by {|Lam|}.»
   p""«Conversely, in a closed context, if one considers the expression {|Var (f x)|}, only one possible value of {|f|} 
       is admissible. Indeed, any context, the type of variables is {|w = w0 ▹ v0 ▹ v1 ▹ ⋯ ▹ vn|} where {|v0|}, {|v1|}, … , {|vn|} 
@@ -195,7 +202,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  inj :: v → w
   |]  
   p""«We can then wrap the injection function and {|Var|} in a convenient package:»
-  [agdaP|
+  commentCode [agdaP|
   |var :: forall v w. (v ∈ w) ⇒ v → Tm w
   |var = Var . inj
   |]
@@ -295,11 +302,7 @@ body = {-slice .-} execWriter $ do -- {{{
         bound existentially. We write the combinator in continuation-passing style
         in order to encode the existential as a universal quantifier:
         »
-  [agdaP|
-  |unpack :: (forall v. v → tm (w ▹ v)) → 
-  |          (forall v. v → tm (w ▹ v) → a) → a
-  |]
-
+  unpackTypeSig
   p "" «     
         Because {|v|} is existentially bound and occurs only positively in {|Tm|}, {|x|}
         can never be used in a computation. It acts as a reference to a variable in a context,
@@ -362,7 +365,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |mapu f g (Here x) = Here (g x)
   |]
 
-  commentCode [agdaP|
+  [agdaP|
   |class a ⊆ b where
   |  injMany :: a → b
   |
@@ -385,14 +388,41 @@ body = {-slice .-} execWriter $ do -- {{{
   |instance Functor Tm where
   |]
 
+  [agdaP|
+  |wk :: (Functor f, γ ⊆ δ) => f γ -> f δ
+  |wk = fmap injMany
+  |]
+
   subsection $ «Substitute/Monad»
 
   [agdaP|
   |instance Monad Tm where
   |]
 
+  [agdaP|
+  |var :: (Monad tm, v ∈ a) ⇒ v → tm a
+  |var = return . inj
+  |]
+
+
+  [agdaP|
+  |subst :: Monad m => (v → m w) → m v → m w
+  |subst = (=<<)
+  |]
+
+  [agdaP|
+  |-- Kleisli arrows
+  |type Kl m v w = v → m w
+  |
+  |-- Union is a functor in the category of Kleisli arrows
+  |lift :: (Functor f, Monad f) => Kl f v w → Kl f (v ▹ x) (w ▹ x)
+  |lift θ (There x) = wk (θ x)
+  |lift _ (Here x) = var x
+  |]
+
   subsection $ «Pack/Unpack»
 
+  commentCode unpackTypeSig
   [agdaP|
   |unpack b k = k fresh (b fresh)
   |fresh = error "cannot query fresh variables!"
@@ -488,15 +518,104 @@ body = {-slice .-} execWriter $ do -- {{{
   |app (Lam t) u = subst0 =<< t u 
   |app t u = App t u
   |
-  |subst0 :: w ▹ Tm w -> Tm w
+  |subst0 :: Monad tm => w ▹ tm w -> tm w
   |subst0 (Here  x) = x
-  |subst0 (There x) = Var x
+  |subst0 (There x) = return x
   |]
 
   subsection $ «CPS»
+  [agdaP|
+  |data Primop a where 
+  |  Var' :: a -> Primop a
+  |  Abs' :: (∀ w. w -> Tm' (a ▹ w)) -> Primop a
+  |  Pair :: a -> a -> Primop a  -- Pair
+  |  Π1   :: a -> Primop a
+  |  Π2   :: a -> Primop a
+  |
+  |data Tm' a where
+  |  Halt' :: a -> Tm' a
+  |  App'  :: a -> a -> Tm' a
+  |  Let   :: Primop a -> (∀ w. w -> Tm' (a ▹ w)) -> Tm' a
+  |
+  |(<:>) :: (v ∈ a, v' ∈ a) => v -> v' -> Primop a 
+  |x <:> y = Pair (inj x) (inj y)
+  |
+  |π1 :: (v ∈ a) => v -> Primop a
+  |π1 = Π1 . inj
+  |
+  |π2 :: (v ∈ a) => v -> Primop a
+  |π2 = Π2 . inj
+  |
+  |app' :: (v ∈ a, v' ∈ a) => v -> v' -> Tm' a 
+  |app' x y = App' (inj x) (inj y)
+  |
+  |halt' :: (v ∈ a) => v -> Tm' a 
+  |halt' = Halt' . inj
+  |  
+  |instance Functor Tm' where 
+  |  -- ...
+  |]
+  
+  [agdaP|
+  |-- in e1, substitute Halt' by an arbitrary Tm' e2
+  |letTerm :: forall v  .
+  |         Tm' v  ->
+  |         (∀ w. w  -> Tm' (v ▹ w)) -> 
+  |         Tm' v 
+  |letTerm (Halt' v)  e2 = fmap untag (e2 v)
+  |letTerm (App' f x) e2 = App' f x
+  |letTerm (Let p e') e2 = Let (letPrim p e2) $ \x -> letTerm (e' x) (\y -> wk (e2 y))
+  |
+  |letPrim :: Primop v -> (∀ w. w  -> Tm' (v ▹ w)) -> Primop v 
+  |letPrim (Abs' e) e2 = Abs' $ \x -> letTerm (e x) (\y -> wk (e2 y))
+  |letPrim (Var' v) e2 = Var' v
+  |letPrim (Pair x y) e2 = Pair x y
+  |letPrim (Π1 y) e2 = Π1 y
+  |letPrim (Π2 y) e2 = Π2 y  
+  |]
 
+  [agdaP|
+  |cps :: Tm v -> Tm' v
+  |cps (Var v) = Halt' v
+  |cps (App e1 e2) = letTerm (cps e1) $ \ f -> 
+  |                  letTerm (wk (cps e2)) $ \ x →
+  |                  Let (Abs' (\x -> halt' x)) $ \k →
+  |                  Let (x <:> k) $ \p ->
+  |                  app' f p 
+  |                      
+  |cps (Lam e') =  Let (Abs' $ \p -> Let (π1 p) $ \x -> 
+  |                                  Let (π2 p) $ \k ->
+  |                                  letTerm (wk (cps (e' x))) $ \r -> 
+  |                                  app' k r)
+  |                    (\x -> halt' x)
+  |]                         
 
   subsection $ «Closure Conversion»
+  [agdaP|
+  |data LC w where
+  |  VarC :: w -> LC w
+  |  Closure :: (forall vx venv. vx -> venv -> LC (Zero ▹ venv ▹ vx)) -> -- ^ code
+  |             LC w -> -- ^ env
+  |             LC w
+  |  LetOpen :: LC w -> (forall vf venv. vf -> venv -> LC (w ▹ vf ▹ venv)) -> LC w
+  |  Tuple :: [LC w] -> LC w
+  |  Index :: w -> Int -> LC w
+  |  AppC :: LC w -> LC w -> LC w
+  | 
+  |cc' :: forall w. Eq w => Tm w -> LC w  
+  |cc' (Var x) = VarC x
+  |cc' t0@(Lam f) = 
+  |  let yn = nub $ freeVars t0
+  |  in Closure (\x env -> subst (lift (\w -> (Index (inj env) (indexOf w yn))))
+  |                                           (cc' (f x)))
+  |             (Tuple $ map VarC yn)
+  |cc' (App e1 e2) = LetOpen (cc' e1) (\xf xenv -> (var xf `AppC` wk (cc' e2)) `AppC` var xenv)
+  |
+  |indexOf :: Eq a => a -> [a] -> Int
+  |indexOf x [] = error "index not found"
+  |indexOf x (y:ys) | x == y = 0
+  |                 | otherwise = 1 + indexOf x ys
+  |]
 
   -- NP
   section $ «Comparisons» `labeled` comparison
