@@ -382,18 +382,64 @@ data Term' v where
   
 instance Functor Term' where 
   
+spliceAbs :: ∀ v   .
+             (forall w. w  → Term' (v :▹ w) ) -> 
+             (∀ w. w  → Term' (v :▹ w) ) -> 
+             forall w. w  → Term' (v :▹ w) 
+spliceAbs e' e2 x = splice (e' x) (\ x₁ → wk (e2 x₁))
+
+-- in e1, substitude Halt' by an arbitrary continuation e2
+splice :: forall v  .
+         Term' v  ->
+         (∀ w. w  -> Term' (v :▹ w) ) -> 
+         Term' v 
+splice (Halt' v) e2 =  fmap untag (e2 v)
+splice (App' f x) e2 = App' f x
+splice (Let p e') e2 = Let (splicePrim p e2)  ( spliceAbs e' e2 )
+
+splicePrim :: forall v. Primop v  ->  (∀ w. w  -> Term' (v :▹ w) ) -> Primop v 
+splicePrim (Abs' e) e2 = Abs' (spliceAbs e e2)
+--splicePrim Tru' e2 = Tru'
+--splicePrim Fals' e2 = Fals'
+splicePrim (Var' v) e2 = Var' v
+splicePrim (y :- y') e2 = y :- y'
+splicePrim (Π1 y) e2 = Π1 y
+splicePrim (Π2 y) e2 = Π2 y  
+
+cps :: Term v -> Term' v
+-- cps Tru = Let Tru' (Halt' . There)
+-- cps Fals = Let Fals' (Halt' . There) 
+cps (Var v) = Halt' v
+cps (App e1 e2) = splice (cps e1) $ \ f -> 
+                      splice (wk (cps e2)) $ \ x →
+                      Let (Abs' (\x -> Halt' (lk x))) $ \k →
+                      Let (lk x :- lk k)    $ \p ->
+                      App' (lk f) (lk p)
+                      
+cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x -> 
+                                    Let (Π2 (lk p)) $ \k ->
+                                    splice (wk (cps (e' x))) $ \r -> 
+                                    App' (lk k) (lk r))
+                      (\x -> Halt' (lk x))
+                 
+  
+-----------------  
+-- Traversable
 
 mapu :: (u -> u') -> (v -> v') -> (u :▹ v) -> (u' :▹ v')
 mapu f g (There x) = There (f x)
 mapu f g (Here x) = Here (g x)
+
+instance Foldable Term where
+  foldMap = foldMapDefault
 
 instance Traversable Term where
   traverse f (Var x) =
     Var <$> f x
   traverse f (App t u) =
     App <$> traverse f t <*> traverse f u
-  traverse f (Lam nm b) = lam' nm () <$> 
-      traverse (traverseu f pure) (b ())
+  traverse f (Lam nm b) = unpack b $ \x b' -> 
+      lam' nm x <$> traverse (traverseu f pure) b'
 
 type Binding f a = forall v. v -> f (a ∪ v)
 
@@ -487,50 +533,6 @@ canη' _ = False
 ηexp :: Term a -> Term a
 ηexp t = Lam "x" $ \x-> App (wk t) (var x)
 
-instance Foldable Term where
-  foldMap = foldMapDefault
-
-  
-spliceAbs :: ∀ v   .
-             (forall w. w  → Term' (v :▹ w) ) -> 
-             (∀ w. w  → Term' (v :▹ w) ) -> 
-             forall w. w  → Term' (v :▹ w) 
-spliceAbs e' e2 x = splice (e' x) (\ x₁ → wk (e2 x₁))
-
--- in e1, substitude Halt' by an arbitrary continuation e2
-splice :: forall v  .
-         Term' v  ->
-         (∀ w. w  -> Term' (v :▹ w) ) -> 
-         Term' v 
-splice (Halt' v) e2 =  fmap untag (e2 v)
-splice (App' f x) e2 = App' f x
-splice (Let p e') e2 = Let (splicePrim p e2)  ( spliceAbs e' e2 )
-
-splicePrim :: forall v. Primop v  ->  (∀ w. w  -> Term' (v :▹ w) ) -> Primop v 
-splicePrim (Abs' e) e2 = Abs' (spliceAbs e e2)
---splicePrim Tru' e2 = Tru'
---splicePrim Fals' e2 = Fals'
-splicePrim (Var' v) e2 = Var' v
-splicePrim (y :- y') e2 = y :- y'
-splicePrim (Π1 y) e2 = Π1 y
-splicePrim (Π2 y) e2 = Π2 y  
-
-cps :: Term v -> Term' v
--- cps Tru = Let Tru' (Halt' . There)
--- cps Fals = Let Fals' (Halt' . There) 
-cps (Var v) = Halt' v
-cps (App e1 e2) = splice (cps e1) $ \ f -> 
-                      splice (wk (cps e2)) $ \ x →
-                      Let (Abs' (\x -> Halt' (lk x))) $ \k →
-                      Let (lk x :- lk k)    $ \p ->
-                      App' (lk f) (lk p)
-                      
-cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x -> 
-                                    Let (Π2 (lk p)) $ \k ->
-                                    splice (wk (cps (e' x))) $ \r -> 
-                                    App' (lk k) (lk r))
-                      (\x -> Halt' (lk x))
-                 
 
 class Insert v a b where    
   shuffle :: (v -> w) -> b -> a :▹ w
@@ -597,7 +599,7 @@ type Stack w = [Closure w]
 kam :: Closure w -> Stack w -> Maybe (Closure w,Stack w)
 kam (C (Lam n f) ρ) (u:s) = unpack f $ \ x t -> Just (C t (Cons x u ρ), s)
 kam (C (App t u) ρ) s    = Just (C t ρ,C u ρ:s)
-kam (C (Var x)   ρ) s    = Just (look x ρ,  s)
+kam (C (Var x)   ρ) s    = Just (look x ρ, s)
 kam _ _ = Nothing
 
 -------------------
