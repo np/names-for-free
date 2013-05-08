@@ -382,7 +382,7 @@ data Term' v where
   
 instance Functor Term' where 
   
-spliceAbs :: ∀ v   .
+spliceAbs :: ∀ v.
              (forall w. w  → Term' (v :▹ w) ) -> 
              (∀ w. w  → Term' (v :▹ w) ) -> 
              forall w. w  → Term' (v :▹ w) 
@@ -422,7 +422,6 @@ cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x ->
                                     App' (lk k) (lk r))
                       (\x -> Halt' (lk x))
                  
-  
 -----------------  
 -- Traversable
 

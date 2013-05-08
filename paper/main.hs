@@ -36,6 +36,10 @@ import NomPaKit.QQ
 -- citations
 [keys|pouillard_unified_2012
       mcbride_am_2010
+      chlipala_parametric_2008
+      guillemette_type-preserving_2007
+      guillemette_type-preserving_2008
+      bird-paterson-99
      |]
 
 title = «Parametric Nested Abstract Syntax»
@@ -125,7 +129,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«In Haskell, it is possible to remedy to this situation by "nested recursion". 
       That is, one parameterises the type of terms by a type that can represent free variables.
       If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is one free variable, etc.»
-  p""«This representation in known as Nested Abstract Syntax»
+  p""«This representation in known as Nested Abstract Syntax {cite[birdpaterson99]}»
   notetodo «cite»
   [agdaP|
   |data a ▹ b = There a | Here b 
@@ -415,9 +419,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |type Kl m v w = v → m w
   |
   |-- Union is a functor in the category of Kleisli arrows
-  |lift :: (Functor f, Monad f) ⇒ Kl f v w → Kl f (v ▹ x) (w ▹ x)
+  |lift :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
   |lift θ (There x) = wk (θ x)
-  |lift _ (Here x) = var x
+  |lift θ (Here  x) = var x
   |]
 
   subsection $ «Pack/Unpack»
@@ -524,6 +528,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   subsection $ «CPS»
+  p "" «Following {citet[chlipalaparametric2008]}»
   [agdaP|
   |data Primop a where 
   |  Var' :: a → Primop a
@@ -591,6 +596,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]                         
 
   subsection $ «Closure Conversion»
+  p"" «Following {citet[guillemettetypepreserving2007]}»
   [agdaP|
   |instance Functor LC where
   |instance Monad LC where
@@ -741,6 +747,11 @@ body = {-slice .-} execWriter $ do -- {{{
   section $ «Discussion» `labeled` discussion
 
   p "non-intrusive" «the approach can be used locally»
+
+  p"" «{citet[guillemettetypepreserving2008]} change representation from HOAS to de Bruijn indices, arguing that HOAS is more suitable for
+     CPS transform, while de Bruijn indices are more suitable for closure conversion.
+     Our reprensentation supports a natural implementation of both transformations.
+     »
 
   p "" «more remarks about safetly»
 
