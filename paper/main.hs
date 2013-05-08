@@ -1,4 +1,4 @@
-{-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, UnicodeSyntax #-}
 {-# OPTIONS_GHC -F -pgmF frquotes -fno-warn-missing-signatures #-}
 -- VIM :source config.vim
 
@@ -61,22 +61,22 @@ notetodo x = p"" $ red «TODO {x}»
 long = True
 short = not long
 debug = False
-when :: Bool -> ParItemW -> ParItemW
+when :: Bool → ParItemW → ParItemW
 when True  x = x
 when False _ = return ()
 
-doComment :: ParItemW -> ParItemW
+doComment :: ParItemW → ParItemW
 doComment x = startComment >> x >> stopComment
 
-commentWhen :: Bool -> ParItemW -> ParItemW
+commentWhen :: Bool → ParItemW → ParItemW
 commentWhen True  x = doComment x
 commentWhen False x = x
 
 commentCode = commentWhen True
   
 unpackTypeSig =  [agdaP|
-  |unpack :: (forall v. v → tm (w ▹ v)) → 
-  |          (forall v. v → tm (w ▹ v) → a) → a
+  |unpack :: (∀ v. v → tm (w ▹ v)) → 
+  |          (∀ v. v → tm (w ▹ v) → a) → a
   |]
 
 
@@ -112,7 +112,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  AppDB :: TmDB → TmDB → TmDB
   |  LamDB :: TmDB → TmDB
   |]
-  p""«Using this representation, the representation of the constant function {|\x y -> x|} is the following:»
+  p""«Using this representation, the representation of the constant function {|\x y → x|} is the following:»
   [agdaP|
   |constDB :: TmDB
   |constDB = LamDB $ LamDB $ VarDB (Succ Zero)
@@ -147,7 +147,7 @@ body = {-slice .-} execWriter $ do -- {{{
        is ensured by using the empty type {|Zero|} as an argument to {|TmN|}.»
   [agdaP|
   |data Zero -- no constructor
-  |magic :: Zero -> a
+  |magic :: Zero → a
   |magic _ = error "magic!"
   |]
   p "" «In passing, we remark that another valid type for closed terms is {|∀ a. TmN a|} 
@@ -203,7 +203,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]  
   p""«We can then wrap the injection function and {|Var|} in a convenient package:»
   commentCode [agdaP|
-  |var :: forall v w. (v ∈ w) ⇒ v → Tm w
+  |var :: ∀ v w. (v ∈ w) ⇒ v → Tm w
   |var = Var . inj
   |]
   p""«and the constant function can be conveniently written:»
@@ -227,14 +227,14 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|
-  |size1 :: Tm Int -> Int
+  |size1 :: Tm Int → Int
   |size1 (Var x) = x
   |size1 (Lam g) = 1 + size1 (fmap untag (g 1))
   |size1 (App t u) = 1 + size1 t + size1 u
   |]
 
   [agdaP|
-  |untag :: a ▹ a -> a
+  |untag :: a ▹ a → a
   |untag (There x) = x 
   |untag (Here x) = x 
   |]
@@ -246,7 +246,7 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|
-  |size2 :: Tm a -> Int
+  |size2 :: Tm a → Int
   |size2 (Var _) = 1
   |size2 (Lam g) = 1 + size2 (g ())
   |size2 (App t u) = 1 + size2 t + size2 u
@@ -262,7 +262,7 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|  
-  |size :: (a -> Int) -> Tm a -> Int
+  |size :: (a → Int) → Tm a → Int
   |size f (Var x) = f x
   |size f (Lam g) = 1 + size (extend f) (g 1)
   |size f (App t u) = 1 + size f t + size f u
@@ -297,7 +297,7 @@ body = {-slice .-} execWriter $ do -- {{{
         Here as well, we can take advantage of polymorphism to ensure 
         that no mistake happens. We provide a combinator {|unpack|}, which transforms
         a binding structure
-        (of type {|forall v. v → Tm (w ▹ v)|}) into a sub-term with one more free variable 
+        (of type {|∀ v. v → Tm (w ▹ v)|}) into a sub-term with one more free variable 
         {|Tm (w ▹ v)|} and a value (called {|x|} below) of type {|v|}, where {|v|} is 
         bound existentially. We write the combinator in continuation-passing style
         in order to encode the existential as a universal quantifier:
@@ -360,7 +360,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |mapu :: (u -> u') -> (v -> v') -> (u ▹ v) -> (u' ▹ v')
+  |mapu :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
   |mapu f g (There x) = There (f x)
   |mapu f g (Here x) = Here (g x)
   |]
@@ -389,7 +389,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |wk :: (Functor f, γ ⊆ δ) => f γ -> f δ
+  |wk :: (Functor f, γ ⊆ δ) => f γ → f δ
   |wk = fmap injMany
   |]
 
@@ -427,12 +427,12 @@ body = {-slice .-} execWriter $ do -- {{{
   |unpack b k = k fresh (b fresh)
   |fresh = error "cannot query fresh variables!"
   |-- Note that pack is very generous: it accepts any v'
-  |pack :: Functor tm => v' -> tm (w ▹ v') -> (forall v. v -> tm (w ▹ v))
-  |pack x t = \y -> fmap (mapu id (const y)) t
+  |pack :: Functor tm => v' → tm (w ▹ v') → (∀ v. v → tm (w ▹ v))
+  |pack x t = \y → fmap (mapu id (const y)) t
   |]
 
   [agdaP|
-  |lam' :: v -> Tm (w ▹ v) -> Tm w
+  |lam' :: v → Tm (w ▹ v) → Tm w
   |lam' x t = Lam (pack x t)
   |]
 
@@ -444,8 +444,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |traverseu :: Functor f => (a -> f a') -> (b -> f b') ->
-  |                              a ▹ b -> f (a' ▹ b')
+  |traverseu :: Functor f => (a → f a') → (b → f b') →
+  |                              a ▹ b → f (a' ▹ b')
   |traverseu f _ (There x) = There <$> f x
   |traverseu _ g (Here x) = Here <$> g x
   |
@@ -454,7 +454,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |    Var <$> f x
   |  traverse f (App t u) =
   |    App <$> traverse f t <*> traverse f u
-  |  traverse f (Lam g) = unpack g $ \x b -> 
+  |  traverse f (Lam g) = unpack g $ \x b → 
   |                       lam' x <$> traverse (traverseu f pure) b
   |]
 
@@ -485,10 +485,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |occursIn :: (Eq w, v ∈ w) ⇒ v -> Tm w -> Bool
+  |occursIn :: (Eq w, v ∈ w) ⇒ v → Tm w → Bool
   |occursIn x t = inj x `elem` freeVars t
   |
-  |isOccurenceOf :: (Eq w, v ∈ w) ⇒ w -> v -> Bool
+  |isOccurenceOf :: (Eq w, v ∈ w) ⇒ w → v → Bool
   |isOccurenceOf x y = x == inj y
   |]
 
@@ -509,16 +509,16 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Normalisation by evaluation»
   [agdaP|
-  |eval :: Tm w -> Tm w
+  |eval :: Tm w → Tm w
   |eval (Var x) = Var x
   |eval (Lam t) = Lam (eval . t)
   |eval (App t u) = app (eval t) (eval u)
   |
-  |app :: Tm w -> Tm w -> Tm w
+  |app :: Tm w → Tm w → Tm w
   |app (Lam t) u = subst0 =<< t u 
   |app t u = App t u
   |
-  |subst0 :: Monad tm => w ▹ tm w -> tm w
+  |subst0 :: Monad tm => w ▹ tm w → tm w
   |subst0 (Here  x) = x
   |subst0 (There x) = return x
   |]
@@ -526,30 +526,30 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «CPS»
   [agdaP|
   |data Primop a where 
-  |  Var' :: a -> Primop a
-  |  Abs' :: (∀ w. w -> Tm' (a ▹ w)) -> Primop a
-  |  Pair :: a -> a -> Primop a  -- Pair
-  |  Π1   :: a -> Primop a
-  |  Π2   :: a -> Primop a
+  |  Var' :: a → Primop a
+  |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Primop a
+  |  Pair :: a → a → Primop a  -- Pair
+  |  Π1   :: a → Primop a
+  |  Π2   :: a → Primop a
   |
   |data Tm' a where
-  |  Halt' :: a -> Tm' a
-  |  App'  :: a -> a -> Tm' a
-  |  Let   :: Primop a -> (∀ w. w -> Tm' (a ▹ w)) -> Tm' a
+  |  Halt' :: a → Tm' a
+  |  App'  :: a → a → Tm' a
+  |  Let   :: Primop a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
   |
-  |(<:>) :: (v ∈ a, v' ∈ a) => v -> v' -> Primop a 
+  |(<:>) :: (v ∈ a, v' ∈ a) => v → v' → Primop a 
   |x <:> y = Pair (inj x) (inj y)
   |
-  |π1 :: (v ∈ a) => v -> Primop a
+  |π1 :: (v ∈ a) => v → Primop a
   |π1 = Π1 . inj
   |
-  |π2 :: (v ∈ a) => v -> Primop a
+  |π2 :: (v ∈ a) => v → Primop a
   |π2 = Π2 . inj
   |
-  |app' :: (v ∈ a, v' ∈ a) => v -> v' -> Tm' a 
+  |app' :: (v ∈ a, v' ∈ a) => v → v' → Tm' a 
   |app' x y = App' (inj x) (inj y)
   |
-  |halt' :: (v ∈ a) => v -> Tm' a 
+  |halt' :: (v ∈ a) => v → Tm' a 
   |halt' = Halt' . inj
   |  
   |instance Functor Tm' where 
@@ -558,16 +558,16 @@ body = {-slice .-} execWriter $ do -- {{{
   
   [agdaP|
   |-- in e1, substitute Halt' by an arbitrary Tm' e2
-  |letTerm :: forall v  .
-  |         Tm' v  ->
-  |         (∀ w. w  -> Tm' (v ▹ w)) -> 
+  |letTerm :: ∀ v  .
+  |         Tm' v  →
+  |         (∀ w. w  → Tm' (v ▹ w)) → 
   |         Tm' v 
   |letTerm (Halt' v)  e2 = fmap untag (e2 v)
   |letTerm (App' f x) e2 = App' f x
-  |letTerm (Let p e') e2 = Let (letPrim p e2) $ \x -> letTerm (e' x) (\y -> wk (e2 y))
+  |letTerm (Let p e') e2 = Let (letPrim p e2) $ \x → letTerm (e' x) (\y → wk (e2 y))
   |
-  |letPrim :: Primop v -> (∀ w. w  -> Tm' (v ▹ w)) -> Primop v 
-  |letPrim (Abs' e) e2 = Abs' $ \x -> letTerm (e x) (\y -> wk (e2 y))
+  |letPrim :: Primop v → (∀ w. w  → Tm' (v ▹ w)) → Primop v 
+  |letPrim (Abs' e) e2 = Abs' $ \x → letTerm (e x) (\y → wk (e2 y))
   |letPrim (Var' v) e2 = Var' v
   |letPrim (Pair x y) e2 = Pair x y
   |letPrim (Π1 y) e2 = Π1 y
@@ -575,43 +575,45 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |cps :: Tm v -> Tm' v
+  |cps :: Tm v → Tm' v
   |cps (Var v) = Halt' v
-  |cps (App e1 e2) = letTerm (cps e1) $ \ f -> 
+  |cps (App e1 e2) = letTerm (cps e1) $ \ f → 
   |                  letTerm (wk (cps e2)) $ \ x →
-  |                  Let (Abs' (\x -> halt' x)) $ \k →
-  |                  Let (x <:> k) $ \p ->
+  |                  Let (Abs' (\x → halt' x)) $ \k →
+  |                  Let (x <:> k) $ \p →
   |                  app' f p 
   |                      
-  |cps (Lam e') =  Let (Abs' $ \p -> Let (π1 p) $ \x -> 
-  |                                  Let (π2 p) $ \k ->
-  |                                  letTerm (wk (cps (e' x))) $ \r -> 
+  |cps (Lam e') =  Let (Abs' $ \p → Let (π1 p) $ \x → 
+  |                                  Let (π2 p) $ \k →
+  |                                  letTerm (wk (cps (e' x))) $ \r → 
   |                                  app' k r)
-  |                    (\x -> halt' x)
+  |                    (\x → halt' x)
   |]                         
 
   subsection $ «Closure Conversion»
   [agdaP|
+  |instance Functor LC where
+  |instance Monad LC where
   |data LC w where
-  |  VarC :: w -> LC w
-  |  Closure :: (forall vx venv. vx -> venv -> LC (Zero ▹ venv ▹ vx)) -> -- ^ code
-  |             LC w -> -- ^ env
+  |  VarC :: w → LC w
+  |  Closure :: (∀ vx venv. vx → venv → LC (Zero ▹ venv ▹ vx)) →
+  |             LC w → 
   |             LC w
-  |  LetOpen :: LC w -> (forall vf venv. vf -> venv -> LC (w ▹ vf ▹ venv)) -> LC w
-  |  Tuple :: [LC w] -> LC w
-  |  Index :: w -> Int -> LC w
-  |  AppC :: LC w -> LC w -> LC w
+  |  LetOpen :: LC w → (∀ vf venv. vf → venv → LC (w ▹ vf ▹ venv)) → LC w
+  |  Tuple :: [LC w] → LC w
+  |  Index :: w → Int → LC w
+  |  AppC :: LC w → LC w → LC w
   | 
-  |cc' :: forall w. Eq w => Tm w -> LC w  
+  |cc' :: ∀ w. Eq w => Tm w → LC w  
   |cc' (Var x) = VarC x
   |cc' t0@(Lam f) = 
   |  let yn = nub $ freeVars t0
-  |  in Closure (\x env -> subst (lift (\w -> (Index (inj env) (indexOf w yn))))
+  |  in Closure (\x env → subst (lift (\w → (Index (inj env) (indexOf w yn))))
   |                                           (cc' (f x)))
   |             (Tuple $ map VarC yn)
-  |cc' (App e1 e2) = LetOpen (cc' e1) (\xf xenv -> (var xf `AppC` wk (cc' e2)) `AppC` var xenv)
+  |cc' (App e1 e2) = LetOpen (cc' e1) (\xf xenv → (var xf `AppC` wk (cc' e2)) `AppC` var xenv)
   |
-  |indexOf :: Eq a => a -> [a] -> Int
+  |indexOf :: Eq a => a → [a] → Int
   |indexOf x [] = error "index not found"
   |indexOf x (y:ys) | x == y = 0
   |                 | otherwise = 1 + indexOf x ys
