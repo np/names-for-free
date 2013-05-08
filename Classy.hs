@@ -3,7 +3,7 @@
              UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables #-}
 module Classy where
 
-import Prelude hiding (sequence)
+import Prelude hiding (sequence,elem)
 import Data.String
 import Data.List (nub,elemIndex)
 import Data.Maybe (fromJust)
@@ -16,6 +16,8 @@ import Data.Monoid
 
 --------------------------------
 -- Generic programming prelude
+
+type (∪) a b = (:▹) a b
 
 data (:▹) a b = There a | Here b 
 data Zero
@@ -78,7 +80,7 @@ const' = lam "x" (\x → lam "y" (\_y → var x))
 
 testfv :: Term String
 testfv = Var "x1" `App` Lam "x2" (\x2->
-           Var (Inl "x3") `App` var x2)
+           Var (There "x3") `App` var x2)
 
 (@@) :: Term a -> Term a -> Term a
 Lam _ f @@ u = f u >>= subst0
@@ -103,8 +105,8 @@ data Disp a = Disp { dispVar :: a -> String
 
 extDisp :: Name -> Disp a -> Disp (a ∪ w)
 extDisp nm (Disp v n) = Disp v' (n+1) where
-  v' (Inl a) = v a
-  v' (Inr _) = show (mkName nm n)
+  v' (There a) = v a
+  v' (Here _) = show (mkName nm n)
 
 mkName :: Name -> Int -> Name
 mkName (Name nm) i = Name $ nm ++ show i
@@ -184,9 +186,6 @@ eval (App t u) = app (eval t) (eval u)
 app :: Term v -> Term v -> Term v
 app (Lam _ t) u = subst0 =<< t u 
 app t u = App t u
-
-(@@) :: (∀ w. w -> Term (v :▹ w)) -> Term v -> Term v
-t @@ u = subst0 =<< t u
 
 subst0 :: v :▹ Term v -> Term v
 subst0 (Here x) = x
@@ -293,6 +292,9 @@ data Ex f w where
 with' :: (forall v. v → f (w :▹ v)) -> Ex f w
 with' f = unpack f Ex
 
+fresh :: Zero
+fresh = error "cannot access free variables"
+
 unpack :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
 unpack b k = k fresh (b fresh)
   where fresh = error "cannot query fresh variables!"
@@ -360,19 +362,6 @@ recognize' t0 = case t0 of
       _ -> False   
     _ -> False   
 
-
--------------
--- α-eq
-
-fresh :: Zero
-fresh = error "cannot access free variables"
-
-
-instance Eq a => Eq (Term a) where
-  Var x == Var x' = x == x'
-  Lam _ g == Lam _ g' = unpack2 g g' $ \_ t t' -> t == t'
-  App t u == App t' u' = t == t' && u == u'        
-
 -------------
 -- CPS
 
@@ -403,46 +392,51 @@ instance Traversable Term where
     Var <$> f x
   traverse f (App t u) =
     App <$> traverse f t <*> traverse f u
-  traverse f (Lam nm b) = lam' <$> 
+  traverse f (Lam nm b) = lam' nm () <$> 
       traverse (traverseu f pure) (b ())
 
 type Binding f a = forall b. b -> f (a ∪ b)
 
-lam' :: Name → (Term (w :▹ v)) → Term w
-lam' nm = Lam nm . pack
+lam' :: Name → v -> Term (w :▹ v) → Term w
+lam' nm x t = Lam nm (pack x t)
 
 
-pack :: Functor f => f (a ∪ ()) -> Binding f a
-pack t x = fmap (mapu id (const x)) t
+pack :: Functor f => v -> f (a ∪ v) -> Binding f a
+pack _ t x = fmap (mapu id (const x)) t
 
 traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
                               a ∪ b -> f (a' ∪ b')
-traverseu f _ (Inl x) = Inl <$> f x
-traverseu _ g (Inr x) = Inr <$> g x
+traverseu f _ (There x) = There <$> f x
+traverseu _ g (Here  x) = Here  <$> g x
 
 fv' :: Term a -> [a]
 fv' = toList
 
-memberOf :: Eq a => a -> Term a -> Bool
-x `memberOf` t = getAny $ foldMap (Any . (==x)) t
+memberOf' :: Eq a => a -> Term a -> Bool
+x `memberOf'` t = getAny $ foldMap (Any . (==x)) t
 
 type Succ a = a ∪ ()
 
+{-
 instance Applicative ((∪) ()) where
-  pure = Inr
-  Inr f <*> Inr x = Inr (f x)
-  _     <*> _     = Inl ()
+  pure = Here
+  Here f <*> Here x = Here (f x)
+  _     <*> _     = There ()
 
 instance Monad ((∪) ()) where
-  return = Inr
-  Inr x >>= f = f x
-  Inl _ >>= _ = Inl ()
+  return = Here
+  Here x >>= f = f x
+  There _ >>= _ = There ()
+-}
+
+-------------
+-- α-eq
 
 type Cmp a b = a -> b -> Bool
 
 succCmp :: Cmp a b -> Cmp (Succ a) (Succ b)
-succCmp f (Inl x)  (Inl y)  = f x y
-succCmp _ (Inr ()) (Inr ()) = True
+succCmp f (There x)  (There y)  = f x y
+succCmp _ (Here ()) (Here ()) = True
 succCmp _ _        _        = False
 
 cmpTerm :: Cmp a b -> Cmp (Term a) (Term b)
@@ -453,26 +447,33 @@ cmpTerm cmp (Lam _ f1) (Lam _ f2) =
   cmpTerm (succCmp cmp) (f1 ()) (f2 ())
 cmpTerm _ _ _ = False
 
+
+
+
 instance Eq a => Eq (Term a) where
-  (==) = cmpTerm (==)
+  -- (==) = cmpTerm (==)
+  Var x == Var x' = x == x'
+  Lam _ g == Lam _ g' = unpack2 g g' $ \_ t t' -> t == t'
+  App t u == App t' u' = t == t' && u == u'        
+
 
 
 close :: Term (Succ a) -> Maybe (Term a)
 close = traverse succToMaybe
 
 succToMaybe :: Succ a -> Maybe a
-succToMaybe (Inl a) = Just a
-succToMaybe (Inr _) = Nothing
+succToMaybe (There a) = Just a
+succToMaybe (Here _) = Nothing
 
 canη' :: Eq a => Term a -> Bool
 canη' (Lam _ t)
-  | App u (Var (Inr ())) <- t ()
-    = not (Inr () `memberOf` u)
+  | App u (Var (Here ())) <- t ()
+    = not (Here () `memberOf` u)
 canη' _ = False
 
 ηred :: Term a -> Term a
 ηred (Lam _ t)
-  | App u (Var (Inr ())) <- t ()
+  | App u (Var (Here ())) <- t ()
   , Just u' <- close u
   = u'
 ηred t = t
