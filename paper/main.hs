@@ -424,21 +424,46 @@ body = {-slice .-} execWriter $ do -- {{{
   |lift θ (Here  x) = var x
   |]
 
-  subsection $ «Pack/Unpack»
+  subsection $ «Packing and Unpacking Binders»
+
+  p""«The unpack combinator gives the possibility to refer to a free variable
+  by name, enabling for example to combare a variable occurrence with a free variable.
+
+  Essentially, it offers a nominal interface to free variables.
+  
+  It is now time to reveal the trick used in its implementation:
+  »
 
   commentCode unpackTypeSig
   [agdaP|
   |unpack b k = k fresh (b fresh)
-  |fresh = error "cannot query fresh variables!"
-  |-- Note that pack is very generous: it accepts any v'
+  |fresh = error "accessing fresh variable!"
+  |]
+
+  p""«Since v is universally quantified in the continuation, the continuation can never (bar use of seq)
+  trigger the fresh exception.»
+
+  p""«Given a term with a free variable (of type {|Tm (a ▹ v)|}) it is easy to
+  reconstruct a binder: »
+  [agdaP|
+  |pack' :: Functor tm ⇒ tm (a ▹ v) → (∀ w. w → tm (a ▹ w))
+  |pack' t = \y → fmap (mapu id (const y)) t
+  |]
+  p""«It is preferrable however, as in the variable case, to bring a named reference to the
+  variable that one attempts to bind, in order not to rely on the index (zero in this case),
+  but on a name, correctness.»
+  [agdaP|
   |pack :: Functor tm ⇒ v' → tm (w ▹ v') → (∀ v. v → tm (w ▹ v))
   |pack x t = \y → fmap (mapu id (const y)) t
   |]
 
+  p""«Hence, the pack combinator enables to give a nominal-style interface to binders:»
   [agdaP|
   |lam' :: v → Tm (w ▹ v) → Tm w
   |lam' x t = Lam (pack x t)
   |]
+  
+  
 
   subsection $ «Traversable»
 
