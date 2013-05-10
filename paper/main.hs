@@ -194,7 +194,9 @@ body = {-slice .-} execWriter $ do -- {{{
    to adjust the type to forget the difference between the new variables and the others. The variable and application
    cases offer no surprises. (We defer the description of the functor instance to the next section.)
    »
-
+  -- JP: I moved the descruction examples up here; because I think
+  -- they are very important to distinguish our method from others
+  -- (eg. "Classy Hack")
   [agdaP|
   |size1 :: Term Int -> Int
   |size1 (Var x) = x
