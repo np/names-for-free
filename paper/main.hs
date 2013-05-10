@@ -428,24 +428,38 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Packing and Unpacking Binders»
 
-  p""«The unpack combinator gives the possibility to refer to a free variable
-  by name, enabling for example to combare a variable occurrence with a free variable.
+  p""«In order to examine the content of a term with another bound variable, 
+      one must apply a concrete argument to the function of type {|∀v. v → Term (a ▹ v)|}.
+      The type of that argument can be chosen freely --- that freedom is sometimes useful
+      to write idiomatic code. One choice is 
+      unit type and its single inhabitant {|()|}. This choice essentially reverts to using
+      plain de_Bruijn indices, and it is often advisable to chose more specific types.
+       
+      In particular, a canonical choice is a maximally polymorphic type. This choice is
+      captured in the {|unpack|} combinator.
+      »
+  commentCode unpackTypeSiga
 
-  Essentially, it offers a nominal interface to free variables.
-  
-  It is now time to reveal the trick used in its implementation:
-  »
 
-  commentCode unpackTypeSig
   [agdaP|
   |unpack b k = k fresh (b fresh)
   |fresh = error "accessing fresh variable!"
   |]
 
-  p""«Since v is universally quantified in the continuation, the continuation can never (bar use of seq)
-  trigger the fresh exception.»
+  p""«Since {|v|} is universally quantified in the continuation, the continuation cannot (bar use of {|seq|})
+  trigger the {|fresh|} exception.»
 
-  p""«Given a term with a free variable (of type {|Tm (a ▹ v)|}) it is easy to
+
+  p""«As we have seen in previous examples, the unpack combinator gives the possibility 
+  to refer to a free variable by name, enabling for example to combare a variable
+  occurrence with a free variable. Essentially, it offers a nominal interface to free variables:
+  even though the running code will use de Bruijn indices, the programmer sees names; and
+  the correspondence is implemented by the type system. 
+  »
+
+  p""«
+  It is easy to invert the job of {|unpack|}. Indeed,
+  given a term with a free variable (of type {|Tm (a ▹ v)|}) it is easy to
   reconstruct a binder: »
   [agdaP|
   |pack' :: Functor tm ⇒ tm (a ▹ v) → (∀ w. w → tm (a ▹ w))
