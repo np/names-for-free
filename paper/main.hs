@@ -1,14 +1,16 @@
-{-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes, OverloadedStrings, UnicodeSyntax #-}
 {-# OPTIONS_GHC -F -pgmF frquotes -fno-warn-missing-signatures #-}
 -- VIM :source config.vim
 
 import Language.LaTeX
 
+import System.Cmd (system)
+import System.Directory (doesFileExist)
 import Control.Monad.Writer hiding (when)
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
-import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent)
+import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet)
 import NomPaKit hiding (when)
 import NomPaKit.QQ
 
@@ -32,7 +34,13 @@ import NomPaKit.QQ
 -- [keys|TODO|]
 
 -- citations
-[keys|citeTODO|]
+[keys|pouillard_unified_2012
+      mcbride_am_2010
+      chlipala_parametric_2008
+      guillemette_type-preserving_2007
+      guillemette_type-preserving_2008
+      bird-paterson-99
+     |]
 
 title = «Parametric Nested Abstract Syntax»
   -- «A Classy Kind of Nested Abstract Syntax»
@@ -57,21 +65,41 @@ notetodo x = p"" $ red «TODO {x}»
 long = True
 short = not long
 debug = False
-when :: Bool -> ParItemW -> ParItemW
+when :: Bool → ParItemW → ParItemW
 when True  x = x
 when False _ = return ()
 
-doComment :: ParItemW -> ParItemW
+doComment :: ParItemW → ParItemW
 doComment x = startComment >> x >> stopComment
 
-commentWhen :: Bool -> ParItemW -> ParItemW
+commentWhen :: Bool → ParItemW → ParItemW
 commentWhen True  x = doComment x
 commentWhen False x = x
 
+commentCode = commentWhen True
+  
+unpackTypeSig =  [agdaP|
+  |unpack :: (∀ v. v → tm (w ▹ v)) → 
+  |          (∀ v. v → tm (w ▹ v) → a) → a
+  |]
+
+
 body = {-slice .-} execWriter $ do -- {{{
   -- JP (when the rest is ready)
+  notetodo «ACM classification (JP: no clue how it's done these days!)»
   section $ «Intro» `labeled` intro
   subsection $ «Example final»
+  [agdaP|
+  |{-# LANGUAGE RankNTypes, UnicodeSyntax, 
+  |    TypeOperators, GADTs, MultiParamTypeClasses, 
+  |    FlexibleInstances, UndecidableInstances, 
+  |    IncoherentInstances #-} 
+  |import Prelude hiding (elem)
+  |import Data.Foldable
+  |import Data.Traversable
+  |import Control.Applicative
+  |import Data.List (nub,elemIndex)
+  |]
   
   -- JP
   section $ «Overview» `labeled` overview
@@ -84,14 +112,14 @@ body = {-slice .-} execWriter $ do -- {{{
   [agdaP|
   |data Nat = Zero | Succ Nat
   |data TmDB where
-  |  Var :: Nat → TmDB
-  |  App :: TmDB → TmDB → TmDB
-  |  Lam :: TmDB → TmDB
+  |  VarDB :: Nat → TmDB
+  |  AppDB :: TmDB → TmDB → TmDB
+  |  LamDB :: TmDB → TmDB
   |]
-  p""«Using this representation, the representation of the constant function {|\x y -> x|} is the following:»
+  p""«Using this representation, the representation of the constant function {|\x y → x|} is the following:»
   [agdaP|
   |constDB :: TmDB
-  |constDB = Lam $ Lam $ Var (Succ Zero)
+  |constDB = LamDB $ LamDB $ VarDB (Succ Zero)
   |]
 
   p""«However, such a direct implementation is naïve. It cannot distinguish between open and closed terms. 
@@ -101,40 +129,46 @@ body = {-slice .-} execWriter $ do -- {{{
   p""«In Haskell, it is possible to remedy to this situation by "nested recursion". 
       That is, one parameterises the type of terms by a type that can represent free variables.
       If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is one free variable, etc.»
-  p""«This representation in known as Nested Abstract Syntax»
+  p""«This representation in known as Nested Abstract Syntax {cite[birdpaterson99]}»
   notetodo «cite»
   [agdaP|
-  |data a ⊕ b = Inl a | Inr b
-  |type Succ a = a ⊕ ()
+  |data a ▹ b = There a | Here b 
+  |type Succ a = a ▹ ()
   |              
   |data TmN a where
-  |  Var :: a → TmN a
-  |  App :: TmN a → TmN a → TmN a
-  |  Lam :: TmN (Succ a) → TmN a
+  |  VarN :: a → TmN a
+  |  AppN :: TmN a → TmN a → TmN a
+  |  LamN :: TmN (Succ a) → TmN a
   |]
   p""«The recursive case {|Lam|} changes the parameter type, increasing its cardinality by one.»
 
   p""«Using this representation, the representation of the constant function {|\x y → x|} is the following:»
   [agdaP|
-  |data Zero -- no constructor
   |constN :: TmN Zero
-  |constN = Lam $ Lam $ Var (Inl (Inr ()))
+  |constN = LamN $ LamN $ VarN (There (Here ()))
   |]
-  p ""«As promised, the type is explicit about {|constN|} being closed.»
+  p ""«As promised, the type is explicit about {|constN|} being a close term: this 
+       is ensured by using the empty type {|Zero|} as an argument to {|TmN|}.»
+  [agdaP|
+  |data Zero -- no constructor
+  |magic :: Zero → a
+  |magic _ = error "magic!"
+  |]
   p "" «In passing, we remark that another valid type for closed terms is {|∀ a. TmN a|} 
        --- literally: the type of terms which have an unknown number of free variables.
        Indeed, because {|a|} is universally quantified, there is no way to construct an inhabitant of it; 
        one cannot possibly refer to any free variable.»
-  p""«Another drawback of using DeBruijn indices is that it is easy to make a mistake
+  p""«Another drawback of using de Bruijn indices is that it is easy to make a mistake
       when counting the number of binders between the declaration of a variable and its occurence.»
 
   -- subsection $ «Our stuff»
   p""«To address this issue, we propose the following representation:»
+  notetodo «Frame this?»
   [agdaP|
   |data Tm w where
   |  Var :: w → Tm w
   |  App :: Tm w → Tm w → Tm w
-  |  Lam :: (∀ v. v → Tm (w ⊕ v)) → TmN a
+  |  Lam :: (∀ v. v → Tm (w ▹ v)) → Tm w
   |]
   p""«That is, instead of adding a concrete unique type in the recursive parameter of {|Lam|}, 
       we quantify universally over a type variable {|v|} and add this type variable to the type of free variables.»
@@ -142,76 +176,83 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«The constant function is then represented as follows:»
   [agdaP|
-  |const_ :: Tm
-  |const_ = Lam $ \x → Lam $ \y → Var (Inl (Inr x))
+  |constTm :: Tm Zero
+  |constTm = Lam $ \x → Lam $ \y → Var (There (Here x))
   |]
 
   -- subsection $ «Safety»
-  p""«Now, if one were to make a mistake and forget one {|Inl|} when typing the term, GHC rejects the definition.»
-  [agdaP|
-  |oops_ = Lam $ \x → Lam $ \y → Var (Inr x) 
-  |-- Couldn't match expected type `v1' with actual type `v'
+  p""«Now, if one makes a mistake and forgets one {|There|} when typing the term, GHC rejects the definition.»
+  commentCode [agdaP|
+  |oops_ = Lam $ \x → Lam $ \y → Var (Here x) 
+  |-- Couldn't match expected type `v1' 
+  |--             with actual type `v'
   |]
 
-  p""«In fact, the possibility of making a mistake is inexistant (if we ignore diverging terms).»
-
-  p""«Ineed, because the type {|v|} corresponding to a bound variable is universally quantified, 
+  p""«In fact, the possibility of making a mistake is inexistant (if we ignore diverging terms). 
+      Indeed, because the type {|v|} corresponding to a bound variable is universally quantified, 
       the only way to construct a value of its type is to use the variable bound by {|Lam|}.»
   p""«Conversely, in a closed context, if one considers the expression {|Var (f x)|}, only one possible value of {|f|} 
-      is admissible. Indeed, any context, the type of variables is {|w = w0 ⊕ v0 ⊕ v1 ⊕ ⋯ ⊕ vn|} where {|v0|}, {|v1|}, … , {|vn|} 
+      is admissible. Indeed, any context, the type of variables is {|w = w0 ▹ v0 ▹ v1 ▹ ⋯ ▹ vn|} where {|v0|}, {|v1|}, … , {|vn|} 
       are all distinct and universally quantified, and none of them occurs as part of {|w0|}. 
       Hence, there is only one injection function from a given {|vi|} to {|w|}.»
 
   -- subsection $ «Auto-inject»
-  p""«Knowing that the injection functions are purely mechanical, one may wish to automate them.
-      Thanks the the powerful class mechanism of Haskell, this is feasible. 
-      We can define a class {|v ∈ w|} capturing that {|v|} occurs as part of a sum {|w|}:»
+  p""«Knowing that the injection functions are uniquely determined by their type, 
+      one may wish to infer them mechanically.
+      Thanks the the powerful instance search mechanism implemented in GHC, this is feasible. 
+      We can define a class {|v ∈ w|} capturing that {|v|} occurs as part of a context {|w|}:»
   [agdaP|
   |class v ∈ w where
   |  inj :: v → w
   |]  
   p""«We can then wrap the injection function and {|Var|} in a convenient package:»
-  [agdaP|
-  |var :: forall v w. (v ∈ w) => v → Tm w
+  commentCode [agdaP|
+  |var :: ∀ v w. (v ∈ w) ⇒ v → Tm w
   |var = Var . inj
   |]
   p""«and the constant function can be conveniently written:»
   [agdaP|
-  |const_ :: Tm
+  |const_ :: Tm Zero
   |const_ = Lam $ \x → Lam $ \y → var x
   |]
 
-  p""«In sum, our term representation allows to write terms with DeBruijn-indices, 
-      but hides the complexity of juggling with indices.»
+  p""«Our term representation allows to construct terms with de Bruijn-indices, 
+      combined with the safety and convenience of named variables. These advantages
+      extend to the analysis and manipulation on terms.
 
-  p""«
-   Our term representation features both concrete indices and higher-order representation of binders.
-   This means that one can take advantage of either aspect when analysing and manipulating terms.
+   Indeed, because the representation contains both concrete indices and functions at
+   bindinding sites, one can take advantage of either aspect when analysing and manipulating terms.
 
    One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
    is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
    This can be realised by applying the constant 1 at every function argument of a Lam constructor. One then needs
-   to adjust the type to forget the difference between the new variables and the others. The variable and application
-   cases offer no surprises. (We defer the description of the functor instance to the next section.)
+   to adjust the type to forget the difference between the new variable and the others. The variable and application
+   cases then offer no surprises. (We defer the description of the functor instance to the next section.)
    »
   -- JP: I moved the descruction examples up here; because I think
   -- they are very important to distinguish our method from others
   -- (eg. "Classy Hack")
   [agdaP|
-  |size1 :: Term Int -> Int
+  |size1 :: Tm Int → Int
   |size1 (Var x) = x
-  |size1 (Lam _ g) = 1 + size1 (fmap untag (g 1))
+  |size1 (Lam g) = 1 + size1 (fmap untag (g 1))
   |size1 (App t u) = 1 + size1 t + size1 u
+  |]
+
+  [agdaP|
+  |untag :: a ▹ a → a
+  |untag (There x) = x 
+  |untag (Here x) = x 
   |]
 
   p""«
    An other way to proceed is to simply pass a dummy object to the function arguments of Lam, and
-   use only the deBruijn index to compute results in the case of variables. Using this technique,
+   use only the de Bruijn index to compute results in the case of variables. Using this technique,
    the size computation looks as follows:
    »
 
   [agdaP|
-  |size2 :: Term a -> Int
+  |size2 :: Tm a → Int
   |size2 (Var _) = 1
   |size2 (Lam g) = 1 + size2 (g ())
   |size2 (App t u) = 1 + size2 t + size2 u
@@ -219,7 +260,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«
    One may however chose to combine the two approaches. 
-   This time we will assume that an arbitrary environment 
+   This time we also assume an arbitrary environment 
    mapping free variables to a size. For each new variable,
    we pass the size that we want to assign to it to the binding function, and 
    we extend the environment to use that value on the new variable, or
@@ -227,99 +268,398 @@ body = {-slice .-} execWriter $ do -- {{{
    »
 
   [agdaP|  
-  |size :: (a -> Int) -> Term a -> Int
+  |size :: (a → Int) → Tm a → Int
   |size f (Var x) = f x
-  |size f (Lam _ g) = 1 + size (extend f) (g 1)
+  |size f (Lam g) = 1 + size (extend f) (g 1)
   |size f (App t u) = 1 + size f t + size f u
-  |
+  |]
+  [agdaP|  
   |extend g (Here a) = a
   |extend g (There b) = g b
   |]
 
-  subsection $ «cata»
+  subsection $ «Catamorphism»
   p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
       Note that the algebra corresponds to the higher-order representation of lambda terms.»
   [agdaP|
-  |cata :: (w -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term w -> a
-  |cata fv fl fa (Var x)   = fv x
-  |cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
-  |cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
+  |type Algebra w a = (w → a, (a → a) → a, a → a → a)
+  |cata :: Algebra w a → Tm w → a
+  |cata φ@(v,l,a) s = case s of
+  |   Var x   → v x
+  |   Lam f   → l (cata (extend v,l,a) . f)
+  |   App t u → a (cata φ t) (cata φ u)
   |]
 
-  subsection $ «fresh names»
+  subsection $ «De Bruijn indices as names»
   -- our debruijn indices are typed with the context where they are valid.
   -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
   -- a debruijn index in a given context is similar to a name.
 
 
-  p "" «A common use case:
-        One only wants to be able to check if an occurence of a variable is a reference to some previously bound variable. 
-        When traversing a binder, one wants to supply a fresh name to the subterm --- occurences may be check for equality to that fresh name.
+  p "" «A common use case is that one wants to be able to check if an occurence of
+        a variable is a reference to some previously bound variable. 
+        With de Bruijn indices, one must (yet again) count the number of binders traversed 
+        between the variable bindings and its potential occurences --- as error prone as it gets.
+        Here as well, we can take advantage of polymorphism to ensure 
+        that no mistake happens. We provide a combinator {|unpack|}, which transforms
+        a binding structure
+        (of type {|∀ v. v → Tm (w ▹ v)|}) into a sub-term with one more free variable 
+        {|Tm (w ▹ v)|} and a value (called {|x|} below) of type {|v|}, where {|v|} is 
+        bound existentially. We write the combinator in continuation-passing style
+        in order to encode the existential as a universal quantifier:
+        »
+  unpackTypeSig
+  p "" «     
+        Because {|v|} is existentially bound and occurs only positively in {|Tm|}, {|x|}
+        can never be used in a computation. It acts as a reference to a variable in a context,
+        but in a way which is only accesible to the type-checker.
 
+        That is, when facing for example a term {|t|} of type {|Tm (w ▹ v ▹ a ▹ b)|}, {|x|}
+        refers to the third free variable in {|t|}.
+
+        Using {|unpack|}, one can write a function recognising an eta-contractible term as follows:
+        (Recall that an a eta-contractible term has the form {|\x → e x|}, where {|x|} 
+        does not occur free in {|e|}.)
         »
 
   [agdaP|
-  |-- recognizer of \x -> e1 x, where x does not occur free in e1
-  |canEta :: Term Zero -> Bool
-  |canEta (Lam _ e) = with e $ \x t -> case t of
-  |  App e1 (Var y) -> lk x == y && not (lk x `memberOf` e1)
-  |  _ -> False
+  |canEta :: Tm Zero → Bool
+  |canEta (Lam e) = unpack e $ \x t → case t of
+  |  App e1 (Var y) → y `isOccurenceOf` x && 
+  |                   not (x `occursIn` e1)
+  |  _ → False
   |canEta _ = False
   |]
 
+  p "" «In the above example, the functions {|isOccurenceOf|} and {|occursIn|} use the {|inj|}
+        function to lift {|x|} to a reference in the right context before comparing it to the
+        occurences.
+        The occurence checks do not get more complicated in the presence of multiple
+        binders. For example, the code which recognises the pattern {|\x y → e x|} is
+        as follows:»
+
   [agdaP|
-  |-- recognizer of \x -> \y -> e1 x, where x does not occur free in e1
-  |recognize :: Term Zero -> Bool
+  |recognize :: Tm Zero → Bool
   |recognize t0 = case t0 of 
-  |    Lam _ f -> with f $ \x t1 -> case t1 of
-  |      Lam _ g -> with g $ \y t2 -> case t2 of
-  |        App e1 (Var y) -> y == lk x && not (lk x `memberOf` e1)
-  |        _ -> False   
-  |      _ -> False   
-  |    _ -> False   
+  |    Lam f → unpack f $ \x t1 → case t1 of
+  |      Lam g → unpack g $ \y t2 → case t2 of
+  |        App e1 (Var y) → y `isOccurenceOf` x && 
+  |                         not (x `occursIn` e1)
+  |        _ → False   
+  |      _ → False   
+  |    _ → False   
   |]
 
+  p""«Again, even though our representation is a variant of de Bruijn indices, the use of polymorphism
+      allows to refer to variables by name, while remaining safe.»
 
   -- NP
   section $ «Term Structure» `labeled` termStructure
   p "" $ «Laws»
   subsection $ «Contexts, inclusion and membership»
+  [agdaP|
+  |instance x ∈ (γ ▹ x) where
+  |  inj = Here
+  |  
+  |instance (x ∈ γ) ⇒ x ∈ (γ ▹ y) where
+  |  inj = There . inj
+  |]
+
+  [agdaP|
+  |mapu :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
+  |mapu f g (There x) = There (f x)
+  |mapu f g (Here x) = Here (g x)
+  |]
+
+  [agdaP|
+  |class a ⊆ b where
+  |  injMany :: a → b
+  |
+  |instance a ⊆ a where injMany = id
+  |
+  |instance Zero ⊆ a where injMany = magic
+  |
+  |instance (γ ⊆ δ) ⇒ (γ ▹ v) ⊆ (δ ▹ v) where
+  |  injMany = mapu injMany id
+  |
+  |instance (a ⊆ c) ⇒ a ⊆ (c ▹ b) where
+  |  injMany = There . injMany
+  |]
+
   p "" $ «free theorems»
   p "auto-weakening, type-class hack" mempty
+
   subsection $ «Renaming/Functor»
+  [agdaP|
+  |instance Functor Tm where
+  |]
+
+  [agdaP|
+  |wk :: (Functor f, γ ⊆ δ) ⇒ f γ → f δ
+  |wk = fmap injMany
+  |]
+
   subsection $ «Substitute/Monad»
+
+  [agdaP|
+  |instance Monad Tm where
+  |]
+
+  [agdaP|
+  |var :: (Monad tm, v ∈ a) ⇒ v → tm a
+  |var = return . inj
+  |]
+
+
+  [agdaP|
+  |subst :: Monad m ⇒ (v → m w) → m v → m w
+  |subst = (=<<)
+  |]
+
+  [agdaP|
+  |-- Kleisli arrows
+  |type Kl m v w = v → m w
+  |
+  |-- Union is a functor in the category of Kleisli arrows
+  |lift :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
+  |lift θ (There x) = wk (θ x)
+  |lift θ (Here  x) = var x
+  |]
+
+  subsection $ «Packing and Unpacking Binders»
+
+  p""«The unpack combinator gives the possibility to refer to a free variable
+  by name, enabling for example to combare a variable occurrence with a free variable.
+
+  Essentially, it offers a nominal interface to free variables.
+  
+  It is now time to reveal the trick used in its implementation:
+  »
+
+  commentCode unpackTypeSig
+  [agdaP|
+  |unpack b k = k fresh (b fresh)
+  |fresh = error "accessing fresh variable!"
+  |]
+
+  p""«Since v is universally quantified in the continuation, the continuation can never (bar use of seq)
+  trigger the fresh exception.»
+
+  p""«Given a term with a free variable (of type {|Tm (a ▹ v)|}) it is easy to
+  reconstruct a binder: »
+  [agdaP|
+  |pack' :: Functor tm ⇒ tm (a ▹ v) → (∀ w. w → tm (a ▹ w))
+  |pack' t = \y → fmap (mapu id (const y)) t
+  |]
+  p""«It is preferrable however, as in the variable case, to bring a named reference to the
+  variable that one attempts to bind, in order not to rely on the index (zero in this case),
+  but on a name, correctness.»
+  [agdaP|
+  |pack :: Functor tm ⇒ v' → tm (w ▹ v') → (∀ v. v → tm (w ▹ v))
+  |pack x t = \y → fmap (mapu id (const y)) t
+  |]
+
+  p""«Hence, the pack combinator enables to give a nominal-style interface to binders:»
+  [agdaP|
+  |lam' :: v → Tm (w ▹ v) → Tm w
+  |lam' x t = Lam (pack x t)
+  |]
+  
+  
+
   subsection $ «Traversable»
-  subsection $ «With»
+
+  [agdaP|
+  |instance Foldable Tm where
+  |  foldMap = foldMapDefault
+  |]
+
+  [agdaP|
+  |traverseu :: Functor f ⇒ (a → f a') → (b → f b') →
+  |                              a ▹ b → f (a' ▹ b')
+  |traverseu f _ (There x) = There <$> f x
+  |traverseu _ g (Here x) = Here <$> g x
+  |
+  |instance Traversable Tm where
+  |  traverse f (Var x) =
+  |    Var <$> f x
+  |  traverse f (App t u) =
+  |    App <$> traverse f t <*> traverse f u
+  |  traverse f (Lam g) = unpack g $ \x b → 
+  |                       lam' x <$> traverse (traverseu f pure) b
+  |]
 
   -- JP/NP
   section $ «Bigger Examples» `labeled` examples
 
-
   subsection $ «free variables»
   [agdaP|
-  |rm :: [w ⊕ a] -> [w]
-  |rm xs = [x | Inl x <- xs]
+  |rm :: [w ▹ a] → [w]
+  |rm xs = [x | There x <- xs]
   |
-  |freeVars :: Term w -> [w]
+  |freeVars :: Tm w → [w]
   |freeVars (Var x) = [x]
-  |freeVars (Lam f) = with f $ \ (_,t) -> rm $ freeVars t
+  |freeVars (Lam f) = unpack f $ \ _ t → rm $ freeVars t
   |freeVars (App f a) = freeVars f ++ freeVars a
   |]
 
-  subsection $ «member of»
-  subsection $ «α-eq»
+  subsection $ «Occurence Test»
+
   [agdaP|
-  |equiv :: (a -> a -> Bool) -> Term a -> Term a -> Bool
-  |equiv f (Var x) (Var x') = f x x'
-  |equiv f (Lam _ g) (Lam _ g') = equiv f' (g fresh) (g' fresh)
-  |  where f' (Here _) (Here _) = True
-  |        f' (There x) (There x') = f x x'
-  |equiv f (App t u) (App t' u') = equiv f t t' && equiv f u u'        
+  |instance Eq Zero where
+  |  (==) = magic
+  |
+  |instance Eq w ⇒ Eq (w ▹ v) where
+  |  Here _ == Here _ = True
+  |  There x == There y = x == y
+  |  _ == _ = False
   |]
 
-  subsection $ «nbe»
+  [agdaP|
+  |occursIn :: (Eq w, v ∈ w) ⇒ v → Tm w → Bool
+  |occursIn x t = inj x `elem` freeVars t
+  |
+  |isOccurenceOf :: (Eq w, v ∈ w) ⇒ w → v → Bool
+  |isOccurenceOf x y = x == inj y
+  |]
+
+  subsection $ «Test of α-equivalence»
+  p""«
+   Testing for α-equivalent terms is straightforward. Our representation contains de Bruijn indices, so
+   we only need to ignore the higher-order aspect. This can be done by simply applying dummy elements
+   at every binding site. Additionally, as a natural refinement over the mere α-equivalence test, we allow
+   for an equality test to be supplied for free variables. This equality test is provided by an {|Eq|} instance:
+   »
+
+  [agdaP|
+  |instance Eq w ⇒ Eq (Tm w) where
+  |  Var x == Var x' = x == x'
+  |  Lam g == Lam g' = g () == g' ()
+  |  App t u == App t' u' = t == t' && u == u'        
+  |]  
+
+  subsection $ «Normalisation by evaluation»
+  [agdaP|
+  |eval :: Tm w → Tm w
+  |eval (Var x) = Var x
+  |eval (Lam t) = Lam (eval . t)
+  |eval (App t u) = app (eval t) (eval u)
+  |
+  |app :: Tm w → Tm w → Tm w
+  |app (Lam t) u = subst0 =<< t u 
+  |app t u = App t u
+  |
+  |subst0 :: Monad tm ⇒ w ▹ tm w → tm w
+  |subst0 (Here  x) = x
+  |subst0 (There x) = return x
+  |]
+
   subsection $ «CPS»
-  subsection $ «closure conversion»
+  p "" «Following {citet[chlipalaparametric2008]}»
+  [agdaP|
+  |data Primop a where 
+  |  Var' :: a → Primop a
+  |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Primop a
+  |  Pair :: a → a → Primop a  -- Pair
+  |  Π1   :: a → Primop a
+  |  Π2   :: a → Primop a
+  |
+  |data Tm' a where
+  |  Halt' :: a → Tm' a
+  |  App'  :: a → a → Tm' a
+  |  Let   :: Primop a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
+  |
+  |(<:>) :: (v ∈ a, v' ∈ a) ⇒ v → v' → Primop a 
+  |x <:> y = Pair (inj x) (inj y)
+  |
+  |π1 :: (v ∈ a) ⇒ v → Primop a
+  |π1 = Π1 . inj
+  |
+  |π2 :: (v ∈ a) ⇒ v → Primop a
+  |π2 = Π2 . inj
+  |
+  |app' :: (v ∈ a, v' ∈ a) ⇒ v → v' → Tm' a 
+  |app' x y = App' (inj x) (inj y)
+  |
+  |halt' :: (v ∈ a) ⇒ v → Tm' a 
+  |halt' = Halt' . inj
+  |  
+  |instance Functor Tm' where 
+  |  -- ...
+  |]
+  
+  [agdaP|
+  |-- in e1, substitute Halt' by an arbitrary Tm' e2
+  |letTerm :: ∀ v  .
+  |         Tm' v  →
+  |         (∀ w. w  → Tm' (v ▹ w)) → 
+  |         Tm' v 
+  |letTerm (Halt' v)  e2 = fmap untag (e2 v)
+  |letTerm (App' f x) e2 = App' f x
+  |letTerm (Let p e') e2 = Let (letPrim p e2) $ \x → letTerm (e' x) (\y → wk (e2 y))
+  |
+  |letPrim :: Primop v → (∀ w. w  → Tm' (v ▹ w)) → Primop v 
+  |letPrim (Abs' e) e2 = Abs' $ \x → letTerm (e x) (\y → wk (e2 y))
+  |letPrim (Var' v) e2 = Var' v
+  |letPrim (Pair x y) e2 = Pair x y
+  |letPrim (Π1 y) e2 = Π1 y
+  |letPrim (Π2 y) e2 = Π2 y  
+  |]
+
+  [agdaP|
+  |cps :: Tm v → Tm' v
+  |cps (Var v) = Halt' v
+  |cps (App e1 e2) = letTerm (cps e1) $ \ f → 
+  |                  letTerm (wk (cps e2)) $ \ x →
+  |                  Let (Abs' (\x → halt' x)) $ \k →
+  |                  Let (x <:> k) $ \p →
+  |                  app' f p 
+  |                      
+  |cps (Lam e') =  Let (Abs' $ \p → Let (π1 p) $ \x → 
+  |                                  Let (π2 p) $ \k →
+  |                                  letTerm (wk (cps (e' x))) $ \r → 
+  |                                  app' k r)
+  |                    (\x → halt' x)
+  |]                         
+
+  subsection $ «Closure Conversion»
+  p"" «Following {citet[guillemettetypepreserving2007]}»
+  [agdaP|
+  |instance Functor LC where
+  |instance Monad LC where
+  |data LC w where
+  |  VarC :: w → LC w
+  |  Clos :: (∀ vx venv. vx → venv → 
+  |           LC (Zero ▹ venv ▹ vx)) →
+  |           LC w → 
+  |           LC w
+  |  LetOpen :: LC a → 
+  |             (∀ vf venv. vf → venv → 
+  |              LC (a ▹ vf ▹ venv)) → LC a
+  |  Tuple :: [LC w] → LC w
+  |  Index :: w → Int → LC w
+  |  AppC :: LC w → LC w → LC w
+  |($$) = AppC
+  |idx :: (v ∈ a) ⇒ v → Int → LC a
+  |idx env = Index (inj env)
+  |infixl $$
+  | 
+  |cc :: ∀ w. Eq w ⇒ Tm w → LC w  
+  |cc (Var x) = VarC x
+  |cc t0@(Lam f) = 
+  |  let yn = nub $ freeVars t0
+  |  in Clos (\x env → cc (f x) >>= 
+  |                   (lift $ \w → idx env (indexOf w yn)))
+  |          (Tuple $ map VarC yn)
+  |cc (App e1 e2) = 
+  |  LetOpen (cc e1) 
+  |          (\f env → var f $$ wk (cc e2) $$ var env)
+  |
+  |indexOf :: Eq a ⇒ a → [a] → Int
+  |indexOf x [] = error "index not found"
+  |indexOf x (y:ys) | x == y = 0
+  |                 | otherwise = 1 + indexOf x ys
+  |]
 
   -- NP
   section $ «Comparisons» `labeled` comparison
@@ -336,7 +676,90 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Syntax for free»
   p "+" «Forced to use catamorphism to analyse terms»
   subsection $ «McBride's "Classy Hack"»
-  subsection $ «NaPa/NomPa»
+  
+  -- the point of types isn’t the crap you’re not allowed to write,
+  -- it’s the other crap you don’t want to bother figuring out.
+
+  p "" «{citet[mcbrideam2010]} has devised a set of combinators to construct 
+        lambda terms in de Brujin representation, with the ability to refer to 
+        bound variables by name. Terms constructed using McBride's technique are 
+        textually identical to terms constructed using ours. Another point of 
+        similiarity is the use of instance search to recover the indices from a 
+        host-language variable name.
+
+        Even though McBride's combinators use polymorphism in a way similar to ours,
+        a difference is that they produce a plain de Brujin representation, 
+        while we keep the polymorphism throughout.
+
+        Another difference is that McBride integrate the injection in the abstraction
+        constructor rather than the variable one. The type of the {|var|} combinator becomes then
+        simpler, at the expense of {|lam|}:
+        »
+  
+  commentCode [agdaP|
+  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m))
+  |        → Tm m
+  |var :: Fin n → Tm n
+  |]
+  p "" «The above types also reveal somewhat less precise types that what we use.
+        Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|⊆|}
+        in our development),
+        namely that one context should be smaller than another.
+        This means, for example, that the class constraint {|w ⊆ w'|} can be meaning fully resolved
+        in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
+
+  subsection $ «NomPa (nominal fragment)»
+
+  p""«{citet[pouillardunified2012]} describe an interface for names and binders which provides maximum safety.
+      The library is writen in Agda, using dependent types. The interface makes use of an abstract notion 
+      of {|World|}s (set of names), {|Binder|}s (name declaration), and {|Name|}s (the occurence of a name).
+
+      A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator.
+     »
+  commentCode [agdaP|
+  |-- Abstract interface
+  |World :: *
+  |Binder :: * 
+  |Name :: World → *
+  |Empty :: World 
+  |(◅) :: Binder → World → World
+  |]
+
+  p""«
+  A {|Name|} set is indexed by a {|World|}: this ties occurences to the context where they make sense.
+  On top of these abstract notions, one can construct the following representation of terms:
+  »
+  
+  commentCode [agdaP|
+  |data Tm α where
+  |  Var :: Name α → Tm α
+  |  App :: Tm α → Tm α → Tm α
+  |  Lam :: (b :: Binder) → Tm (b ◅ α) → Tm α
+  |]
+  notetodo «The rest of the section is wrong.»
+  p""«Our representation is an instance of Pouillard's NomPa framework, 
+      where we instanciate the abstract interface as follows:»
+  
+  commentCode [agdaP|
+  |World = *
+  |Binder = (v :: *) × v
+  |Name w = w
+  |Empty = Zero
+  |(v,_) ◅ w = w ▹ v
+  |]
+
+  p""«no loss of precision by doing this instanciation (?)»
+
+  p""«export is replaced by unpack (?)»
+
+  p""«After this instantiation, dependent types are no longer required --- but impredicativity is.»
+  
+  p""«Perhaps counter intuitively, our representation is an instance of the nominal fragment of NomPa,
+      while it appears to be closer to a de Bruijn representation. 
+      This suggests that the ``de Bruijn'' fragment of NomPa could be made 
+      closer to the nominal fragment by using the ideas of this paper.
+      »
+
   subsection $ «Multiple Binders/Rec/Pattern/Telescope»
 
   -- ??
@@ -349,12 +772,30 @@ body = {-slice .-} execWriter $ do -- {{{
 
   -- JP
   section $ «Discussion» `labeled` discussion
-  p "non-intrusive" «the approach can be used locally»
-  p "" «more remarks about safetly»
-  p "" «impredicativity»
-  p "getting rid of the injections by using a stronger type system" «»
 
-  p "acknowledgements" «Emil Axelsson wrote a definition of catamorphism on untyped lambda terms.»  
+  p "non-intrusive" «the approach can be used locally»
+
+  p"" «{citet[guillemettetypepreserving2008]} change representation from HOAS to de Bruijn indices, arguing that HOAS is more suitable for
+     CPS transform, while de Bruijn indices are more suitable for closure conversion.
+     Our reprensentation supports a natural implementation of both transformations.
+     »
+
+  p "" «more remarks about safetly»
+
+  p "" «impredicativity»
+
+  p "getting rid of the injections by using a stronger type system" «
+    We use the powerful GHC instance search in a very specific way: only to discover in injections. 
+    This suggests that a special-purpose type-system (featuring a form of subtyping) 
+    could be built to take care of those injections automatically.
+    An obvious benefit would be some additional shortening of programs manipulating terms. 
+    A more subtle one is that, since injections would not be present at all, the performance 
+    would be increased. Additionally, this simplification of programs would imply an
+    even greater simplification of the proofs about them; indeed, a variation in complexity in
+    an object usually yields a greater variation in complexity in proofs about it.
+  »
+
+  p "acknowledgements" «We thank Emil Axelsson for discussions on name binding.»  
   
   itemize $ do 
 --    it «PHOAS»
@@ -380,6 +821,11 @@ appendix = execWriter $ do
 -- }}}
 
 main = do -- {{{
+  let jpbib = "../../gitroot/bibtex/jp.bib"
+  e <- doesFileExist jpbib
+  unless (not e) $ do putStrLn "refreshing bib"
+                      system $ "cp " ++ jpbib ++ " ." 
+                      return ()
   let base = "out"
   writeAgdaTo "PaperCode.hs" $ doc
   quickView myViewOpts{basedir=base,showoutput=False,pdfviewer="echo"} "paper" doc

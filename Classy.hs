@@ -1,13 +1,23 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types,
              UnicodeSyntax, TypeOperators, GADTs, OverlappingInstances,
-             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes #-}
+             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 module Classy where
 
+import Prelude hiding (sequence,elem)
 import Data.String
+import Data.List (nub,elemIndex)
+import Data.Maybe (fromJust)
 import Control.Monad (join)
+import Data.Functor
+import Control.Applicative
+import Data.Traversable
+import Data.Foldable
+import Data.Monoid
 
 --------------------------------
 -- Generic programming prelude
+
+type (∪) a b = (:▹) a b
 
 data (:▹) a b = There a | Here b 
 data Zero
@@ -46,16 +56,34 @@ data Term v where
   App :: Term v → Term v → Term v
    
 
-var :: forall a γ. (a :∈ γ) => a → Term γ
-var = Var . lk
+var :: Monad m => forall a γ. (a :∈ γ) => a → m γ
+var = return . lk
 
+lam :: Name → (forall w. w → Term (v ∪ w)) → Term v
 lam = Lam
 
-id' :: Term Zero
+-- A closed term can be given the 'Term Zero' type.
+-- More generally any type can be used as the type
+-- of the free variables of a closed term including
+-- a polymorphic type.
+idZero :: Term Zero
+idZero = lam "x" (\x → var x)
+
+
+-- fmap magic, wk...
+
+id' :: Term a
 id' = lam "x" (\x → var x)
 
-const' :: Term Zero
-const' = lam "x" (\x → lam "y" (\y → var x))
+const' :: Term a
+const' = lam "x" (\x → lam "y" (\_y → var x))
+
+testfv :: Term String
+testfv = Var "x1" `App` Lam "x2" (\x2->
+           Var (There "x3") `App` var x2)
+
+(@@) :: Term a -> Term a -> Term a
+(@@) = app
 
 -- oops' = lam "x" (\x → lam "y" (\y → Var (Here x)))
 
@@ -65,19 +93,50 @@ const' = lam "x" (\x → lam "y" (\y → var x))
 instance Show x => Show (Term x) where
   show = disp
 
+-- half broken since names are never freshen
 disp :: Show x => Term x → String
 disp (Var x)    = show x
 disp (App a b)  = "(" ++ disp a ++ ")" ++ disp b
 disp (Lam nm f) = "λ" ++ unName nm ++ "." ++ disp (f nm)
 
+data Disp a = Disp { dispVar :: a -> String
+                   , curDispId :: Int }
+
+extDisp :: Name -> Disp a -> Disp (a ∪ w)
+extDisp nm (Disp v n) = Disp v' (n+1) where
+  v' (There a) = v a
+  v' (Here _) = show (mkName nm n)
+
+mkName :: Name -> Int -> Name
+mkName (Name nm) i = Name $ nm ++ show i
+
+--dispVar :: Disp a -> Term a → ShowS
+
+text :: String -> ShowS
+text s1 s2 = s1 ++ s2
+
+disp' :: Disp a -> Term a → ShowS
+disp' d (Var x)    = text (dispVar d x)
+disp' d (App a b)  = text "(" . disp' d a . text ")" . disp' d b
+disp' d (Lam nm f) = text "λ" . text (show nm') . text "." . disp' d' (f ())
+  where d'  = extDisp nm d
+        nm' = mkName nm (curDispId d)
+
+dispZero :: Term Zero -> String
+dispZero t = disp' (Disp magic 0) t ""
+
+printZero :: Term Zero -> IO ()
+printZero = putStrLn . dispZero
+
 ---------------------
 -- Catamorphism
 
 cata :: (b -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term b -> a
-cata fv fl fa (Var x)   = fv x
+cata fv _  _  (Var x)   = fv x
 cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
 cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
   
+extend :: (a -> b) -> (a ∪ b) -> b
 extend g (Here a) = a
 extend g (There b) = g b
         
@@ -85,15 +144,14 @@ extend g (There b) = g b
 -- Terms are monads
 -- (which means they support substitution as they should)
 
-
 wk :: (Functor f, γ :< δ) => f γ -> f δ
 wk = fmap inj
 
 -- Kleisli arrows arising from the Term monad
-type v :=> w = v → Term w
+type Kl m v w = v → m w
 
--- Union is a functor in the category of Kleisli arrows (:=>)
-lift :: v :=> w → (v :▹ x) :=> (w :▹ x)
+-- Union is a functor in the category of Kleisli arrows
+lift :: (Functor f, Monad f) => Kl f v w → Kl f (v :▹ x) (w :▹ x)
 lift θ (There x) = wk (θ x)
 lift _ (Here x) = var x
 
@@ -104,8 +162,9 @@ instance Monad Term where
 
   return = Var
 
-subst :: v :=> w → Term v → Term w
+subst :: Monad m => (v → m w) → m v → m w
 subst = (=<<)
+
 
 -- As with any monad, fmap can be derived from bind and return.
 -- This is a bit nasty here though. Indeed the definition of bind
@@ -117,25 +176,22 @@ instance Functor Term where
 subst' :: (∀v. v → Term v) → Term w → Term w
 subst' t u = join (t u)
 
-{-
+
 -- Nbe (HOAS-style)
 eval :: Term v -> Term v
 eval (Var x) = Var x
 eval (Lam n t) = Lam n (eval . t)
 eval (App t u) = app (eval t) (eval u)
 
-app :: Term v -> Term v -> Term v
+app :: Term a -> Term a -> Term a
 app (Lam _ t) u = subst0 =<< t u 
 app t u = App t u
 
-(@@) :: (∀ w. w -> Term (v :▹ w)) -> Term v -> Term v
-t @@ u = subst0 =<< t u
-
-subst0 :: v :▹ Term v -> Term v
+subst0 :: Monad tm => v :▹ tm v -> tm v
 subst0 (Here x) = x
-subst0 (There x) = Var x
+subst0 (There x) = return x
 
-
+{-
 (>>=-) :: Term γ -> (γ -> Term δ) -> Term δ
 Var x    >>=- θ = θ x
 Lam nm f >>=- θ = with f $ \(_,t) -> Lam nm (\x -> t >>=- lift' x θ)
@@ -229,10 +285,32 @@ openTerm :: Functor f => (forall w. w → f (v :▹ w)) -> v -> f v
 openTerm b x = fmap (elim id (const x)) (b fresh)
   where fresh = error "cannot identify fresh variables!"
 -}
+
+data Ex f w where
+  Ex :: v -> f (w :▹ v) -> Ex f w
     
-with :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
-with b k = k fresh (b fresh)
+with' :: (forall v. v → f (w :▹ v)) -> Ex f w
+with' f = unpack f Ex
+
+fresh :: Zero
+fresh = error "cannot access free variables"
+
+unpack :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
+unpack b k = k fresh (b fresh)
   where fresh = error "cannot query fresh variables!"
+
+unpack2 :: (forall v. v → f (w :▹ v)) -> 
+           (forall v. v → g (w :▹ v)) -> 
+             
+           (forall v. v → f (w :▹ v) -> 
+                          g (w :▹ v) -> a) ->
+           a 
+unpack2 f f' k = k fresh (f fresh) (f' fresh)          
+  where fresh = error "cannot query fresh variables!"
+
+with :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
+with f k = case with' f of  Ex x t -> k x t
+
 
 instance Eq w => Eq (w :▹ v) where
   Here _ == Here _ = True
@@ -243,17 +321,23 @@ instance Eq w => Eq (w :▹ v) where
 memberOf :: Eq w => w -> Term w -> Bool
 memberOf x t = x `elem` freeVars t
 
+occursIn :: (Eq w, v :∈ w) => v -> Term w -> Bool
+occursIn x t = lk x `elem` freeVars t
+
+isOccurenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
+isOccurenceOf x y = x == lk y
+
 rm :: [v :▹ a] -> [v]
 rm xs = [x | There x <- xs]
 
 freeVars :: Term w -> [w]
 freeVars (Var x) = [x]
-freeVars (Lam _ f) = with f $ \_ t -> rm $ freeVars t
+freeVars (Lam _ f) = unpack f $ \_ t -> rm $ freeVars t
 freeVars (App f a) = freeVars f ++ freeVars a
 
 canEta :: Term Zero -> Bool
-canEta (Lam _ e) = with e $ \x t -> case t of
-  App e1 (Var y) -> lk x == y && not (lk x `memberOf` e1)
+canEta (Lam _ e) = case with' e of
+  Ex x (App e1 (Var y)) -> lk x == y && not (lk x `memberOf` e1)
   _ -> False
 canEta _ = False
 
@@ -261,26 +345,22 @@ canEta _ = False
 -- recognizer of \x -> \y -> f x
 recognize :: Term Zero -> Bool
 recognize t0 = case t0 of 
-    Lam _ f -> with f $ \x t1 -> case t1 of
-      Lam _ g -> with g $ \y t2 -> case t2 of
+    Lam _ f -> unpack f $ \x t1 -> case t1 of
+      Lam _ g -> unpack g $ \y t2 -> case t2 of
         (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
         _ -> False   
       _ -> False   
     _ -> False   
 
-
--------------
--- α-eq
-
-fresh :: Zero
-fresh = error "cannot access free variables"
-
-
-instance Eq a => Eq (Term a) where
-  Var x == Var x' = x == x'
-  Lam _ g == Lam _ g' = -- with g $ \(_,t) -> with g' $ \(_,t') -> t == t'
-                        g fresh == g' fresh
-  App t u == App t' u' = t == t' && u == u'        
+-- recognizer of \x -> \y -> f x
+recognize' :: Term Zero -> Bool
+recognize' t0 = case t0 of 
+    Lam _ f -> case with' f of
+      Ex x (Lam _ g) -> case with' g of 
+        Ex y (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
+        _ -> False   
+      _ -> False   
+    _ -> False   
 
 -------------
 -- CPS
@@ -302,17 +382,11 @@ data Term' v where
   
 instance Functor Term' where 
   
-
-mapu :: (u -> u') -> (v -> v') -> (u :▹ v) -> (u' :▹ v')
-mapu f g (There x) = There (f x)
-mapu f g (Here x) = Here (g x)
-
-  
-spliceAbs :: ∀ v   .
+spliceAbs :: ∀ v.
              (forall w. w  → Term' (v :▹ w) ) -> 
              (∀ w. w  → Term' (v :▹ w) ) -> 
              forall w. w  → Term' (v :▹ w) 
-spliceAbs e' e2 x = splice (e' x) (\ x₁ → fmap (mapu There id) (e2 x₁))
+spliceAbs e' e2 x = splice (e' x) (\ x₁ → wk (e2 x₁))
 
 -- in e1, substitude Halt' by an arbitrary continuation e2
 splice :: forall v  .
@@ -332,9 +406,6 @@ splicePrim (y :- y') e2 = y :- y'
 splicePrim (Π1 y) e2 = Π1 y
 splicePrim (Π2 y) e2 = Π2 y  
 
-var' :: forall a b. (a :∈ b) => a → Primop b
-var' = Var' . lk
-
 cps :: Term v -> Term' v
 -- cps Tru = Let Tru' (Halt' . There)
 -- cps Fals = Let Fals' (Halt' . There) 
@@ -351,17 +422,144 @@ cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x ->
                                     App' (lk k) (lk r))
                       (\x -> Halt' (lk x))
                  
-todo = error "todo!"                 
+-----------------  
+-- Traversable
+
+mapu :: (u -> u') -> (v -> v') -> (u :▹ v) -> (u' :▹ v')
+mapu f g (There x) = There (f x)
+mapu f g (Here x) = Here (g x)
+
+instance Foldable Term where
+  foldMap = foldMapDefault
+
+instance Traversable Term where
+  traverse f (Var x) =
+    Var <$> f x
+  traverse f (App t u) =
+    App <$> traverse f t <*> traverse f u
+  traverse f (Lam nm b) = unpack b $ \x b' -> 
+      lam'' nm x <$> traverse (traverseu f pure) b'
+
+type Binding f a = forall v. v -> f (a ∪ v)
+
+lam' :: Name → v -> Term (w :▹ v) → Term w
+lam' nm x t = Lam nm (pack x t)
+
+lam'' :: Insert v a b => Name → v -> Term b → Term a
+lam'' nm x t = Lam nm (pack' x t)
+
+-- pack :: (Functor f,v ∈ a) => v -> f a -> Binding (Diff a v) a
+pack :: Functor f => v -> f (a :▹ v) -> Binding f a
+pack _ t x = fmap (mapu id (const x)) t
+
+-- Generalisation
+pack' :: forall f v a b w. (Functor f, Insert v a b) => v -> f b -> (w -> f (a :▹ w))
+pack' _ t x = fmap (shuffle cx) t
+  where cx :: v -> w
+        cx _ = x
+
+traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
+                              a ∪ b -> f (a' ∪ b')
+traverseu f _ (There x) = There <$> f x
+traverseu _ g (Here  x) = Here  <$> g x
+
+fv' :: Term a -> [a]
+fv' = toList
+
+memberOf' :: Eq a => a -> Term a -> Bool
+x `memberOf'` t = getAny $ foldMap (Any . (==x)) t
+
+type Succ a = a ∪ ()
+
+{-
+instance Applicative ((∪) ()) where
+  pure = Here
+  Here f <*> Here x = Here (f x)
+  _     <*> _     = There ()
+
+instance Monad ((∪) ()) where
+  return = Here
+  Here x >>= f = f x
+  There _ >>= _ = There ()
+-}
+
+-------------
+-- α-eq
+
+type Cmp a b = a -> b -> Bool
+
+succCmp :: Cmp a b -> Cmp (Succ a) (Succ b)
+succCmp f (There x)  (There y)  = f x y
+succCmp _ (Here ()) (Here ()) = True
+succCmp _ _        _        = False
+
+cmpTerm :: Cmp a b -> Cmp (Term a) (Term b)
+cmpTerm cmp (Var x1) (Var x2) = cmp x1 x2
+cmpTerm cmp (App t1 u1) (App t2 u2) =
+  cmpTerm cmp t1 t2 && cmpTerm cmp u1 u2
+cmpTerm cmp (Lam _ f1) (Lam _ f2) =
+  cmpTerm (succCmp cmp) (f1 ()) (f2 ())
+cmpTerm _ _ _ = False
+
+
+
+
+instance Eq a => Eq (Term a) where
+  -- (==) = cmpTerm (==)
+  Var x == Var x' = x == x'
+  Lam _ g == Lam _ g' = unpack2 g g' $ \_ t t' -> t == t'
+  App t u == App t' u' = t == t' && u == u'        
+
+
+
+close :: Term (Succ a) -> Maybe (Term a)
+close = traverse succToMaybe
+
+succToMaybe :: Succ a -> Maybe a
+succToMaybe (There a) = Just a
+succToMaybe (Here _) = Nothing
+
+canη' :: Eq a => Term a -> Bool
+canη' (Lam _ t)
+  | App u (Var (Here ())) <- t ()
+    = not (Here () `memberOf` u)
+canη' _ = False
+
+ηred :: Term a -> Term a
+ηred (Lam _ t)
+  | App u (Var (Here ())) <- t ()
+  , Just u' <- close u
+  = u'
+ηred t = t
+
+ηexp :: Term a -> Term a
+ηexp t = Lam "x" $ \x-> App (wk t) (var x)
+
+
+class Insert v a b where    
+  shuffle :: (v -> w) -> b -> a :▹ w
+
+instance Insert v a (a :▹ v) where
+  shuffle f (Here x) = Here (f x)
+  shuffle f (There x) = There x
+  
+instance Insert v a b => Insert v (a :▹ v') (b :▹ v') where
+  shuffle f (Here x) = There (Here x)
+  shuffle f (There x) = case shuffle f x of
+    Here y -> Here y
+    There y -> There (There y)
                   
-
-
 class x :∈ γ where
+  -- type Diff γ x -- GHC refuses overlapping type family instances!
   lk :: x -> γ
   
-instance x :∈ (γ :▹ x) where
-  lk = Here
   
+instance x :∈ (γ :▹ x) where
+  -- type Diff (γ :▹ x) x  = γ
+  lk = Here
+
 instance (x :∈ γ) => x :∈ (γ :▹ y) where
+  -- type Diff (γ :▹ y) x = Diff γ x :▹ y 
   lk = There . lk
 
 
@@ -383,6 +581,78 @@ instance Functor ((:▹) a) where
 
 testMe = freeVars ((Lam (Name "x") (\x -> App (var x) (var 'c'))) :: Term (a :▹ Char))
        
+         
+-----------------------------
+-- Krivine Abstract Machine
+-- (A call-by-name lambda-calculus abstract machine, sec. 1)
+
+data Env w' w where -- input (w) and output (w') contexts
+  Cons :: v -> Closure w -> Env w' w -> Env (w' :▹ v) w
+  Nil :: Env w w 
+  
+look :: w' -> Env w' w -> Closure w
+look = undefined
+  
+data Closure w where
+  C :: Term w' -> Env w' w -> Closure w
+  
+type Stack w = [Closure w]  
+  
+kam :: Closure w -> Stack w -> Maybe (Closure w,Stack w)
+kam (C (Lam n f) ρ) (u:s) = unpack f $ \ x t -> Just (C t (Cons x u ρ), s)
+kam (C (App t u) ρ) s    = Just (C t ρ,C u ρ:s)
+kam (C (Var x)   ρ) s    = Just (look x ρ, s)
+kam _ _ = Nothing
+
+-------------------
+-- Closure conversion 
+-- following Guillemette&Monnier, A Type-Preserving Closure Conversion in Haskell, fig 2.
+
+instance Functor LC where
+  fmap f t = t >>= return . f
+
+instance Monad LC where
+  return = VarC
+  
+data LC w where
+  VarC :: w -> LC w
+  Closure :: (forall vx venv. vx -> venv -> LC (Zero :▹ venv :▹ vx)) -> -- ^ code
+             LC w -> -- ^ env
+             LC w
+  LetOpen :: LC w -> (forall vf venv. vf -> venv -> LC (w :▹ vf :▹ venv)) -> LC w
+  Tuple :: [LC w] -> LC w
+  Index :: w -> Int -> LC w
+  AppC :: LC w -> LC w -> LC w
+ 
+cc :: forall w. Eq w => Term w -> LC w  
+cc (Var x) = VarC x
+cc (Lam _ f) = unpack f $ \x e -> 
+  let yn = nub $ rm $ freeVars e 
+      
+  in Closure (\x' env -> subst (\z -> case z of
+                                             Here _ -> var x' -- x becomes x'
+                                             There w -> fmap There (Index (lk env) (fromJust $ elemIndex w yn))
+                                                        -- other free vars are looked up in the env.
+                                             -- unfortunately wk fails here.
+                                         ) (cc e)) 
+             (Tuple $ map VarC yn)
+cc (App e1 e2) = LetOpen (cc e1) (\xf xenv -> (var xf `AppC` wk (cc e2)) `AppC` var xenv)
+
+-- Possibly nicer version.
+cc' :: forall w. Eq w => Term w -> LC w  
+cc' (Var x) = VarC x
+cc' t0@(Lam _ f) = 
+  let yn = nub $ freeVars t0
+  in Closure (\x env -> subst (lift (\w -> (Index (lk env) (fromJust $ elemIndex w yn))))
+                                           (cc' (f x)))
+             (Tuple $ map VarC yn)
+cc' (App e1 e2) = LetOpen (cc' e1) (\xf xenv -> (var xf `AppC` wk (cc' e2)) `AppC` var xenv)
+
+
+-----------------------
+-- 
+
+
 -- -}
 -- -}
 -- -}

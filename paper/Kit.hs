@@ -12,10 +12,9 @@ import Data.List.Split (splitOneOf)
 import Data.Maybe (maybeToList)
 import Data.String (fromString)
 import Data.Generics.Uniplate.Data (universeBi)
-
 import Language.LaTeX
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>),pure)
 
 import qualified Language.LaTeX.Builder as B
 import qualified Language.LaTeX.Builder.Internal as BI
@@ -78,6 +77,13 @@ data Comment = Comment String
              | Indent (Int -> Int)
              | Nop
 
+citet :: [Key] -> LatexItem
+citet = BI.latexCmdAnyArgs "citet" . pure . BI.latexKeysArg
+
+citeauthor :: [Key] -> LatexItem
+citeauthor = BI.latexCmdAnyArgs "citeauthor" . pure . BI.latexKeysArg
+
+
 viewNote (T.LatexNote (T.MkKey "comment") (T.TextNote x) y) | y == ø = Comment x
 viewNote (T.LatexNote (T.MkKey "indent") _ _) = Indent (+1)
 viewNote (T.LatexNote (T.MkKey "dedent") _ _) = Indent (subtract 1)
@@ -127,7 +133,7 @@ document title authors keywords abstract body appendix = B.document docclass pre
           <> body
           <> B.para [tex|\bibliographystyle{abbrvnat}|]
           <> mapNonEmpty (B.bibliography . mconcat . intersperse [tex|,|])
-                         [«../local»,«../npouillard»]
+                         [«../local»,«../npouillard»,«../jp»]
           <> mapNonEmpty (B.appendix <>) appendix
 
 fonts :: PreambleItem
