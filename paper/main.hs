@@ -362,7 +362,7 @@ body = {-slice .-} execWriter $ do -- {{{
    is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
    This can be realised by applying the constant 1 at every function argument of a Lam constructor. One then needs
    to adjust the type to forget the difference between the new variable and the others. The variable and application
-   cases then offer no surprises. (We defer the description of the functor instance to the next section.)
+   cases then offer no surprises. 
    »
   [agdaP|
   |size1 :: Tm Int → Int
