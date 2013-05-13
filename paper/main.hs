@@ -341,7 +341,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
 
-  subsection $ «Catamorphism»
+  subsection $ «Algebraic Structure/Catamorphism»
   q«
    One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
    is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
@@ -398,7 +398,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |extend g (There b) = g b
   |]
 
-  subsection $ «Catamorphism»
   p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
       Note that the algebra corresponds to the higher-order representation of lambda terms.»
   [agdaP|
@@ -516,19 +515,28 @@ body = {-slice .-} execWriter $ do -- {{{
   -- JP/NP
   section $ «Bigger Examples» `labeled` examples
 
-  subsection $ «free variables»
+  subsection $ «Free variables»
+  q«The function which computes the frees variables of a term
+    can be directly transcribed from its nominal-style specification,
+    thanks to the {|unpack|} combinator.»
   [agdaP|
-  |rm :: v -> [a ▹ v] → [a]
-  |rm _ xs = [x | There x <- xs]
-  |
   |freeVars :: Tm w → [w]
   |freeVars (Var x) = [x]
-  |freeVars (Lam f) = unpack f $ \ x t → rm x $ freeVars t
+  |freeVars (Lam f) = unpack f $ \ x t → 
+  |   remove x (freeVars t)
   |freeVars (App f a) = freeVars f ++ freeVars a
+  |]
+  q«The function which removes a free variable from a list maps a context {|a ▹ v|}
+    to a context {|a|}. The functon also takes a name for the variable being removed
+    --- but it is used only for type-checking purposes. »
+  [agdaP|
+  |remove :: v -> [a ▹ v] → [a]
+  |remove _ xs = [x | There x <- xs]
   |]
 
   subsection $ «Occurence Test»
 
+  q«We first allow to indices to be compared, by providing the following two {|Eq|} instances:»
   [agdaP|
   |instance Eq Zero where
   |  (==) = magic
@@ -538,13 +546,20 @@ body = {-slice .-} execWriter $ do -- {{{
   |  There x == There y = x == y
   |  _ == _ = False
   |]
+  q«Because the comparison can be performed only on indices with the same type,
+    it is ensured by the type system that they refer to the same context, and hence are meaningful.
 
+   These tests can be combined with the injection coming from the {|∈|} typeclass to test that
+   a variable {|x|} from a context {|a|} is an occurence of a binder {|y|} with a type {|v|}:
+   »
   [agdaP|
-  |occursIn :: (Eq w, v ∈ w) ⇒ v → Tm w → Bool
-  |occursIn x t = inj x `elem` freeVars t
-  |
-  |isOccurenceOf :: (Eq w, v ∈ w) ⇒ w → v → Bool
+  |isOccurenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
   |isOccurenceOf x y = x == inj y
+  |]
+  q«A test of occurence of any given binder can then be given the following expression»
+  [agdaP|
+  |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
+  |occursIn x t = any (`isOccurenceOf` x) (freeVars t)
   |]
 
   subsection $ «Test of α-equivalence»
@@ -849,6 +864,12 @@ body = {-slice .-} execWriter $ do -- {{{
   This is reminiscent of the nabla quantifier of {cite[millerproof2003]}.
   »
   notetodo «Can I type nabla?» -- TODO: *** Exception: myHchar: ∇
+
+  p "performance!" « 
+  Given such an extension, it would then become possible to improve the performance of term analysis. Indeed, 
+  the only possible value applicable to a binder would be the {|fresh|} exception, and
+  it becomes possible to implement it specially, by a null operation.
+  »
 
   p "getting rid of the injections by using a stronger type system" «
     We use the powerful GHC instance search in a very specific way: only to discover in injections. 
