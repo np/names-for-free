@@ -446,7 +446,7 @@ body = {-slice .-} execWriter $ do -- {{{
       In particular, a canonical choice is a maximally polymorphic type. This choice is
       captured in the {|unpack|} combinator.
       »
-  commentCode unpackTypeSiga
+  commentCode unpackTypeSig
 
 
   [agdaP|
@@ -505,8 +505,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |    Var <$> f x
   |  traverse f (App t u) =
   |    App <$> traverse f t <*> traverse f u
-  |  traverse f (Lam g) = unpack g $ \x b → 
-  |                       lam' x <$> traverse (traverseu f pure) b
+  |  traverse f (Lam g) = 
+  |    unpack g $ \x b → 
+  |      lam' x <$> traverse (traverseu f pure) b
   |]
 
   -- JP/NP
@@ -560,7 +561,8 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Normalisation by evaluation»
   p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is 
-      performed. This technique is known as normalisation by evaluation. {notetodo «cite»}»
+      performed. This technique is known as normalisation by evaluation.»
+  notetodo «cite»
 
   q«The substitution to apply merely embeds free variables into terms:»
   [agdaP|
@@ -579,6 +581,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
+  |(>>>=) :: Tm a -> (a -> Tm b) -> Tm b
   |Var x >>>= θ = θ x
   |Lam t >>>= θ = Lam (\x → t x >>>= lift θ)
   |App t u  >>>= θ = app (t >>>= θ) (u >>>= θ)
@@ -594,7 +597,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «CPS»
   p "" «Following {citet[chlipalaparametric2008]}»
-  q«In the CPS representation, every intermediate result is named.»
+  q «In the CPS representation, every intermediate result is named.»
   [agdaP|
   |data Tm' a where
   |  Halt' :: a → Tm' a
@@ -608,7 +611,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  Π2   :: a → Primop a
   |]
 
-   q«We will not use primops directly, but instead their composition with injection.»
+  q«We will not use primops directly, but instead their composition with injection.»
   notetodo «Hide this.»
   [agdaP|
   |(<:>) :: (v ∈ a, v' ∈ a) ⇒ v → v' → Primop a 
@@ -628,13 +631,14 @@ body = {-slice .-} execWriter $ do -- {{{
   |  
   |]
 
-   q«As {|Tm|}, {|Tm'|} enjoys a functor structure. »
+  q«As {|Tm|}, {|Tm'|} enjoys a functor structure. »
   [agdaP|
   |instance Functor Tm' where 
   |  -- ...
   |]
 
-  notetodo «replace by monad?»
+  -- There does not seem to be a nice and natural instance of monad for 
+  -- Tm' !
   [agdaP|
   |-- in e1, substitute Halt' by an arbitrary Tm' e2
   |letTerm :: ∀ v.
@@ -643,10 +647,12 @@ body = {-slice .-} execWriter $ do -- {{{
   |         Tm' v 
   |letTerm (Halt' v)  e2 = fmap untag (e2 v)
   |letTerm (App' f x) e2 = App' f x
-  |letTerm (Let p e') e2 = Let (letPrim p e2) $ \x → letTerm (e' x) (\y → wk (e2 y))
+  |letTerm (Let p e') e2 = Let (letPrim p e2) $ \x → 
+  |                        letTerm (e' x) (\y → wk (e2 y))
   |
   |letPrim :: Primop v → (∀ w. w  → Tm' (v ▹ w)) → Primop v 
-  |letPrim (Abs' e) e2 = Abs' $ \x → letTerm (e x) (\y → wk (e2 y))
+  |letPrim (Abs' e) e2 = 
+  |  Abs' $ \x → letTerm (e x) (\y → wk (e2 y))
   |letPrim (Pair x y) e2 = Pair x y
   |letPrim (Π1 y) e2 = Π1 y
   |letPrim (Π2 y) e2 = Π2 y  
@@ -656,17 +662,19 @@ body = {-slice .-} execWriter $ do -- {{{
   [agdaP|
   |cps :: Tm v → Tm' v
   |cps (Var v) = Halt' v
-  |cps (App e1 e2) = letTerm (cps e1) $ \ f → 
-  |                  letTerm (wk (cps e2)) $ \ x →
-  |                  Let (Abs' (\x → halt' x)) $ \k →
-  |                  Let (x <:> k) $ \p →
-  |                  app' f p 
+  |cps (App e1 e2) = 
+  |  letTerm (cps e1) $ \ f → 
+  |  letTerm (wk (cps e2)) $ \ x →
+  |  Let (Abs' (\x → halt' x)) $ \k →
+  |  Let (x <:> k) $ \p →
+  |  app' f p 
   |                      
-  |cps (Lam e') =  Let (Abs' $ \p → Let (π1 p) $ \x → 
-  |                                 Let (π2 p) $ \k →
-  |                                 letTerm (wk (cps (e' x))) $ \r → 
-  |                                 app' k r)
-  |                    (\x → halt' x)
+  |cps (Lam e') = 
+  |  Let (Abs' $ \p → Let (π1 p) $ \x → 
+  |                   Let (π2 p) $ \k →
+  |                   letTerm (wk (cps (e' x))) $ \r → 
+  |                   app' k r)
+  |      (\x → halt' x)
   |]                         
 
   subsection $ «Closure Conversion»
@@ -759,7 +767,7 @@ body = {-slice .-} execWriter $ do -- {{{
         This means, for example, that the class constraint {|w ⊆ w'|} can be meaning fully resolved
         in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
 
-  q""«Additionally, our {|unpack|} and {|pack|} combinators extends the technique to free variables.»
+  q«Additionally, our {|unpack|} and {|pack|} combinators extends the technique to free variables.»
 
   subsection $ «NomPa (nominal fragment)»
 
