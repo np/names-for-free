@@ -394,13 +394,47 @@ data Term' v where
   App'  :: v -> v -> Term' v
   Let   :: Primop v -> (∀ w. w -> Term' (v :▹ w)) -> Term' v
   
+instance Functor Primop where  
+  fmap f (Π1 x) = Π1 (f x)
 instance Functor Term' where 
+  fmap f (Halt' x) = Halt' (f x)
+  fmap f (App' x y) = App' (f x) (f y)
+  fmap f (Let p g) = Let (fmap f p) (\x -> fmap (mapu f id) (g x))
+  
+  
+(>>==) :: Primop a -> (a -> Term' b) -> Primop b
+Abs' g >>== θ = Abs' (\x -> g x  >>= lift θ)
+-- ...
+-- FIXME: JP: I do not see how to write the other cases
+          
+instance Monad Term' where  
+  return = Halt'
+  
+  Halt' x >>= θ = θ x
+  Let t g >>= θ = Let (t >>== θ) (\x -> g x >>= lift θ)
+  App' t u >>= θ = appCps (θ t) (θ u)
+  -- The App case does not seem to do the same as splice.
+
+appCps :: Term' a -> Term' a -> Term' a    
+appCps t1 t2 = 
+  splice t1 $ \ f -> 
+  splice (wk t2) $ \ x →
+  Let (Abs' (\x -> Halt' (lk x))) $ \k →
+  Let (lk x :- lk k)    $ \p ->
+  App' (lk f) (lk p)
+  
   
 spliceAbs :: ∀ v.
              (forall w. w  → Term' (v :▹ w) ) -> 
              (∀ w. w  → Term' (v :▹ w) ) -> 
              forall w. w  → Term' (v :▹ w) 
 spliceAbs e' e2 x = splice (e' x) (\ x₁ → wk (e2 x₁))
+
+splice' :: forall v  .
+         Term' v  ->
+         (∀ w. w  -> Term' (v :▹ w) ) -> 
+         Term' v                                          
+splice' t u = subst0 =<< u t
 
 -- in e1, substitude Halt' by an arbitrary continuation e2
 splice :: forall v  .
