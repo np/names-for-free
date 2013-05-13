@@ -29,8 +29,11 @@ import NomPaKit.Char (mnsymbol)
 authorinfo (name, email', inst') =
   BI.preambleCmdArgs "authorinfo" $ map (BI.mandatory . BI.latexItem) [name, inst', email']
 
+
 begin = BI.latexCmdArg "begin"
 end = BI.latexCmdArg "end"
+
+acknowledgements x = tell $ B.para $ BI.latexCmdArg "acks" mempty <> x
 
 p = tell . B.para
 pc = tell . B.center . B.para

@@ -10,7 +10,7 @@ import Control.Monad.Writer hiding (when)
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
-import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet)
+import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet, acknowledgements)
 import NomPaKit hiding (when)
 import NomPaKit.QQ
 
@@ -39,6 +39,7 @@ import NomPaKit.QQ
       chlipala_parametric_2008
       guillemette_type-preserving_2007
       guillemette_type-preserving_2008
+      miller_proof_2003
       bird-paterson-99
      |]
 
@@ -649,10 +650,13 @@ body = {-slice .-} execWriter $ do -- {{{
   |         Tm' v 
   |letTerm (Halt' v)  e2 = fmap untag (e2 v)
   |letTerm (App' f x) e2 = App' f x
-  |letTerm (Let p e') e2 = Let (letPrim p e2) $ \x → 
-  |                        letTerm (e' x) (\y → wk (e2 y))
+  |letTerm (Let p e') e2 = 
+  |   Let (letPrim p e2) $ \x → 
+  |   letTerm (e' x) (\y → wk (e2 y))
   |
-  |letPrim :: Primop v → (∀ w. w  → Tm' (v ▹ w)) → Primop v 
+  |letPrim :: Primop v → 
+  |           (∀ w. w  → Tm' (v ▹ w)) → 
+  |           Primop v 
   |letPrim (Abs' e) e2 = 
   |  Abs' $ \x → letTerm (e x) (\y → wk (e2 y))
   |letPrim (Pair x y) e2 = Pair x y
@@ -790,7 +794,8 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«
   A {|Name|} set is indexed by a {|World|}: this ties occurences to the context where they make sense.
-  On top of these abstract notions, one can construct the following representation of terms:
+  On top of these abstract notions, one can construct the following representation of terms (we use
+  a Haskell-like syntax for dependent types, similar to that of {_Idris}):
   »
   
   commentCode [agdaP|
@@ -799,29 +804,19 @@ body = {-slice .-} execWriter $ do -- {{{
   |  App :: Tm α → Tm α → Tm α
   |  Lam :: (b :: Binder) → Tm (b ◅ α) → Tm α
   |]
-  notetodo «The rest of the section is wrong.»
-  p""«Our representation is an instance of Pouillard's NomPa framework, 
-      where we instanciate the abstract interface as follows:»
+
+  q«The safety of the technique comes from the abstract character of the interface. If one
+  were to give concrete definitions for {|Binder|}, {|World|} and their related operations,
+  it becomes possible for user code to cheat the system.
+
+  A drawback of the interface being abstract is that some subterms do not evaluate. 
+
+  In contrast, our representation uses polymorphism to ensure safety. This means that
+  there is one way to compromise safety, namely, by instanciating a type variable with
+  a concrete type. We do not suffer the drawback abstraction: the representation is concrete,
+  and concrete terms will always evaluate.
+  »
   
-  commentCode [agdaP|
-  |World = *
-  |Binder = (v :: *) × v
-  |Name w = w
-  |Empty = Zero
-  |(v,_) ◅ w = w ▹ v
-  |]
-
-  p""«no loss of precision by doing this instanciation (?)»
-
-  p""«export is replaced by unpack (?)»
-
-  p""«After this instantiation, dependent types are no longer required --- but impredicativity is.»
-  
-  p""«Perhaps counter intuitively, our representation is an instance of the nominal fragment of NomPa,
-      while it appears to be closer to a de Bruijn representation. 
-      This suggests that the ``de Bruijn'' fragment of NomPa could be made 
-      closer to the nominal fragment by using the ideas of this paper.
-      »
 
   subsection $ «Multiple Binders/Rec/Pattern/Telescope»
 
@@ -843,9 +838,17 @@ body = {-slice .-} execWriter $ do -- {{{
      Our reprensentation supports a natural implementation of both transformations.
      »
 
-  p "" «more remarks about safetly»
+  p "" «more remarks about safety»
 
   p "" «impredicativity»
+
+  p "even more safety by no instanciation" «
+  A careless user may nullify the safety of our system when instanciating a type variable 
+  with a concrete type. This suggests the following type-system feature: a quantifier for 
+  variables which can be instanciated only by other variables (introduced by the same quantifier).
+  This is reminiscent of the nabla quantifier of {cite[millerproof2003]}.
+  »
+  notetodo «Can I type nabla?» -- TODO: *** Exception: myHchar: ∇
 
   p "getting rid of the injections by using a stronger type system" «
     We use the powerful GHC instance search in a very specific way: only to discover in injections. 
@@ -858,8 +861,10 @@ body = {-slice .-} execWriter $ do -- {{{
     an object usually yields a greater variation in complexity in proofs about it.
   »
 
-  p "acknowledgements" «We thank Emil Axelsson for discussions on name binding.»  
-  
+  acknowledgements
+     «We thank Emil Axelsson for discussions on name binding.»  
+
+  notetodo «What about:»
   itemize $ do 
 --    it «PHOAS»
 --    it «Functor/Monad/Categorical structure»
