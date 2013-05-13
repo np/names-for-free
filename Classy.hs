@@ -661,6 +661,12 @@ instance Functor LC where
 
 instance Monad LC where
   return = VarC
+  VarC x >>= θ = θ x
+  Closure c env >>= θ = Closure c (env >>= θ)
+  LetOpen t g >>= θ = LetOpen (t >>= θ) (\f env -> g f env >>= lift (lift θ))
+  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
+  Index t i >>= θ = Index (t >>= θ) i
+  AppC t u >>= θ = AppC (t >>= θ) (u >>= θ)
   
 data LC w where
   VarC :: w -> LC w
@@ -669,7 +675,7 @@ data LC w where
              LC w
   LetOpen :: LC w -> (forall vf venv. vf -> venv -> LC (w :▹ vf :▹ venv)) -> LC w
   Tuple :: [LC w] -> LC w
-  Index :: w -> Int -> LC w
+  Index :: LC w -> Int -> LC w
   AppC :: LC w -> LC w -> LC w
  
 cc :: forall w. Eq w => Term w -> LC w  
@@ -679,7 +685,7 @@ cc (Lam _ f) = unpack f $ \x e ->
       
   in Closure (\x' env -> subst (\z -> case z of
                                              Here _ -> var x' -- x becomes x'
-                                             There w -> fmap There (Index (lk env) (fromJust $ elemIndex w yn))
+                                             There w -> fmap There (Index (var env) (fromJust $ elemIndex w yn))
                                                         -- other free vars are looked up in the env.
                                              -- unfortunately wk fails here.
                                          ) (cc e)) 
@@ -691,7 +697,7 @@ cc' :: forall w. Eq w => Term w -> LC w
 cc' (Var x) = VarC x
 cc' t0@(Lam _ f) = 
   let yn = nub $ freeVars t0
-  in Closure (\x env -> subst (lift (\w -> (Index (lk env) (fromJust $ elemIndex w yn))))
+  in Closure (\x env -> subst (lift (\w -> (Index (var env) (fromJust $ elemIndex w yn))))
                                            (cc' (f x)))
              (Tuple $ map VarC yn)
 cc' (App e1 e2) = LetOpen (cc' e1) (\xf xenv -> (var xf `AppC` wk (cc' e2)) `AppC` var xenv)

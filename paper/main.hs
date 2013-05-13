@@ -10,7 +10,7 @@ import Control.Monad.Writer hiding (when)
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
-import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet, acknowledgements)
+import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet, citeauthor, acknowledgements)
 import NomPaKit hiding (when)
 import NomPaKit.QQ
 
@@ -96,8 +96,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |{-# LANGUAGE RankNTypes, UnicodeSyntax, 
   |    TypeOperators, GADTs, MultiParamTypeClasses, 
   |    FlexibleInstances, UndecidableInstances, 
-  |    IncoherentInstances #-} 
-  |import Prelude hiding (elem)
+  |    IncoherentInstances, ScopedTypeVariables #-} 
+  |import Prelude hiding (elem,any)
   |import Data.Foldable
   |import Data.Traversable
   |import Control.Applicative
@@ -130,7 +130,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |constDB = LamDB $ LamDB $ VarDB (Succ Zero)
   |]
 
-  p""«However, such a direct implementation is naïve. It cannot statically distinguish closed terms from open terms. 
+  p""«However, such a direct implementation is naïve. It cannot statically distinguish bound and free variables.
       That is, a closed term has the same type as an open term.»
 
   -- subsection $ «Nested Abstract Syntax»
@@ -144,7 +144,7 @@ body = {-slice .-} execWriter $ do -- {{{
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
   -- NP: explain the meaning of Here and There
   [agdaP|
-  |data a ▹ b = There a | Here b 
+  |data a ▹ v = There a | Here v
   |type Succ a = a ▹ ()
   |              
   |data TmN a where
@@ -188,8 +188,8 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«The constant function is then represented as follows:»
   [agdaP|
-  |constTm :: Tm Zero
-  |constTm = Lam $ \x → Lam $ \y → Var (There (Here x))
+  |constTm_ :: Tm Zero
+  |constTm_ = Lam $ \x → Lam $ \y → Var (There (Here x))
   |]
 
   -- subsection $ «Safety»
@@ -425,7 +425,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |   Lam f   → pLam (cata (extendVar φ) . f)
   |   App t u → pApp (cata φ t) (cata φ u)
   |
-  |extendVar :: TmAlg w a -> TmAlg (w ▹ b) a
+  |extendVar :: TermAlgebra w a -> TermAlgebra (w ▹ b) a
   |extendVar φ = φ { pVar = extend (pVar φ) }
   |]
 
@@ -644,46 +644,83 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Closure Conversion»
   p"" «Following {citet[guillemettetypepreserving2007]}»
+  q«We first define the target language. It features variables and applications as usual.
+    Most importantly, it has a constructor for {|Closure|}s, composed of a body and an 
+    environment. The body of closures have exactly
+    two free variables: {|vx|} for the parameter of the closure and {|venv|} for its environment.
+    An environment will be realised by a {|Tuple|}. Inside the closure, elements of the environment
+    will be accessed via their {|Index|} in the tuple. Finally, the {|LetOpen|} construction
+    allows to access the components  of a closure (its first argument) in an arbitrary expression 
+    (its second argument). This arbitrary expression has two extra free variables:
+    {|vf|} for the code of the closure and {|venv|} for its environment.
+    »
   [agdaP|
   |data LC w where
   |  VarC :: w → LC w
-  |  Clos :: (∀ vx venv. vx → venv → 
+  |  AppC :: LC w → LC w → LC w
+  |  Closure :: (∀ vx venv. vx → venv → 
   |           LC (Zero ▹ venv ▹ vx)) →
   |           LC w → 
   |           LC w
+  |  Tuple :: [LC w] → LC w
+  |  Index :: LC w → Int → LC w
   |  LetOpen :: LC a → 
   |             (∀ vf venv. vf → venv → 
   |              LC (a ▹ vf ▹ venv)) → LC a
-  |  Tuple :: [LC w] → LC w
-  |  Index :: w → Int → LC w
-  |  AppC :: LC w → LC w → LC w
+  |]
+  q«This representation is an instance of {|Functor|} and {|Monad|}, and the corresponding code
+    offers no surprise.»
+  [agdaP|
   |instance Functor LC where
   |instance Monad LC where
   |]
 
+  q«We give a couple helper functions to construct applications and indexwise access in a tuple:»
   [agdaP|
   |($$) = AppC
   |infixl $$
   |
   |idx :: (v ∈ a) ⇒ v → Int → LC a
-  |idx env = Index (inj env)
-  | 
+  |idx env = Index (var env)
+  |]
+  q«Closure conversion can then be implemented as a function from {|Tm|} to {|LC|}.
+    The case of variables is trivial. For an abstraction, one must construct a closure,
+    whose environment contains each of the free variables in the body. The application must
+    open the closure, explicitly applying the argument and the environment.
+  »
+  notetodo «Include fig. 2 from {cite[guillemettetypepreserving2007]}»
+  q«The implementation follows the pattern given by {citet[guillemettetypepreserving2007]}.
+    We make one modification: in closure creation, instead of binding one by one the free variables {|yn|} in the body 
+    to elements of the environment, we bind them all at once, using a substitution {|\z → idx env (indexOf z yn)|}.
+    »
+  [agdaP|
   |cc :: ∀ w. Eq w ⇒ Tm w → LC w  
   |cc (Var x) = VarC x
   |cc t0@(Lam f) = 
   |  let yn = nub $ freeVars t0
-  |  in Clos (\x env → cc (f x) >>= 
-  |                   (lift $ \w → idx env (indexOf w yn)))
+  |      bindAll :: ∀env. env -> w -> LC (Zero ▹ env)
+  |      bindAll env = \z → idx env (indexOf z yn)
+  |  in Closure (\x env → cc (f x) >>= 
+  |                   (lift $ bindAll env))
   |          (Tuple $ map VarC yn)
   |cc (App e1 e2) = 
-  |  LetOpen (cc e1) 
+  |  LetOpen (cc e1)
   |          (\f env → var f $$ wk (cc e2) $$ var env)
-  |
+  |]
+  -- indexOf is not in the prelude?!
+  [agdaP|
   |indexOf :: Eq a ⇒ a → [a] → Int
   |indexOf x [] = error "index not found"
   |indexOf x (y:ys) | x == y = 0
   |                 | otherwise = 1 + indexOf x ys
   |]
+  q«
+    Notably, {citeauthor[guillemettetypepreserving2007]} modify the function to 
+    take an additional substitution argument, citing the difficulty to support
+    a direct implementation with de Bruijn indices. We need not do any such thing: 
+    modulo our slight modification,
+    our representation is natural enough to support a direct implementation of the 
+    algorithm.»
 
   subsection $ «CPS»
   p "" «Following {citet[chlipalaparametric2008]}»
