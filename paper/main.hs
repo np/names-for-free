@@ -224,73 +224,8 @@ body = {-slice .-} execWriter $ do -- {{{
 
    Indeed, because the representation contains both concrete indices and functions at
    bindinding sites, one can take advantage of either aspect when analysing and manipulating terms.
-
-   One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
-   is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
-   This can be realised by applying the constant 1 at every function argument of a Lam constructor. One then needs
-   to adjust the type to forget the difference between the new variable and the others. The variable and application
-   cases then offer no surprises. (We defer the description of the functor instance to the next section.)
-   »
-  -- JP: I moved the descruction examples up here; because I think
-  -- they are very important to distinguish our method from others
-  -- (eg. "Classy Hack")
-  [agdaP|
-  |size1 :: Tm Int → Int
-  |size1 (Var x) = x
-  |size1 (Lam g) = 1 + size1 (fmap untag (g 1))
-  |size1 (App t u) = 1 + size1 t + size1 u
-  |]
-
-  [agdaP|
-  |untag :: a ▹ a → a
-  |untag (There x) = x 
-  |untag (Here x) = x 
-  |]
-
-  p""«
-   An other way to proceed is to simply pass a dummy object to the function arguments of Lam, and
-   use only the de Bruijn index to compute results in the case of variables. Using this technique,
-   the size computation looks as follows:
    »
 
-  [agdaP|
-  |size2 :: Tm a → Int
-  |size2 (Var _) = 1
-  |size2 (Lam g) = 1 + size2 (g ())
-  |size2 (App t u) = 1 + size2 t + size2 u
-  |]
-
-  p""«
-   One may however chose to combine the two approaches. 
-   This time we also assume an arbitrary environment 
-   mapping free variables to a size. For each new variable,
-   we pass the size that we want to assign to it to the binding function, and 
-   we extend the environment to use that value on the new variable, or
-   lookup in the old environment otherwise.
-   »
-
-  [agdaP|  
-  |size :: (a → Int) → Tm a → Int
-  |size f (Var x) = f x
-  |size f (Lam g) = 1 + size (extend f) (g 1)
-  |size f (App t u) = 1 + size f t + size f u
-  |]
-  [agdaP|  
-  |extend g (Here a) = a
-  |extend g (There b) = g b
-  |]
-
-  subsection $ «Catamorphism»
-  p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
-      Note that the algebra corresponds to the higher-order representation of lambda terms.»
-  [agdaP|
-  |type Algebra w a = (w → a, (a → a) → a, a → a → a)
-  |cata :: Algebra w a → Tm w → a
-  |cata φ@(v,l,a) s = case s of
-  |   Var x   → v x
-  |   Lam f   → l (cata (extend v,l,a) . f)
-  |   App t u → a (cata φ t) (cata φ u)
-  |]
 
   subsection $ «De Bruijn indices as names»
   -- our debruijn indices are typed with the context where they are valid.
@@ -406,6 +341,73 @@ body = {-slice .-} execWriter $ do -- {{{
 
 
   subsection $ «Catamorphism»
+  q«
+   One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
+   is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
+   This can be realised by applying the constant 1 at every function argument of a Lam constructor. One then needs
+   to adjust the type to forget the difference between the new variable and the others. The variable and application
+   cases then offer no surprises. (We defer the description of the functor instance to the next section.)
+   »
+  -- JP: I moved the descruction examples up here; because I think
+  -- they are very important to distinguish our method from others
+  -- (eg. "Classy Hack")
+  [agdaP|
+  |size1 :: Tm Int → Int
+  |size1 (Var x) = x
+  |size1 (Lam g) = 1 + size1 (fmap untag (g 1))
+  |size1 (App t u) = 1 + size1 t + size1 u
+  |]
+
+  [agdaP|
+  |untag :: a ▹ a → a
+  |untag (There x) = x 
+  |untag (Here x) = x 
+  |]
+
+  p""«
+   An other way to proceed is to simply pass a dummy object to the function arguments of Lam, and
+   use only the de Bruijn index to compute results in the case of variables. Using this technique,
+   the size computation looks as follows:
+   »
+
+  [agdaP|
+  |size2 :: Tm a → Int
+  |size2 (Var _) = 1
+  |size2 (Lam g) = 1 + size2 (g ())
+  |size2 (App t u) = 1 + size2 t + size2 u
+  |]
+
+  p""«
+   One may however chose to combine the two approaches. 
+   This time we also assume an arbitrary environment 
+   mapping free variables to a size. For each new variable,
+   we pass the size that we want to assign to it to the binding function, and 
+   we extend the environment to use that value on the new variable, or
+   lookup in the old environment otherwise.
+   »
+
+  [agdaP|  
+  |size :: (a → Int) → Tm a → Int
+  |size f (Var x) = f x
+  |size f (Lam g) = 1 + size (extend f) (g 1)
+  |size f (App t u) = 1 + size f t + size f u
+  |]
+  [agdaP|  
+  |extend g (Here a) = a
+  |extend g (There b) = g b
+  |]
+
+  subsection $ «Catamorphism»
+  p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
+      Note that the algebra corresponds to the higher-order representation of lambda terms.»
+  [agdaP|
+  |type Algebra w a = (w → a, (a → a) → a, a → a → a)
+  |cata :: Algebra w a → Tm w → a
+  |cata φ@(v,l,a) s = case s of
+  |   Var x   → v x
+  |   Lam f   → l (cata (extend v,l,a) . f)
+  |   App t u → a (cata φ t) (cata φ u)
+  |]
 
   subsection $ «Substitute/Monad»
 
