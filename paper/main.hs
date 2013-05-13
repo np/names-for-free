@@ -44,6 +44,7 @@ import NomPaKit.QQ
 
 title = «Parametric Nested Abstract Syntax»
   -- «A Classy Kind of Nested Abstract Syntax»
+  -- «Implementing Names and Binders with Polymorphism»
 -- Ingredients:
 -- Classes
 -- Polymorphism
@@ -393,12 +394,18 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Renaming/Functor»
   [agdaP|
   |instance Functor Tm where
+  |  fmap f (Var x) = Var (f x)
+  |  fmap f (Lam g) = Lam (\x -> fmap (mapu f id) (g x))
+  |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
 
   [agdaP|
   |wk :: (Functor f, γ ⊆ δ) ⇒ f γ → f δ
   |wk = fmap injMany
   |]
+
+
+  subsection $ «Catamorphism»
 
   subsection $ «Substitute/Monad»
 
@@ -480,8 +487,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |lam' x t = Lam (pack x t)
   |]
   
-  
-
   subsection $ «Traversable»
 
   [agdaP|
@@ -589,19 +594,23 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «CPS»
   p "" «Following {citet[chlipalaparametric2008]}»
+  q«In the CPS representation, every intermediate result is named.»
   [agdaP|
-  |data Primop a where 
-  |  Var' :: a → Primop a
-  |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Primop a
-  |  Pair :: a → a → Primop a  -- Pair
-  |  Π1   :: a → Primop a
-  |  Π2   :: a → Primop a
-  |
   |data Tm' a where
   |  Halt' :: a → Tm' a
   |  App'  :: a → a → Tm' a
   |  Let   :: Primop a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
   |
+  |data Primop a where 
+  |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Primop a
+  |  Pair :: a → a → Primop a  -- Pair
+  |  Π1   :: a → Primop a
+  |  Π2   :: a → Primop a
+  |]
+
+   q«We will not use primops directly, but instead their composition with injection.»
+  notetodo «Hide this.»
+  [agdaP|
   |(<:>) :: (v ∈ a, v' ∈ a) ⇒ v → v' → Primop a 
   |x <:> y = Pair (inj x) (inj y)
   |
@@ -617,10 +626,15 @@ body = {-slice .-} execWriter $ do -- {{{
   |halt' :: (v ∈ a) ⇒ v → Tm' a 
   |halt' = Halt' . inj
   |  
+  |]
+
+   q«As {|Tm|}, {|Tm'|} enjoys a functor structure. »
+  [agdaP|
   |instance Functor Tm' where 
   |  -- ...
   |]
-  
+
+  notetodo «replace by monad?»
   [agdaP|
   |-- in e1, substitute Halt' by an arbitrary Tm' e2
   |letTerm :: ∀ v.
@@ -633,11 +647,11 @@ body = {-slice .-} execWriter $ do -- {{{
   |
   |letPrim :: Primop v → (∀ w. w  → Tm' (v ▹ w)) → Primop v 
   |letPrim (Abs' e) e2 = Abs' $ \x → letTerm (e x) (\y → wk (e2 y))
-  |letPrim (Var' v) e2 = Var' v
   |letPrim (Pair x y) e2 = Pair x y
   |letPrim (Π1 y) e2 = Π1 y
   |letPrim (Π2 y) e2 = Π2 y  
   |]
+
 
   [agdaP|
   |cps :: Tm v → Tm' v
@@ -744,6 +758,8 @@ body = {-slice .-} execWriter $ do -- {{{
         namely that one context should be smaller than another.
         This means, for example, that the class constraint {|w ⊆ w'|} can be meaning fully resolved
         in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
+
+  q""«Additionally, our {|unpack|} and {|pack|} combinators extends the technique to free variables.»
 
   subsection $ «NomPa (nominal fragment)»
 

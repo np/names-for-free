@@ -137,7 +137,7 @@ cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
 cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
   
 extend :: (a -> b) -> (a ∪ b) -> b
-extend g (Here a) = a
+extend g (Here  a) = a
 extend g (There b) = g b
         
 -----------------------------------------------------------
@@ -155,6 +155,8 @@ lift :: (Functor f, Monad f) => Kl f v w → Kl f (v :▹ x) (w :▹ x)
 lift θ (There x) = wk (θ x)
 lift _ (Here x) = var x
 
+
+
 instance Monad Term where
   Var x    >>= θ = θ x
   Lam nm t >>= θ = Lam nm (\x → t x >>= lift θ)
@@ -169,8 +171,13 @@ subst = (=<<)
 -- As with any monad, fmap can be derived from bind and return.
 -- This is a bit nasty here though. Indeed the definition of bind
 -- uses lift which uses wk which uses fmap.
+-- instance Functor Term where
+--  fmap f t = t >>= return . f
+
 instance Functor Term where
-  fmap f t = t >>= return . f
+  fmap f (Var x) = Var (f x)
+  fmap f (Lam nm g) = Lam nm (\x -> fmap (mapu f id) (g x))
+  fmap f (App t u) = App (fmap f t) (fmap f u)
 
 -- Substitute in an open term
 subst' :: (∀v. v → Term v) → Term w → Term w
@@ -184,7 +191,7 @@ eval (Lam n t) = Lam n (eval . t)
 eval (App t u) = app (eval t) (eval u)
 
 app :: Term a -> Term a -> Term a
-app (Lam _ t) u = subst0 =<< t u 
+app (Lam _ t) u = subst0 =<< t u -- FIXME: should use hereditary subst.
 app t u = App t u
 
 subst0 :: Monad tm => v :▹ tm v -> tm v
@@ -246,6 +253,13 @@ sizeFO :: Term a -> Int
 sizeFO (Var _) = 1
 sizeFO (Lam _ g) = 1 + sizeFO (g ())
 sizeFO (App t u) = 1 + sizeFO t + sizeFO u
+
+sizeSafe :: Term a -> Int
+sizeSafe (Var _) = 1
+sizeSafe (Lam _ g) = unpack g $ \ _ t -> 1 + sizeSafe t
+sizeSafe (App t u) = 1 + sizeSafe t + sizeSafe u
+
+
 
 sizeC :: Term Zero -> Int
 sizeC = cata magic (\f -> 1 + f 1) (\a b -> 1 + a + b)
