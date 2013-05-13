@@ -641,8 +641,50 @@ body = {-slice .-} execWriter $ do -- {{{
   |eval (App t u) = app (eval t) (eval u)
   |]
 
-  -- NP: I would put Closure Conversion before CPS actually it seems like a
-  -- simpler example.
+
+  subsection $ «Closure Conversion»
+  p"" «Following {citet[guillemettetypepreserving2007]}»
+  [agdaP|
+  |data LC w where
+  |  VarC :: w → LC w
+  |  Clos :: (∀ vx venv. vx → venv → 
+  |           LC (Zero ▹ venv ▹ vx)) →
+  |           LC w → 
+  |           LC w
+  |  LetOpen :: LC a → 
+  |             (∀ vf venv. vf → venv → 
+  |              LC (a ▹ vf ▹ venv)) → LC a
+  |  Tuple :: [LC w] → LC w
+  |  Index :: w → Int → LC w
+  |  AppC :: LC w → LC w → LC w
+  |instance Functor LC where
+  |instance Monad LC where
+  |]
+
+  [agdaP|
+  |($$) = AppC
+  |infixl $$
+  |
+  |idx :: (v ∈ a) ⇒ v → Int → LC a
+  |idx env = Index (inj env)
+  | 
+  |cc :: ∀ w. Eq w ⇒ Tm w → LC w  
+  |cc (Var x) = VarC x
+  |cc t0@(Lam f) = 
+  |  let yn = nub $ freeVars t0
+  |  in Clos (\x env → cc (f x) >>= 
+  |                   (lift $ \w → idx env (indexOf w yn)))
+  |          (Tuple $ map VarC yn)
+  |cc (App e1 e2) = 
+  |  LetOpen (cc e1) 
+  |          (\f env → var f $$ wk (cc e2) $$ var env)
+  |
+  |indexOf :: Eq a ⇒ a → [a] → Int
+  |indexOf x [] = error "index not found"
+  |indexOf x (y:ys) | x == y = 0
+  |                 | otherwise = 1 + indexOf x ys
+  |]
+
   subsection $ «CPS»
   p "" «Following {citet[chlipalaparametric2008]}»
   q «In the CPS representation, every intermediate result is named.»
@@ -728,48 +770,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |      (\x → halt' x)
   |]                         
 
-  subsection $ «Closure Conversion»
-  p"" «Following {citet[guillemettetypepreserving2007]}»
-  [agdaP|
-  |data LC w where
-  |  VarC :: w → LC w
-  |  Clos :: (∀ vx venv. vx → venv → 
-  |           LC (Zero ▹ venv ▹ vx)) →
-  |           LC w → 
-  |           LC w
-  |  LetOpen :: LC a → 
-  |             (∀ vf venv. vf → venv → 
-  |              LC (a ▹ vf ▹ venv)) → LC a
-  |  Tuple :: [LC w] → LC w
-  |  Index :: w → Int → LC w
-  |  AppC :: LC w → LC w → LC w
-  |instance Functor LC where
-  |instance Monad LC where
-  |]
-
-  [agdaP|
-  |($$) = AppC
-  |infixl $$
-  |
-  |idx :: (v ∈ a) ⇒ v → Int → LC a
-  |idx env = Index (inj env)
-  | 
-  |cc :: ∀ w. Eq w ⇒ Tm w → LC w  
-  |cc (Var x) = VarC x
-  |cc t0@(Lam f) = 
-  |  let yn = nub $ freeVars t0
-  |  in Clos (\x env → cc (f x) >>= 
-  |                   (lift $ \w → idx env (indexOf w yn)))
-  |          (Tuple $ map VarC yn)
-  |cc (App e1 e2) = 
-  |  LetOpen (cc e1) 
-  |          (\f env → var f $$ wk (cc e2) $$ var env)
-  |
-  |indexOf :: Eq a ⇒ a → [a] → Int
-  |indexOf x [] = error "index not found"
-  |indexOf x (y:ys) | x == y = 0
-  |                 | otherwise = 1 + indexOf x ys
-  |]
 
   -- NP
   section $ «Comparisons» `labeled` comparison
