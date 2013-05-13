@@ -83,6 +83,7 @@ unpackTypeSig =  [agdaP|
   |          (∀ v. v → tm (w ▹ v) → a) → a
   |]
 
+q = p ""
 
 body = {-slice .-} execWriter $ do -- {{{
   -- JP (when the rest is ready)
@@ -553,19 +554,37 @@ body = {-slice .-} execWriter $ do -- {{{
   |]  
 
   subsection $ «Normalisation by evaluation»
+  p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is 
+      performed. This technique is known as normalisation by evaluation. {notetodo «cite»}»
+
+  q«The substitution to apply merely embeds free variables into terms:»
+  [agdaP|
+  |subst0 :: Monad tm ⇒ w ▹ tm w → tm w
+  |subst0 (Here  x) = x
+  |subst0 (There x) = return x
+  |]
+
+  q«We can then define (by mutual recursion) the application of normal forms to normal forms, and a substituter which hereditarily 
+  uses it.»
+
+  [agdaP|
+  |app :: Tm w → Tm w → Tm w
+  |app (Lam t) u = t u >>>= subst0
+  |app t u = App t u
+  |]
+
+  [agdaP|
+  |Var x >>>= θ = θ x
+  |Lam t >>>= θ = Lam (\x → t x >>>= lift θ)
+  |App t u  >>>= θ = app (t >>>= θ) (u >>>= θ)
+  |]
+
+  q«The evaluator can then be written as a simple recursion on the term structure:»
   [agdaP|
   |eval :: Tm w → Tm w
   |eval (Var x) = Var x
   |eval (Lam t) = Lam (eval . t)
   |eval (App t u) = app (eval t) (eval u)
-  |
-  |app :: Tm w → Tm w → Tm w
-  |app (Lam t) u = subst0 =<< t u 
-  |app t u = App t u
-  |
-  |subst0 :: Monad tm ⇒ w ▹ tm w → tm w
-  |subst0 (Here  x) = x
-  |subst0 (There x) = return x
   |]
 
   subsection $ «CPS»
@@ -604,7 +623,7 @@ body = {-slice .-} execWriter $ do -- {{{
   
   [agdaP|
   |-- in e1, substitute Halt' by an arbitrary Tm' e2
-  |letTerm :: ∀ v  .
+  |letTerm :: ∀ v.
   |         Tm' v  →
   |         (∀ w. w  → Tm' (v ▹ w)) → 
   |         Tm' v 
@@ -630,9 +649,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |                  app' f p 
   |                      
   |cps (Lam e') =  Let (Abs' $ \p → Let (π1 p) $ \x → 
-  |                                  Let (π2 p) $ \k →
-  |                                  letTerm (wk (cps (e' x))) $ \r → 
-  |                                  app' k r)
+  |                                 Let (π2 p) $ \k →
+  |                                 letTerm (wk (cps (e' x))) $ \r → 
+  |                                 app' k r)
   |                    (\x → halt' x)
   |]                         
 
@@ -653,6 +672,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |  Tuple :: [LC w] → LC w
   |  Index :: w → Int → LC w
   |  AppC :: LC w → LC w → LC w
+  |]
+
+  [agdaP|
   |($$) = AppC
   |idx :: (v ∈ a) ⇒ v → Int → LC a
   |idx env = Index (inj env)
@@ -681,6 +703,7 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Maybe/Nested»
   p "" $ «Kmett's succ-less»
   subsection $ «PHOAS»
+  q«We don't do typed representations (yet)»
   subsection $ «HOAS»
   p "" «Functions should only be substitutions»
   subsubsection $ «Concrete Terms»
