@@ -517,12 +517,12 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «free variables»
   [agdaP|
-  |rm :: [w ▹ a] → [w]
-  |rm xs = [x | There x <- xs]
+  |rm :: v -> [a ▹ v] → [a]
+  |rm _ xs = [x | There x <- xs]
   |
   |freeVars :: Tm w → [w]
   |freeVars (Var x) = [x]
-  |freeVars (Lam f) = unpack f $ \ _ t → rm $ freeVars t
+  |freeVars (Lam f) = unpack f $ \ x t → rm x $ freeVars t
   |freeVars (App f a) = freeVars f ++ freeVars a
   |]
 
