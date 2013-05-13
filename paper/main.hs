@@ -138,6 +138,7 @@ body = {-slice .-} execWriter $ do -- {{{
       That is, one parameterises the type of terms by a type that can represent free variables.
       If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is at most one free variable, etc.»
   -- NP: Term () can also holds closed terms.
+  -- JP: What about Var () :: Term ()
   p""«This representation in known as Nested Abstract Syntax {cite[birdpaterson99]}»
   notetodo «cite»
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
@@ -363,10 +364,6 @@ body = {-slice .-} execWriter $ do -- {{{
    to adjust the type to forget the difference between the new variable and the others. The variable and application
    cases then offer no surprises. (We defer the description of the functor instance to the next section.)
    »
-  -- JP: I moved the descruction examples up here; because I think
-  -- they are very important to distinguish our method from others
-  -- (eg. "Classy Hack")
-  -- NP: but now the functor instance comes before
   [agdaP|
   |size1 :: Tm Int → Int
   |size1 (Var x) = x
@@ -887,7 +884,11 @@ body = {-slice .-} execWriter $ do -- {{{
      Our reprensentation supports a natural implementation of both transformations.
      »
 
-  p "" «more remarks about safety»
+  p "more remarks about safety" «
+  We do not suffer from name-capture and complicated α-equivalence problems; but
+  we can conveniently call variables by their name.
+  »
+  
 
   p "" «impredicativity»
 
