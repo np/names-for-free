@@ -109,8 +109,12 @@ body = {-slice .-} execWriter $ do -- {{{
   -- subsection $ «DeBruijn Indices»
   p""«A common way to represent variables is by the number of variables bound 
       between the occurence of a given variable {|x|} and its declaration.»
+      {- NP: try an alternative way of telling it, "counting the number of λs/binders one has to cross over to reach our λ/binder/binding-site -}
   notetodo «cite»
   p""«The main advantage of the technique two α-equivalent terms have exactly the same representation.»
+  -- NP: I sort of object to this, namely this ok for closed terms, but I would say that comparing free variables with equality is not always the right
+  -- choice. One could pick an alternative presentation by stressing that binders and bound names are canonically represented therefor simplifying
+  -- α-equivalence.
   p""«A direct implementation of the technique may yield the following represtenation of untyped lambda terms:»
   [agdaP|
   |data Nat = Zero | Succ Nat
@@ -120,20 +124,24 @@ body = {-slice .-} execWriter $ do -- {{{
   |  LamDB :: TmDB → TmDB
   |]
   p""«Using this representation, the representation of the constant function {|\x y → x|} is the following:»
+  -- NP: \ vs λ
   [agdaP|
   |constDB :: TmDB
   |constDB = LamDB $ LamDB $ VarDB (Succ Zero)
   |]
 
-  p""«However, such a direct implementation is naïve. It cannot distinguish between open and closed terms. 
+  p""«However, such a direct implementation is naïve. It cannot statically distinguish closed terms from open terms. 
       That is, a closed term has the same type as an open term.»
 
   -- subsection $ «Nested Abstract Syntax»
-  p""«In Haskell, it is possible to remedy to this situation by "nested recursion". 
+  p""«In Haskell, it is possible to remedy to this situation by “nested recursion”. 
       That is, one parameterises the type of terms by a type that can represent free variables.
-      If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is one free variable, etc.»
+      If the parameter is the empty type, terms are closed. If the parameter is the unit type, there is at most one free variable, etc.»
+  -- NP: Term () can also holds closed terms.
   p""«This representation in known as Nested Abstract Syntax {cite[birdpaterson99]}»
   notetodo «cite»
+  -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
+  -- NP: explain the meaning of Here and There
   [agdaP|
   |data a ▹ b = There a | Here b 
   |type Succ a = a ▹ ()
@@ -184,6 +192,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   -- subsection $ «Safety»
+  -- NP: one should explicitely say that we consider the bindings made by the
+  -- host language to be our specification, therefore a mistake is to put the
+  -- wrong number of There
   p""«Now, if one makes a mistake and forgets one {|There|} when typing the term, GHC rejects the definition.»
   commentCode [agdaP|
   |oops_ = Lam $ \x → Lam $ \y → Var (Here x) 
@@ -198,6 +209,7 @@ body = {-slice .-} execWriter $ do -- {{{
       is admissible. Indeed, any context, the type of variables is {|w = w0 ▹ v0 ▹ v1 ▹ ⋯ ▹ vn|} where {|v0|}, {|v1|}, … , {|vn|} 
       are all distinct and universally quantified, and none of them occurs as part of {|w0|}. 
       Hence, there is only one injection function from a given {|vi|} to {|w|}.»
+  -- NP: unclear. One should make precise that x is comes from a "Lam $ \x ->" and that f is Thereⁿ (Here x)
 
   -- subsection $ «Auto-inject»
   p""«Knowing that the injection functions are uniquely determined by their type, 
@@ -215,8 +227,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
   p""«and the constant function can be conveniently written:»
   [agdaP|
-  |const_ :: Tm Zero
-  |const_ = Lam $ \x → Lam $ \y → var x
+  |constTm :: Tm Zero
+  |constTm = Lam $ \x → Lam $ \y → var x
   |]
 
   p""«Our term representation allows to construct terms with de Bruijn-indices, 
@@ -342,6 +354,8 @@ body = {-slice .-} execWriter $ do -- {{{
 
 
   subsection $ «Algebraic Structure/Catamorphism»
+  -- NP: this style (of using the variable parameter to represent intermediate
+  -- results) could be detailed more here.
   q«
    One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
    is to arrange to substitute each variable occurence by its size (the constant 1 for the purpose of this example).
@@ -352,6 +366,7 @@ body = {-slice .-} execWriter $ do -- {{{
   -- JP: I moved the descruction examples up here; because I think
   -- they are very important to distinguish our method from others
   -- (eg. "Classy Hack")
+  -- NP: but now the functor instance comes before
   [agdaP|
   |size1 :: Tm Int → Int
   |size1 (Var x) = x
@@ -377,6 +392,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |size2 (Lam g) = 1 + size2 (g ())
   |size2 (App t u) = 1 + size2 t + size2 u
   |]
+  -- The size example is both a good showcase for the "g ()" style but
+  -- also do not illustrate the "use only the de∼Bruijn index to compute results"
 
   p""«
    One may however chose to combine the two approaches. 
@@ -400,19 +417,26 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
       Note that the algebra corresponds to the higher-order representation of lambda terms.»
+  -- type TermAlgebra = TmF w a -> a
   [agdaP|
-  |type Algebra w a = (w → a, (a → a) → a, a → a → a)
-  |cata :: Algebra w a → Tm w → a
-  |cata φ@(v,l,a) s = case s of
-  |   Var x   → v x
-  |   Lam f   → l (cata (extend v,l,a) . f)
-  |   App t u → a (cata φ t) (cata φ u)
+  |data TermAlgebra w a = TmAlg { pVar :: w → a
+  |                             , pLam :: (a → a) → a
+  |                             , pApp :: a → a → a }
+  |cata :: TermAlgebra w a → Tm w → a
+  |cata φ s = case s of
+  |   Var x   → pVar φ x
+  |   Lam f   → pLam (cata (extendVar φ) . f)
+  |   App t u → pApp (cata φ t) (cata φ u)
+  |
+  |extendVar :: TmAlg w a -> TmAlg (w ▹ b) a
+  |extendVar φ = φ { pVar = extend (pVar φ) }
   |]
 
   subsection $ «Substitute/Monad»
 
   [agdaP|
   |instance Monad Tm where
+  |  -- TODO ?
   |]
 
   [agdaP|
@@ -430,7 +454,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |-- Kleisli arrows
   |type Kl m v w = v → m w
   |
-  |-- Union is a functor in the category of Kleisli arrows
+  |-- '(▹ v)' is a functor in the category of Kleisli arrows
   |lift :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
   |lift θ (There x) = wk (θ x)
   |lift θ (Here  x) = var x
@@ -456,8 +480,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |fresh = error "accessing fresh variable!"
   |]
 
-  p""«Since {|v|} is universally quantified in the continuation, the continuation cannot (bar use of {|seq|})
-  trigger the {|fresh|} exception.»
+  p""«Since {|v|} is universally quantified in the continuation, the continuation cannot
+  trigger the {|fresh|} exception omitting the use of {|seq|}.»
 
 
   p""«As we have seen in previous examples, the unpack combinator gives the possibility 
@@ -541,6 +565,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |instance Eq Zero where
   |  (==) = magic
   |
+  |-- NP: beware Here 1 == Here 2
   |instance Eq w ⇒ Eq (w ▹ v) where
   |  Here _ == Here _ = True
   |  There x == There y = x == y
@@ -577,12 +602,16 @@ body = {-slice .-} execWriter $ do -- {{{
   |  App t u == App t' u' = t == t' && u == u'        
   |]  
 
+  -- NP: I would like to see my more general cmpTm
+
   subsection $ «Normalisation by evaluation»
   p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is 
       performed. This technique is known as normalisation by evaluation.»
   notetodo «cite»
 
   q«The substitution to apply merely embeds free variables into terms:»
+  -- NP: unclear, we need to stress that we represent substitutions by
+  -- functions from 'names' to 'terms'.
   [agdaP|
   |subst0 :: Monad tm ⇒ w ▹ tm w → tm w
   |subst0 (Here  x) = x
@@ -598,6 +627,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |app t u = App t u
   |]
 
+  -- NP: This one is the normal bind for Tm. No the app is the fancy one
+  -- ok. Then we need to stress the relation with >>=.
   [agdaP|
   |(>>>=) :: Tm a -> (a -> Tm b) -> Tm b
   |Var x >>>= θ = θ x
@@ -613,6 +644,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |eval (App t u) = app (eval t) (eval u)
   |]
 
+  -- NP: I would put Closure Conversion before CPS actually it seems like a
+  -- simpler example.
   subsection $ «CPS»
   p "" «Following {citet[chlipalaparametric2008]}»
   q «In the CPS representation, every intermediate result is named.»
@@ -701,8 +734,6 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Closure Conversion»
   p"" «Following {citet[guillemettetypepreserving2007]}»
   [agdaP|
-  |instance Functor LC where
-  |instance Monad LC where
   |data LC w where
   |  VarC :: w → LC w
   |  Clos :: (∀ vx venv. vx → venv → 
@@ -715,13 +746,16 @@ body = {-slice .-} execWriter $ do -- {{{
   |  Tuple :: [LC w] → LC w
   |  Index :: w → Int → LC w
   |  AppC :: LC w → LC w → LC w
+  |instance Functor LC where
+  |instance Monad LC where
   |]
 
   [agdaP|
   |($$) = AppC
+  |infixl $$
+  |
   |idx :: (v ∈ a) ⇒ v → Int → LC a
   |idx env = Index (inj env)
-  |infixl $$
   | 
   |cc :: ∀ w. Eq w ⇒ Tm w → LC w  
   |cc (Var x) = VarC x
