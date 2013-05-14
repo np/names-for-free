@@ -561,12 +561,16 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Occurence Test»
 
-  q«We first allow to indices to be compared, by providing the following two {|Eq|} instances:»
+  q«We first allow to indices to be compared, by providing the following two {|Eq|} instances. 
+     First, the {|Zero|} type is vaccuously equipped with equality:»
   [agdaP|
   |instance Eq Zero where
   |  (==) = magic
-  |
-  |-- NP: beware Here 1 == Here 2
+  |]
+  q«Second, if two indices refer to the first variables they are equal; otherwise we recurse.
+  We stress that this equality tests only the {emph«indices »}, not the contained in the type.
+  For example {|Here 0 == Here 1|} is {|True|}»
+  [agdaP|
   |instance Eq w ⇒ Eq (w ▹ v) where
   |  Here _ == Here _ = True
   |  There x == There y = x == y
