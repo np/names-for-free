@@ -416,16 +416,17 @@ body = {-slice .-} execWriter $ do -- {{{
       Note that the algebra corresponds to the higher-order representation of lambda terms.»
   -- type TermAlgebra = TmF w a -> a
   [agdaP|
-  |data TermAlgebra w a = TmAlg { pVar :: w → a
-  |                             , pLam :: (a → a) → a
-  |                             , pApp :: a → a → a }
-  |cata :: TermAlgebra w a → Tm w → a
+  |data TmAlg w a = TmAlg { pVar :: w → a
+  |                       , pLam :: (a → a) → a
+  |                       , pApp :: a → a → a }
+  |
+  |cata :: TmAlg w a → Tm w → a
   |cata φ s = case s of
   |   Var x   → pVar φ x
-  |   Lam f   → pLam (cata (extendVar φ) . f)
-  |   App t u → pApp (cata φ t) (cata φ u)
+  |   Lam f   → pLam φ (cata (extendVar φ) . f)
+  |   App t u → pApp φ (cata φ t) (cata φ u)
   |
-  |extendVar :: TermAlgebra w a -> TermAlgebra (w ▹ b) a
+  |extendVar :: TmAlg w a -> TmAlg (w ▹ a) a
   |extendVar φ = φ { pVar = extend (pVar φ) }
   |]
 
