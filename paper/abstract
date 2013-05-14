@@ -1,1 +1,4 @@
-TODO
+We propose a novel representation of variable bindings which combines
+advantages of nameless (de Bruijn indices) and nominal
+representations. The key idea is to represent a subterm with an additional
+free variable as ∀v. v → Term (a ▹ v).

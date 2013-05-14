@@ -46,6 +46,7 @@ import NomPaKit.QQ
      |]
 
 title = «Parametric Nested Abstract Syntax»
+  -- «Names For Free --- Implementing Names and Binders with Polymorphism»
   -- «A Classy Kind of Nested Abstract Syntax»
   -- «Implementing Names and Binders with Polymorphism»
 -- Ingredients:
@@ -757,13 +758,15 @@ body = {-slice .-} execWriter $ do -- {{{
   |cpsMain x = cps x halt'
   |]
 
-  q«The cases of {|App|} and {|Lam|} are standard. Worth of mention: the continuation
+  q«The cases of {|App|} and {|Lam|} are standard. A direct encoding of 
+  the definition, except for a couple occurences of weakenings.
+  Worth of mention: the continuation
   is bound as a {|Primop|} using the {|Abs'|} construction, before being 
   wrapped in a pair.»
 
   notetodo «Include fig. 6 from {cite[guillemettetypepreserving2008]} »
   [agdaP|
-  |cps :: Tm a -> (∀ v. v -> Tm' (a ▹ v))  → Tm' a
+  |cps :: Tm a -> (∀ v. v -> Tm' (a ▹ v)) → Tm' a
   |cps (App e1 e2) k = cps e1 $ \f -> 
   |                    cps (wk e2) $ \x -> 
   |                    Let (Abs' (\x -> wk (k x))) $ \k' → 
@@ -843,6 +846,7 @@ body = {-slice .-} execWriter $ do -- {{{
   q«We don't do typed representations (yet)»
   subsection $ «HOAS»
   p "" «Functions should only be substitutions»
+  q«{cite[washburnboxes2003]}»
   subsubsection $ «Concrete Terms»
   p "" «TmH → TmH | TmH × TmH»
   p "+" «Exotic terms»
@@ -865,8 +869,8 @@ body = {-slice .-} execWriter $ do -- {{{
         a difference is that they produce a plain de Brujin representation, 
         while we keep the polymorphism throughout.
 
-        Another difference is that McBride integrate the injection in the abstraction
-        constructor rather than the variable one. The type of the {|var|} combinator becomes then
+        Another difference is that McBride integrates the injection in the abstraction
+        constructor rather than the variable constructor. The type of the {|var|} combinator becomes then
         simpler, at the expense of {|lam|}:
         »
   
@@ -1037,7 +1041,8 @@ appendix = execWriter $ do
   |  return = VarC
   |  VarC x >>= θ = θ x
   |  Closure c env >>= θ = Closure c (env >>= θ)
-  |  LetOpen t g >>= θ = LetOpen (t >>= θ) (\f env -> g f env >>= lift (lift θ))
+  |  LetOpen t g >>= θ = 
+  |    LetOpen (t >>= θ) (\f env -> g f env >>= lift (lift θ))
   |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppC t u >>= θ = AppC (t >>= θ) (u >>= θ)
