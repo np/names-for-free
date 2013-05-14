@@ -765,6 +765,29 @@ body = {-slice .-} execWriter $ do -- {{{
   |  -- ...
   |]
 
+
+  notetodo «Include fig. 6 from {cite[guillemettetypepreserving2008]} »
+  [agdaP|
+  |cps' :: Tm a -> (∀ v. v -> Tm' (a ▹ v))  → Tm' a
+  |
+  |cps'' :: (γ ⊆ a) => Tm γ -> (forall v. v -> Tm' (a ▹ v)) -> Tm' a
+  |cps'' = cps' . wk
+  |
+  |cps' (Var v)     k = fmap untag (k v)
+  |cps' (App e1 e2) k = cps' e1 $ \f -> 
+  |                    cps'' e2 $ \x -> 
+  |                    Let (Abs' (\x -> wk (k x))) $ \k' → 
+  |                    Let (x <:> k') $ \p → 
+  |                    app' f p
+  |cps' (Lam e') k = 
+  |  Let (Abs' $ \p → Let (π1 p) $ \x → 
+  |                   Let (π2 p) $ \k' →
+  |                   cps'' (e' x) $ \r → 
+  |                   app' k' r)
+  |      k
+  |]
+
+  notetodo «Include fig. 7 from chlipala»
   -- There does not seem to be a nice and natural instance of monad for 
   -- Tm' !
   [agdaP|
