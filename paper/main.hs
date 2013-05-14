@@ -28,6 +28,7 @@ import NomPaKit.QQ
       performance
       proofs
       discussion
+      implementationExtras
      |]
 
 -- figures
@@ -41,6 +42,7 @@ import NomPaKit.QQ
       guillemette_type-preserving_2008
       miller_proof_2003
       bird-paterson-99
+      washburn_boxes_2003
      |]
 
 title = «Parametric Nested Abstract Syntax»
@@ -671,10 +673,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
   q«This representation is an instance of {|Functor|} and {|Monad|}, and the corresponding code
     offers no surprise.»
-  [agdaP|
-  |instance Functor LC where
-  |instance Monad LC where
-  |]
 
   q«We give a couple helper functions to construct applications and indexwise access in a tuple:»
   [agdaP|
@@ -740,53 +738,59 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   q«We will not use primops directly, but instead their composition with injection.»
-  notetodo «Hide this.»
   [agdaP|
   |(<:>) :: (v ∈ a, v' ∈ a) ⇒ v → v' → Primop a 
-  |x <:> y = Pair (inj x) (inj y)
-  |
   |π1 :: (v ∈ a) ⇒ v → Primop a
-  |π1 = Π1 . inj
-  |
   |π2 :: (v ∈ a) ⇒ v → Primop a
-  |π2 = Π2 . inj
-  |
   |app' :: (v ∈ a, v' ∈ a) ⇒ v → v' → Tm' a 
-  |app' x y = App' (inj x) (inj y)
-  |
   |halt' :: (v ∈ a) ⇒ v → Tm' a 
-  |halt' = Halt' . inj
-  |  
   |]
 
   q«As {|Tm|}, {|Tm'|} enjoys a functor structure. »
+
+  q«We implement a one-pass CPS transform (administrative redexes are not
+  created). This is done by passing a continuation to the transformation.
+  At the top-level the halting continuation is used.»
+
   [agdaP|
-  |instance Functor Tm' where 
-  |  -- ...
+  |cpsMain :: Tm a -> Tm' a
+  |cpsMain x = cps x halt'
   |]
 
+  q«The cases of {|App|} and {|Lam|} are standard. Worth of mention: the continuation
+  is bound as a {|Primop|} using the {|Abs'|} construction, before being 
+  wrapped in a pair.»
 
   notetodo «Include fig. 6 from {cite[guillemettetypepreserving2008]} »
   [agdaP|
-  |cps' :: Tm a -> (∀ v. v -> Tm' (a ▹ v))  → Tm' a
-  |
-  |cps'' :: (γ ⊆ a) => Tm γ -> (forall v. v -> Tm' (a ▹ v)) -> Tm' a
-  |cps'' = cps' . wk
-  |
-  |cps' (Var v)     k = fmap untag (k v)
-  |cps' (App e1 e2) k = cps' e1 $ \f -> 
-  |                    cps'' e2 $ \x -> 
+  |cps :: Tm a -> (∀ v. v -> Tm' (a ▹ v))  → Tm' a
+  |cps (App e1 e2) k = cps e1 $ \f -> 
+  |                    cps (wk e2) $ \x -> 
   |                    Let (Abs' (\x -> wk (k x))) $ \k' → 
   |                    Let (x <:> k') $ \p → 
   |                    app' f p
-  |cps' (Lam e') k = 
+  |cps (Lam e')    k = 
   |  Let (Abs' $ \p → Let (π1 p) $ \x → 
   |                   Let (π2 p) $ \k' →
-  |                   cps'' (e' x) $ \r → 
+  |                   cps (wk (e' x)) $ \r → 
   |                   app' k' r)
   |      k
+  |cps (Var v)     k = fmap untag (k v)
   |]
 
+  q«In the variable case, we must pass the variable {|v|} to the continuation. We have:
+  {|k v :: Tm' (a ▹ a)|}. To obtain a result of the right type it suffices to remove
+  the extra tagging introduced by {|a ▹ a|} everywhere in the term, using {|fmap untag|}.»
+  
+  q«It is folklore that a CPS transformation is easier to implement with higher-order abstract 
+  syntax {cite[guillemettetypepreserving2008,washburnboxes2003]}. Our representation of
+  abstraction features a very limited form of higher-order representation. 
+  (Namely, a quantification, over a universally quantified type.)
+  However limited, this higher-order aspect is enough allows an easy implementation of 
+  the CPS transform.»
+
+
+{-
   notetodo «Include fig. 7 from chlipala»
   -- There does not seem to be a nice and natural instance of monad for 
   -- Tm' !
@@ -812,7 +816,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |letPrim (Π2 y) e2 = Π2 y  
   |]
 
-
   [agdaP|
   |cps :: Tm v → Tm' v
   |cps (Var v) = Halt' v
@@ -830,8 +833,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |                   app' k r)
   |      (\x → halt' x)
   |]                         
-
-
+-}
   -- NP
   section $ «Comparisons» `labeled` comparison
   subsection $ «Fin»
@@ -1002,6 +1004,45 @@ body = {-slice .-} execWriter $ do -- {{{
 --    it «"free" substitutions»
 
 appendix = execWriter $ do
+  section $ «Appendix: implementation details» `labeled` implementationExtras
+  subsection «CPS»
+  
+  [agdaP|
+  |instance Functor Primop where  
+  |  fmap f (Π1 x) = Π1 (f x)
+  |  fmap f (Π2 x) = Π2 (f x)
+  |  fmap f (Pair x y) = Pair (f x) (f y)
+  |  fmap f (Abs' g) = Abs' (\x -> fmap (mapu f id) (g x))
+  |  
+  |instance Functor Tm' where 
+  |  fmap f (Halt' x) = Halt' (f x)
+  |  fmap f (App' x y) = App' (f x) (f y)
+  |  fmap f (Let p g) = Let (fmap f p) (\x -> fmap (mapu f id) (g x))
+  |]
+
+  [agdaP|
+  |x <:> y = Pair (inj x) (inj y)
+  |π1 = Π1 . inj
+  |π2 = Π2 . inj
+  |app' x y = App' (inj x) (inj y)
+  |halt' = Halt' . inj
+  |]
+  subsection «Closure Conversion»
+
+  [agdaP|
+  |instance Functor LC where
+  |  fmap f t = t >>= return . f
+  |
+  |instance Monad LC where
+  |  return = VarC
+  |  VarC x >>= θ = θ x
+  |  Closure c env >>= θ = Closure c (env >>= θ)
+  |  LetOpen t g >>= θ = LetOpen (t >>= θ) (\f env -> g f env >>= lift (lift θ))
+  |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
+  |  Index t i >>= θ = Index (t >>= θ) i
+  |  AppC t u >>= θ = AppC (t >>= θ) (u >>= θ)
+  |]
+
   return ()
 -- }}}
 
