@@ -91,11 +91,15 @@ unpackTypeSig =  [agdaFP|
 
 q = p ""
 
+constTm =   
+  [agdaFP|
+  |constTm :: Tm Zero
+  |constTm = Lam $ λ x → Lam $ λ y → var x
+  |]
+
 body = {-slice .-} execWriter $ do -- {{{
-  -- JP (when the rest is ready)
   notetodo «ACM classification (JP: no clue how it's done these days!)»
-  section $ «Intro» `labeled` intro
-  subsection $ «Example final»
+  
   notetodo «how to hide this stuff?»
   [agdaP|
   |{-# LANGUAGE RankNTypes, UnicodeSyntax, 
@@ -108,6 +112,15 @@ body = {-slice .-} execWriter $ do -- {{{
   |import Control.Applicative
   |import Data.List (nub,elemIndex)
   |]
+
+  
+-- JP (when the rest is ready)
+  section $ «Intro» `labeled` intro
+  p"What is it we offer?"«
+    Nominal-style user code, without the problems of nominal representation (easy substitution).
+    »
+  constTm
+  
   
   -- JP
   section $ «Overview» `labeled` overview
@@ -321,13 +334,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |var = Var . inj
   |]
 
-  p"constTm'"
+  p"constTm"
    «and the constant function can be conveniently written:»
 
-  [agdaFP|
-  |constTm' :: Tm Zero
-  |constTm' = Lam $ λ x → Lam $ λ y → var x
-  |]
+  constTm
 
   p"pros"
    «Our term representation allows to construct terms with de Bruijn
@@ -847,6 +857,12 @@ Since {|v|} is universally quantified in the continuation, the continuation cann
 
   remove :: Binder v -> [a ▹ v] → [a]
   remove _ xs = [x | There x <- xs]
+
+  ...
+
+  in this case we should also have:
+
+  (∀ v. Binder v → tm (w ▹ v))
   -}
 
   [agdaFP|
@@ -913,20 +929,55 @@ Since {|v|} is universally quantified in the continuation, the continuation cann
 
   subsection $ «Test of α-equivalence»
   p""«
-   Testing for α-equivalent terms is straightforward. Our representation contains de Bruijn indices, so
-   we only need to ignore the higher-order aspect. This can be done by simply applying dummy elements
-   at every binding site. Additionally, as a natural refinement over the mere α-equivalence test, we allow
-   for an equality test to be supplied for free variables. This equality test is provided by an {|Eq|} instance:
-   »
-
+   Using our technique, two α-equivalent terms will have the same underlying representation. Despite this property,
+   the Haskell compiler will refuse to generate an equality-test via a {|deriving Eq|} clause.
+   This is caused by the presence of a function type inside the {|Tm|} type. Indeed, in general, extensional equality
+   of functions is undecidable. Fortunately, equality for the parametric function type that we use {emph«is»} decidable.
+   Indeed, thanks to parametricity, the functions cannot inspect their argument at all, and therefore it is 
+   sufficient to test for equality at the unit type, done shown below:
+  »
   [agdaFP|
   |instance Eq w ⇒ Eq (Tm w) where
   |  Var x == Var x' = x == x'
   |  Lam g == Lam g' = g () == g' ()
   |  App t u == App t' u' = t == t' && u == u'        
-  |]  
-
+  |]
   -- NP: I would like to see my more general cmpTm
+
+  q«However the application of {|()|} is somewhat worrisome, since we might now different 
+    indices get the same {|()|} type. Even though the possibility of a mistake is very low
+    in a direct equality test like the above, one might want to do more complex tests where the
+    possibility of a mistake is real. In order to avoid this, one might want to use the {|unpack|}
+    combinator as below:»
+
+  commentCode [agdaFP|
+  |  Lam g == Lam g' = unpack g $ \x t -> 
+  |                    unpack g' $ \ x' t' -> 
+  |                    t == t'
+  |]
+  q«This is however incorrect. Indeed, the fresh variables x and x' will receive incompatible type, and
+    in turn t and t' do not have the same type and cannot be compared. Hence we must use another variant
+    of the unpack combinator, which maintains the correspondance between contexts in two different terms.»
+
+  [agdaFP|
+  |unpack2 :: (forall v. v → f (a :▹ v)) -> 
+  |           (forall v. v → g (a :▹ v)) -> 
+  |            
+  |           (forall v. v → f (a :▹ v) -> 
+  |                          g (a :▹ v) -> b) ->
+  |           b 
+  |unpack2 f f' k = k fresh (f fresh) (f' fresh)          
+  |where fresh = error "cannot query fresh variables!"
+  |]
+
+  q«One can see {|unpack2|} as allocating a single fresh name which is shared in both {|t|} and {|t'|}.»
+
+  commentCode [agdaFP|
+  |  Lam g == Lam g' = unpack2 g g' $ \x t t' -> 
+  |                    t == t'
+  |]
+
+
 
   subsection $ «Normalisation by evaluation»
   p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is 
