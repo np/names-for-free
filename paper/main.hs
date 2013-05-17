@@ -95,6 +95,7 @@ body = {-slice .-} execWriter $ do -- {{{
   notetodo «ACM classification (JP: no clue how it's done these days!)»
   section $ «Intro» `labeled` intro
   subsection $ «Example final»
+  notetodo «how to hide this stuff?»
   [agdaP|
   |{-# LANGUAGE RankNTypes, UnicodeSyntax, 
   |    TypeOperators, GADTs, MultiParamTypeClasses, 
