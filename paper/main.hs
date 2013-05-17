@@ -29,6 +29,7 @@ import NomPaKit.QQ
       proofs
       discussion
       implementationExtras
+      dualityDiscussion
      |]
 
 -- figures
@@ -142,7 +143,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p""
-   «Using this representation, the representation of the constant
+   «Using this representation, the implementation of the constant
     function {|λ x y → x|} is the following:»
 
   [agdaFP|
@@ -191,7 +192,7 @@ body = {-slice .-} execWriter $ do -- {{{
    «The recursive case {|Lam|} changes the parameter type, increasing its cardinality by one.»
 
   p"constN example"
-   «Using this representation, the representation of the constant
+   «Using this representation, the implementation of the constant
     function {|λ x y → x|} is the following:»
 
   [agdaFP|
@@ -256,16 +257,19 @@ body = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |constTm_ :: Tm Zero
-  |constTm_ = Lam $ λ x → Lam $ λ y → Var (There (Here x))
+  |constTm_ = Lam $ λ x → Lam $ λ y → 
+  |             Var (There (Here x))
   |]
 
   -- subsection $ «Safety»
 
   p"host bindings are the spec"
-   «In our approach the host-language level lambdas are used as
-    a convenient way to describe the binding structure namely
-    the {emph«specification»}. On variable occurrences, {|Here|}
-    and {|There|} are still “counting” de Bruijn indices and forms the
+   «In our approach, the binding structure, which can be identified as
+    the {emph«specification»}, is written using the host language binders.
+ 
+    At variable occurences, de Bruijn indices are still present in the
+    form of the constructors {|Here|}
+    and {|There|}, and are purely part of the
     {emph«implementation»}.»
 
   p"type-checking the number of There..."
@@ -279,7 +283,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"no mistakes at all"
-   «In fact, the possibility of making a mistake is inexistant (if
+   «In fact, the possibility of making a mistake in the {emph«implementation»} is inexistant (if
     we ignore diverging terms). Indeed, because the type {|v|}
     corresponding to a bound variable is universally quantified, the
     only way to construct a value of its type is to use the variable
@@ -288,7 +292,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p"unicity of injections"
    «Conversely, in a closed context, if one considers the
     expression {|Var (Thereⁿ (Here x))|}, only one possible value of
-    {|n|} is admissible. Indeed, in any context, the type of variables
+    {|n|} is admissible. Indeed, anywhere in the formation of a term, the type of variables
     is {|a = a0 ▹ v0 ▹ v1 ▹ ⋯ ▹ vn|} where {|v0|}, {|v1|}, … , {|vn|}
     are all distinct and universally quantified, and none of them occurs
     as part of {|a0|}. Hence, there is only one injection function from
@@ -361,7 +365,7 @@ body = {-slice .-} execWriter $ do -- {{{
     reference to a variable in a context, but in a way which is only
     accessible to the type-checker.
 
-    That is, when facing for example a term {|t|} of type
+    For instance, when facing for example a term {|t|} of type
     {|Tm (a ▹ v ▹ v1 ▹ v2)|}, {|x|} refers to the third free variable
     in {|t|}.
 
@@ -402,7 +406,8 @@ body = {-slice .-} execWriter $ do -- {{{
   p"slogan"
    «Again, even though our representation is a variant of de Bruijn
     indices, the use of polymorphism allows to refer to variables by
-    name, while remaining safe.»
+    name, using the instance search mechanism to fill in the
+    details of implementation.»
 
   -- NP
   section $ «Term Structure» `labeled` termStructure
@@ -584,7 +589,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |    App <$> traverse f t <*> traverse f u
   |  traverse f (Lam g) = 
   |    unpack g $ \x b →
-  |      lam' x <$> traverse (traverseu f pure) b
+  |      lam x <$> traverse (traverseu f pure) b
   |]
 
   p"explain traverseu"
@@ -611,16 +616,33 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Algebraic Structure/Catamorphism»
   -- NP: this style (of using the variable parameter to represent intermediate
   -- results) could be detailed more here.
+  
   q«
-   One can take the example of a size function to illustrate this flexibility. A first way to compute the size of a term
-   is to arrange to substitute each variable occurrence by its size (the constant 1 for the purpose of this example).
-   This can be realised by applying the constant 1 at every function argument of a Lam constructor. One then needs
-   to adjust the type to forget the difference between the new variable and the others. The variable and application
-   cases then offer no surprises. 
+   Our represtentation features three aspects which are usually kept separate. It
+   has an higher-order aspect, a nominal aspect, and a de Bruijn indices aspect.
+   Consequently, one can take advtantage of the benefits of each of there aspects when
+   manipulating terms.
+   
+   One can take the example of a size function to illustrate this flexibility. 
+
+   We first demonstrate the higher-order aspect. It is common in higher-order representations
+   to supply a concrete value to substitute for a variable at each binding site. 
+   Consequently we will assume that all free variables 
+   are substituted for their size, and here the function will have type {|Tm Int → Int|}.
+
+   In our {|size|} function, we will consider that each variable occurrence as the constant
+   size 1 for the purpose of this example. 
+
+   This is be realised by applying the constant 1 at every function argument of a {|Lam|} constructor. One then needs
+   to adjust the type to forget the difference between the new variable and the others, by applying an {|untag|} function
+   for every variable. The variable and application cases then offer no surprises. 
    »
+  [agdaFP|
+  |type Size = Int
+  |]
 
   [agdaFP|
-  |size1 :: Tm Int → Int
+  |size1 :: Tm Size → Size
   |size1 (Var x) = x
   |size1 (Lam g) = 1 + size1 (fmap untag (g 1))
   |size1 (App t u) = 1 + size1 t + size1 u
@@ -632,32 +654,52 @@ body = {-slice .-} execWriter $ do -- {{{
   |untag (Here x) = x 
   |]
 
-  p""«
-   An other way to proceed is to simply pass a dummy object to the function arguments of Lam, and
-   use only the de Bruijn index to compute results in the case of variables. Using this technique,
+  -- TODO: move in 1st position.
+  p""«Second we demonstrate the nominal aspect.
+   Each binder is simply {|unpack|}ed (ignoring the fresh variable obtained). Using this technique,
    the size computation looks as follows:
    »
 
   [agdaP|
-  |size2 :: Tm a → Int
+  |size2 :: Tm a → Size
   |size2 (Var _) = 1
-  |size2 (Lam g) = 1 + size2 (g ())
+  |size2 (Lam g) = unpack g $ \x t -> 1 + size2 t
   |size2 (App t u) = 1 + size2 t + size2 u
   |]
-  -- The size example is both a good showcase for the "g ()" style but
-  -- also do not illustrate the "use only the de∼Bruijn index to compute results"
+
+  p""«Third, we demonstrate the de Bruijn index aspect. This time we assume an environment mapping 
+      de Bruijn indices {|Nat|} to the  their value of the free variables they represent (a {|Size|} 
+      in our case).
+      In the input term, free variables
+      are repenented merely by their index. 
+      When going under a binder represented by a function {|g|}, we apply {|g|} to a dummy argument {|()|},
+      then we convert the structure of free variables {|Nat :> ()|} into {|Nat|}, using the {|toNat|} function.
+      Additionally the environment is extended with the expected value for the new variable.»
+
+  [agdaP|
+  |size3 :: (Nat → Size) → Tm Nat → Size
+  |size3 f (Var x) = f x
+  |size3 f (Lam g) = 1 + size3 f' (fmap toNat (g ()))
+  |  where f' Zero = 1
+  |        f' (Succ n) = f n
+  |size3 f (App t u) = 1 + size3 f t + size f u
+  |
+  |toNat (Here ()) = Zero
+  |toNat (There x) = Succ x
+  |]
 
   p""«
-   One may however chose to combine the two approaches. 
-   This time we also assume an arbitrary environment 
-   mapping free variables to a size. For each new variable,
-   we pass the size that we want to assign to it to the binding function, and 
-   we extend the environment to use that value on the new variable, or
-   lookup in the old environment otherwise.
-   »
+  In our experience it is often convenient to combine the first and third approaches, as we
+  illustrate below. 
+  This time the environment maps an arbitrary context {|a|} to a value.
+  For each new variable,
+  we pass the size that we want to assign to it to the binding function, and 
+  we extend the environment to use that value on the new variable, or
+  lookup in the old environment otherwise.
+  »
 
   [agdaFP|  
-  |size :: (a → Int) → Tm a → Int
+  |size :: (a → Size) → Tm a → Size
   |size f (Var x) = f x
   |size f (Lam g) = 1 + size (extend f) (g 1)
   |size f (App t u) = 1 + size f t + size f u
@@ -691,19 +733,23 @@ body = {-slice .-} execWriter $ do -- {{{
       one must apply a concrete argument to the function of type {|∀v. v → Term (a ▹ v)|}.
       The type of that argument can be chosen freely --- that freedom is sometimes useful
       to write idiomatic code. One choice is 
-      unit type and its single inhabitant {|()|}. This choice essentially reverts to using
-      plain de Bruijn indices, and it is often advisable to chose more specific types.
-       
+      unit type and its single inhabitant {|()|}. However this choice locally reverts to using
+      plain Nested Abstract Syntax, and it is often advisable to chose more specific types.
+      
       In particular, a canonical choice is a maximally polymorphic type. This choice is
       captured in the {|unpack|} combinator.
       »
       -- While I agree that using the unit type everywhere reverts to using
-      -- de Bruijn indices, 1) there are not plain they still are "well
-      -- scoped" by showing up in the types, 2) one time use of () is I think
+      -- Nested Abstract Syntax, the one time use of () is I think
       -- a good style since there is nothing to confuse about free variables
-      -- since there is only one, 3) in a total language, unpack would be
+      -- since there is only one.
+
+      -- In a total language, unpack would be
       -- defined as unpack b k = k () (b ()). Which essentially turns
       -- unpack b λ x t → E into let { x = () ; t = b () } in E.
+      -- 
+      -- However, a real implementation of the technique would need something like the
+      -- nabla combinator, where unpack would essentially be provided natively.
       --
       -- I still like the pack/unpack mode a lot it shines well when multiple
       -- binders are opened at once.
@@ -711,15 +757,23 @@ body = {-slice .-} execWriter $ do -- {{{
 
 
   [agdaP|
-  |unpack b k = k fresh (b fresh)
-  |fresh = error "accessing fresh variable!"
+  |unpack binder k = k fresh (binder fresh)
+  |  where fresh = error "accessing fresh variable!"
   |]
 
   p""«Since {|v|} is universally quantified in the continuation, the continuation cannot
   trigger the {|fresh|} exception omitting the use of {|seq|}.»
 
+  p""«At this point one might worry that, on the one side, we assume a total language for
+      safety purposes, but at the same time, the implementation of one of our safe combinators
+      takes advantage of non-totality. Fortunately, the diverging implementation of {|fresh|} 
+      cannot ``leak'' to other. We give a more detailed discussion in ref dualityDiscussion.
 
-  p""«As we have seen in previous examples, the unpack combinator gives the possibility 
+Since {|v|} is universally quantified in the continuation, the continuation cannot
+  trigger the {|fresh|} exception omitting the use of {|seq|}.»
+
+
+  p""«As we have seen in previous examples, the {|unpack|} combinator gives the possibility 
   to refer to a free variable by name, enabling for example to combare a variable
   occurrence with a free variable. Essentially, it offers a nominal interface to free variables:
   even though the running code will use de Bruijn indices, the programmer sees names; and
@@ -731,21 +785,25 @@ body = {-slice .-} execWriter $ do -- {{{
   given a term with a free variable (of type {|Tm (a ▹ v)|}) it is easy to
   reconstruct a binder: »
   [agdaFP|
-  |pack' :: Functor tm ⇒ tm (a ▹ v) → (∀ w. w → tm (a ▹ w))
+  |pack' :: Functor tm ⇒ tm (a ▹ v) →
+  |                      (∀ w. w → tm (a ▹ w))
   |pack' t = \y → fmap (mapu id (const y)) t
   |]
-  p""«It is preferrable however, as in the variable case, to bring a named reference to the
+  p""«It is preferrable however, as in the variable case, to request a named reference to the
   variable that one attempts to bind, in order not to rely on the index (zero in this case),
   but on a name, correctness.»
   [agdaFP|
-  |pack :: Functor tm ⇒ v' → tm (w ▹ v') → (∀ v. v → tm (w ▹ v))
+  |pack :: Functor tm ⇒ v' → tm (a ▹ v') → 
+  |                     (∀ v. v → tm (a ▹ v))
   |pack x t = \y → fmap (mapu id (const y)) t
   |]
 
-  p""«Hence, the pack combinator enables to give a nominal-style interface to binders:»
+  p""«Hence, the pack combinator make is possible to give a nominal-style 
+      interface to binders. For example
+      the {|lam|} constructor can be implemented as follows.»
   [agdaFP|
-  |lam' :: v → Tm (w ▹ v) → Tm w
-  |lam' x t = Lam (pack x t)
+  |lam :: v → Tm (w ▹ v) → Tm w
+  |lam x t = Lam (pack x t)
   |]
 
   -- JP/NP
@@ -1032,11 +1090,12 @@ body = {-slice .-} execWriter $ do -- {{{
   notetodo «Include fig. 6 from {cite[guillemettetypepreserving2008]} »
   [agdaFP|
   |cps :: Tm a -> (∀ v. v -> Tm' (a ▹ v)) → Tm' a
-  |cps (App e1 e2) k = cps e1 $ \f -> 
-  |                    cps (wk e2) $ \x -> 
-  |                    Let (Abs' (\x -> wk (k x))) $ \k' → 
-  |                    Let (x <:> k') $ \p → 
-  |                    app' f p
+  |cps (App e1 e2) k = 
+  |  cps e1 $ \f -> 
+  |  cps (wk e2) $ \x -> 
+  |  Let (Abs' (\x -> wk (k x))) $ \k' → 
+  |  Let (x <:> k') $ \p → 
+  |  app' f p
   |cps (Lam e')    k = 
   |  Let (Abs' $ \p → Let (π1 p) $ \x → 
   |                   Let (π2 p) $ \k' →
