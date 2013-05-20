@@ -1102,48 +1102,50 @@ body = {-slice .-} execWriter $ do -- {{{
     our representation is natural enough to support a direct implementation of the 
     algorithm.»
 
-  subsection $ «CPS»
-  p "" «Following {citet[chlipalaparametric2008]}»
-  q «In the CPS representation, every intermediate result is named.»
+  subsection $ «CPS Transform»
+  q«
+     The next example is a transformation to continuation-passing style (CPS) based partially on
+     cite[chlipalaparametric2008] and cite[guillemettetypepreserving2008]. 
+
+     The main objective of the transformation is to make explicit the order of evaluation, 
+     {|Let|}-binding every intermediate {|Value|} in a specific order.
+     To this end, we target as special representation, every intermediate result is named. 
+     We allow for {|Value|}s to be pairs, so we can easily replace each argument with a pair of an
+     argument and a continuation.»
   [agdaFP|
   |data Tm' a where
   |  Halt' :: a → Tm' a
   |  App'  :: a → a → Tm' a
   |  Let   :: Primop a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
   |
-  |data Primop a where 
-  |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Primop a
-  |  Pair :: a → a → Primop a  -- Pair
-  |  Π1   :: a → Primop a
-  |  Π2   :: a → Primop a
+  |data Value a where 
+  |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Value a 
+  |  Pair :: a → a → Value a 
+  |  Π1   :: a → Value a -- First projection
+  |  Π2   :: a → Value a -- Second projection
   |]
 
-  q«We will not use primops directly, but instead their composition with injection.»
+  q«We will not use {|Value|}s directly, but instead their composition with injection.»
   [agdaFP|
-  |(<:>) :: (v ∈ a, v' ∈ a) ⇒ v → v' → Primop a 
-  |π1 :: (v ∈ a) ⇒ v → Primop a
-  |π2 :: (v ∈ a) ⇒ v → Primop a
+  |pair :: (v ∈ a, v' ∈ a) ⇒ v → v' → Value a 
+  |π1 :: (v ∈ a) ⇒ v → Value a
+  |π2 :: (v ∈ a) ⇒ v → Value a
   |app' :: (v ∈ a, v' ∈ a) ⇒ v → v' → Tm' a 
   |halt' :: (v ∈ a) ⇒ v → Tm' a 
   |]
 
-  q«As {|Tm|}, {|Tm'|} enjoys a functor structure. »
+  q«As {|Tm|}, {|Tm'|} enjoys a functor structure, with a straightforward implementation found in appendix.
+    The monadic structure
+    however is more involved, and is directly tied to the transformation we perform, so we omit it.»
 
   q«We implement a one-pass CPS transform (administrative redexes are not
-  created). This is done by passing a continuation to the transformation.
-  At the top-level the halting continuation is used.»
-
-  [agdaFP|
-  |cpsMain :: Tm a -> Tm' a
-  |cpsMain x = cps x halt'
-  |]
-
-  q«The cases of {|App|} and {|Lam|} are standard. A direct encoding of 
-  the definition, except for a couple occurrences of weakenings.
-  Worth of mention: the continuation
-  is bound as a {|Primop|} using the {|Abs'|} construction, before being 
-  wrapped in a pair.»
-
+  created). This is done by passing a host-language continuation to the transformation.
+  At the top-level the halting continuation is used.
+  A definition of the transformation using mathematical notation could be written as follows. We use a hat
+  to distinguish object-level abstractions ({tm|\hat\lambda|}) from host-level ones. 
+  Similarly, the {tm|@|} sign is used for object-level applications.
+  »
+  
   q« {tm|
     \begin{array}{r@{\,}l}
      \llbracket x \rrbracket\,\kappa &= \kappa\,x \\
@@ -1159,8 +1161,19 @@ body = {-slice .-} execWriter $ do -- {{{
     \end{array}
   |} »
 
+  q«The implementation follows the above definition, except for the following minor
+  differences. For the {|Lam|} case,
+  the only deviation are is an occurrence of {|wk|}. In the {|App|} case, we have
+  an additional reification of the host-level continuation as a proper {|Value|},
+  {|Abs'|} constructor. 
+
+  In the variable case, we must pass the variable {|v|} to the continuation. Doing so 
+  yields a value of type {|Tm' (a ▹ a)|}. To obtain a result of the right type it suffices to remove
+  the extra tagging introduced by {|a ▹ a|} everywhere in the term, using {|fmap untag|}.»
+
   [agdaFP|
   |cps :: Tm a -> (∀ v. v -> Tm' (a ▹ v)) → Tm' a
+  |cps (Var x)     k = fmap untag (k x)
   |cps (App e1 e2) k = 
   |  cps e1 $ \f -> 
   |  cps (wk e2) $ \x -> 
@@ -1173,13 +1186,11 @@ body = {-slice .-} execWriter $ do -- {{{
   |                   cps (wk (e' x)) $ \r → 
   |                   app' k' r)
   |      k
-  |cps (Var v)     k = fmap untag (k v)
   |]
 
-  q«In the variable case, we must pass the variable {|v|} to the continuation. We have:
-  {|k v :: Tm' (a ▹ a)|}. To obtain a result of the right type it suffices to remove
-  the extra tagging introduced by {|a ▹ a|} everywhere in the term, using {|fmap untag|}.»
-  
+  -- |cpsMain :: Tm a -> Tm' a
+  -- |cpsMain x = cps x halt'
+
   q«It is folklore that a CPS transformation is easier to implement with higher-order abstract 
   syntax {cite[guillemettetypepreserving2008,washburnboxes2003]}. Our representation of
   abstraction features a very limited form of higher-order representation. 
@@ -1204,9 +1215,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |   Let (letPrim p e2) $ \x → 
   |   letTerm (e' x) (\y → wk (e2 y))
   |
-  |letPrim :: Primop v → 
+  |letPrim :: Value v → 
   |           (∀ w. w  → Tm' (v ▹ w)) → 
-  |           Primop v 
+  |           Value v 
   |letPrim (Abs' e) e2 = 
   |  Abs' $ \x → letTerm (e x) (\y → wk (e2 y))
   |letPrim (Pair x y) e2 = Pair x y
@@ -1497,7 +1508,7 @@ appendix = execWriter $ do
   subsection «CPS»
   
   [agdaP|
-  |instance Functor Primop where  
+  |instance Functor Value where  
   |  fmap f (Π1 x) = Π1 (f x)
   |  fmap f (Π2 x) = Π2 (f x)
   |  fmap f (Pair x y) = Pair (f x) (f y)
