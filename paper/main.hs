@@ -1068,6 +1068,14 @@ body = {-slice .-} execWriter $ do -- {{{
     whose environment contains each of the free variables in the body. The application must
     open the closure, explicitly applying the argument and the environment.
   »
+  q«{tm|
+   \begin{array}{r@{\,}l}
+     \llbracket x \rrbracket &= x \\
+     \llbracket \hat\lambda x. e \rrbracket &= closure x \\
+     \llbracket e_1@e_2 \rrbracket &= let (f,x) = open \llbracket e_1 \rrbracket \\
+                                   &\quad in f \langle \llbracket e_2 \rrbracket , x \rangle
+   \end{array}
+  |}»
   notetodo «Include fig. 2 from {cite[guillemettetypepreserving2007]}»
   q«The implementation follows the pattern given by {citet[guillemettetypepreserving2007]}.
     We make one modification: in closure creation, instead of binding one by one the free variables {|yn|} in the body 
@@ -1085,7 +1093,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |          (Tuple $ map VarC yn)
   |cc (App e1 e2) = 
   |  LetOpen (cc e1)
-  |          (\f env → var f $$ wk (cc e2) $$ var env)
+  |          (\f x → var f $$ wk (cc e2) $$ var x)
   |]
   -- indexOf is not in the prelude?!
   [agdaP|
