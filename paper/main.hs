@@ -29,7 +29,6 @@ import NomPaKit.QQ
       proofs
       discussion
       implementationExtras
-      dualityDiscussion
      |]
 
 -- figures
@@ -1167,7 +1166,7 @@ body = {-slice .-} execWriter $ do -- {{{
   syntax {cite[guillemettetypepreserving2008,washburnboxes2003]}. Our representation of
   abstraction features a very limited form of higher-order representation. 
   (Namely, a quantification, over a universally quantified type.)
-  However limited, this higher-order aspect is enough allows an easy implementation of 
+  However limited, this higher-order aspect is enough to allow an easy implementation of 
   the CPS transform.»
 
 
@@ -1264,7 +1263,7 @@ body = {-slice .-} execWriter $ do -- {{{
         This means, for example, that the class constraint {|w ⊆ w'|} can be meaning fully resolved
         in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
 
-  q«Additionally, our {|unpack|} and {|pack|} combinators extends the technique to free variables.»
+  q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to free variables.»
 
   subsection $ «NomPa (nominal fragment)»
 
@@ -1409,6 +1408,7 @@ body = {-slice .-} execWriter $ do -- {{{
   the only possible value applicable to a binder would be the {|fresh|} exception, and
   it becomes possible to implement it specially, by a null operation.
   »
+  -- Actually this is independent of nabla.
 
   p "getting rid of the injections by using a stronger type system" «
     We use the powerful GHC instance search in a very specific way: only to discover in injections. 
