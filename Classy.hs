@@ -310,7 +310,7 @@ fresh :: Zero
 fresh = error "cannot access free variables"
 
 unpack :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
-unpack b k = k fresh (b fresh)
+unpack b k = k () (b ())
   where fresh = error "cannot query fresh variables!"
 
 unpack2 :: (forall v. v → f (w :▹ v)) -> 
@@ -319,7 +319,7 @@ unpack2 :: (forall v. v → f (w :▹ v)) ->
            (forall v. v → f (w :▹ v) -> 
                           g (w :▹ v) -> a) ->
            a 
-unpack2 f f' k = k fresh (f fresh) (f' fresh)          
+unpack2 f f' k = k fresh (f ()) (f' ())          
   where fresh = error "cannot query fresh variables!"
 
 with :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a

@@ -214,7 +214,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"the type of constN"
-   «As promised, the type is explicit about {|constN|} being a close
+   «As promised, the type is explicit about {|constN|} being a closed
     term: this is ensured by using the empty type {|Zero|} as an
     argument to {|TmN|}.»
 
@@ -777,32 +777,26 @@ body = {-slice .-} execWriter $ do -- {{{
 
   [agdaP|
   |unpack binder k = k fresh (binder fresh)
-  |  where fresh = error "accessing fresh variable!"
+  |  where fresh = ()
   |]
 
   p""«Since {|v|} is universally quantified in the continuation, the continuation cannot
-  trigger the {|fresh|} exception omitting the use of {|seq|}.»
-
-  p""«At this point one might worry that, on the one side, we assume a total language for
-      safety purposes, but at the same time, the implementation of one of our safe combinators
-      takes advantage of non-totality. Fortunately, the diverging implementation of {|fresh|} 
-      cannot ``leak'' to other. We give a more detailed discussion in ref dualityDiscussion.
-
-Since {|v|} is universally quantified in the continuation, the continuation cannot
-  trigger the {|fresh|} exception omitting the use of {|seq|}.»
-
+  is oblivious to the actual implementation of {|fresh|}. In particular it cannot see
+  that the monomorphic type used by the implementation: one could even define
+  {|fresh = undefined|}, and the code would continue to work (unless the continuation forces
+  the fresh variable using {|seq|}).»
 
   p""«As we have seen in previous examples, the {|unpack|} combinator gives the possibility 
   to refer to a free variable by name, enabling for example to combare a variable
   occurrence with a free variable. Essentially, it offers a nominal interface to free variables:
   even though the running code will use de Bruijn indices, the programmer sees names; and
-  the correspondence is implemented by the type system. 
+  the correspondence is enforced by the type system. 
   »
 
   p""«
   It is easy to invert the job of {|unpack|}. Indeed,
-  given a term with a free variable (of type {|Tm (a ▹ v)|}) it is easy to
-  reconstruct a binder: »
+  given a term with a free variable (of type {|Tm (a ▹ v)|}) one can 
+  reconstruct a binder as follows: »
   [agdaFP|
   |pack' :: Functor tm ⇒ tm (a ▹ v) →
   |                      (∀ w. w → tm (a ▹ w))
@@ -810,14 +804,14 @@ Since {|v|} is universally quantified in the continuation, the continuation cann
   |]
   p""«It is preferrable however, as in the variable case, to request a named reference to the
   variable that one attempts to bind, in order not to rely on the index (zero in this case),
-  but on a name, correctness.»
+  but on a name, for correctness.»
   [agdaFP|
   |pack :: Functor tm ⇒ v' → tm (a ▹ v') → 
   |                     (∀ v. v → tm (a ▹ v))
   |pack x t = \y → fmap (mapu id (const y)) t
   |]
 
-  p""«Hence, the pack combinator make is possible to give a nominal-style 
+  p""«Hence, the {|pack|} combinator makes it possible to give a nominal-style 
       interface to binders. For example
       the {|lam|} constructor can be implemented as follows.»
   [agdaFP|
