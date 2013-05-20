@@ -185,8 +185,6 @@ body = {-slice .-} execWriter $ do -- {{{
    «This representation in known as Nested Abstract
     Syntax {cite[birdpaterson99]}»
 
-  notetodo «cite»
-
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
   -- NP: explain the meaning of Here and There
   [agdaFP|
@@ -1146,7 +1144,21 @@ body = {-slice .-} execWriter $ do -- {{{
   is bound as a {|Primop|} using the {|Abs'|} construction, before being 
   wrapped in a pair.»
 
-  notetodo «Include fig. 6 from {cite[guillemettetypepreserving2008]} »
+  q« {tm|
+    \begin{array}{r@{\,}l}
+     \llbracket x \rrbracket\,\kappa &= \kappa\,x \\
+     \llbracket e_1@e_2 \rrbracket\,\kappa &= \llbracket e_1 \rrbracket (\lambda f. \\
+                                           &\quad \llbracket e_2 \rrbracket (\lambda x. \\
+                                           &\quad \mathsf{let}\, p = \langle x, \kappa \rangle \\
+                                           &\quad \mathsf{in}\,\quad f @ p ) ) \\
+     \llbracket \hat\lambda x. e \rrbracket \kappa &= \mathsf{let}\, f = (\hat\lambda p. \begin{array}[t]{l}
+                                           \mathsf{let}\, x_1 = \pi_1 p \,\mathsf{in}\\
+                                           \mathsf{let}\, k'  = \pi_2 p \,\mathsf{in} \\
+                                           \llbracket e[x_1/x] \rrbracket (\lambda r. k'@r)) \end{array}  \\
+                                          &\quad \mathsf{in} \, \kappa\,f
+    \end{array}
+  |} »
+
   [agdaFP|
   |cps :: Tm a -> (∀ v. v -> Tm' (a ▹ v)) → Tm' a
   |cps (App e1 e2) k = 
@@ -1255,7 +1267,6 @@ body = {-slice .-} execWriter $ do -- {{{
   one requires on free variables. 
   This is not good for modularity and code clarity in general. 
   »
-
 
   q«We don't do typed representations (yet)»
   subsection $ «HOAS»
