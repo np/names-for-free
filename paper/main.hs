@@ -82,7 +82,7 @@ commentWhen :: Bool → ParItemW → ParItemW
 commentWhen True  x = doComment x
 commentWhen False x = x
 
-commentCode = doComment -- commentWhen True
+commentCode = doComment
 
 unpackTypeSig =  [agdaFP|
   |unpack :: (∀ v. v → tm (a ▹ v)) →
@@ -119,7 +119,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p"What is it we offer?"«
     Nominal-style user code, without the problems of nominal representation (easy substitution).
     »
-  constTm
+  commentCode constTm
   
   
   -- JP
@@ -529,13 +529,22 @@ body = {-slice .-} execWriter $ do -- {{{
   |-- '(▹ v)' is a functor in the category of Kleisli arrows
   |lift :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
   |lift θ (There x) = fmap There (θ x) -- wk (θ x)
-  |lift θ (Here  x) = Var (Here x)     -- var x
+  |lift θ (Here  x) = return (Here x)     -- var x
   |]
+  -- JP: changed 'Var (Here x)' to 'return (Here x)'
+  -- so that the code complies with the type signature given.
+  -- 'lift' is used below for other monads. 
 
   {-
   lift Var x = Var x
   lift Var (There x) = wk (Var x) = fmap injMany (Var x) = Var (injMany x) =?= Var (There x)
   lift Var (Here  x) = var x = Var (inj x) =?= Var (Here x)
+  -}
+
+  {-
+  lift return x = return x
+  lift return (There x) = fmap There (return x) = return (There x)
+  lift return (Here  x) = return (Here x)
   -}
 
   p "" $ «Laws»
@@ -960,14 +969,14 @@ Since {|v|} is universally quantified in the continuation, the continuation cann
     of the unpack combinator, which maintains the correspondance between contexts in two different terms.»
 
   [agdaFP|
-  |unpack2 :: (forall v. v → f (a :▹ v)) -> 
-  |           (forall v. v → g (a :▹ v)) -> 
+  |unpack2 :: (forall v. v → f (a ▹ v)) -> 
+  |           (forall v. v → g (a ▹ v)) -> 
   |            
-  |           (forall v. v → f (a :▹ v) -> 
-  |                          g (a :▹ v) -> b) ->
+  |           (forall v. v → f (a ▹ v) -> 
+  |                          g (a ▹ v) -> b) ->
   |           b 
   |unpack2 f f' k = k fresh (f fresh) (f' fresh)          
-  |where fresh = error "cannot query fresh variables!"
+  |  where fresh = error "cannot query fresh variables!"
   |]
 
   q«One can see {|unpack2|} as allocating a single fresh name which is shared in both {|t|} and {|t'|}.»
