@@ -779,14 +779,16 @@ body = {-slice .-} execWriter $ do -- {{{
   |  where fresh = ()
   |]
 
-  p""«Since {|v|} is universally quantified in the continuation, the continuation cannot
-  is oblivious to the actual implementation of {|fresh|}. In particular it cannot see
-  that the monomorphic type used by the implementation: one could even define
-  {|fresh = undefined|}, and the code would continue to work (unless the continuation forces
-  the fresh variable using {|seq|}).»
+  p""«The continuation {|k|}
+  is oblivious to the 
+  the monomorphic type used by the implementation of {|fresh|}: this is expressed by universally quantifing {|v|} in the type of the continuation {|k|}.
+
+  In fact, thanks to parametricity, and because {|v|} occurs only positively in the arguments of {|k|},
+  it is guaranteed that {|k|} cannot observe the implementation of {|fresh|} at all (except for the escape hatch of {|seq|}). 
+  In particular one could even define {|fresh = undefined|}, and the code would continue to work.»
 
   p""«As we have seen in previous examples, the {|unpack|} combinator gives the possibility 
-  to refer to a free variable by name, enabling for example to combare a variable
+  to refer to a free variable by name, enabling for example to compare a variable
   occurrence with a free variable. Essentially, it offers a nominal interface to free variables:
   even though the running code will use de Bruijn indices, the programmer sees names; and
   the correspondence is enforced by the type system. 
@@ -817,6 +819,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |lam :: v → Tm (w ▹ v) → Tm w
   |lam x t = Lam (pack x t)
   |]
+
+  q«It is even possible to make {|pack|} bind any known variable in
+    a context, by using a typeclass similar to {|∈|}. The 
+    implementation is straightforward and deferred to the appendix.»
 
   -- JP/NP
   section $ «Bigger Examples» `labeled` examples
