@@ -1225,7 +1225,38 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Fin»
   subsection $ «Maybe/Nested»
   p "" $ «Kmett's succ-less»
-  subsection $ «PHOAS»
+  subsection $ «Parametric Higher-Order Abstract Syntax»
+  q«{citet[chlipalaparametric2008]} describes a way to represent binders using
+    polymorphism and functions. Using that technique, called Parametric Higher-Order Abstract Syntax (PHOAS),
+    terms of the untyped
+    lambda calculus are as represented follows:»
+  [agdaP|
+  |data TmP a where
+  |  VarP :: a -> TmP a
+  |  LamP :: (a -> TmP a) -> TmP a
+  |  AppP :: TmP a -> TmP a -> TmP a
+  |]
+  q«This reprensentation can be seen as a special version of ours, if all 
+  variables are assigned the same type. This specialisation has pros and cons. 
+  On the plus side, substitution is easier to implement with PHOAS: one needs not
+  handle fresh variables specially. The corresponding implementation of the 
+  monadic {|join|} is as follows:»
+  [agdaP|
+  |join' (VarP x) = x
+  |join' (LamP f) = LamP (\x -> join' (f (VarP x)))
+  |join' (AppP t u) = AppP (join' t) (join' u)
+  |]
+
+  q«
+  On the minus side, all the free variables have the same representation. This means that
+  they cannot be identified using the polymorphic type. This forces the user of the 
+  representation to choose upfront a
+  particular instanciation for the parameter of {|TmP|} that supports all the operations
+  one requires on free variables. 
+  This is not good for modularity and code clarity in general. 
+  »
+
+
   q«We don't do typed representations (yet)»
   subsection $ «HOAS»
   p "" «Functions should only be substitutions»
@@ -1493,9 +1524,9 @@ appendix = execWriter $ do
 
   section $ «Bind an arbitrary name»
   [agdaP|
-  |pack' :: forall f v a b w. (Functor f, Insert v a b) =>
+  |packGen :: forall f v a b w. (Functor f, Insert v a b) =>
   |           v -> f b -> (w -> f (a ▹ w))
-  |pack' _ t x = fmap (shuffle cx) t
+  |packGen _ t x = fmap (shuffle cx) t
   |  where cx :: v -> w
   |        cx _ = x
   |
