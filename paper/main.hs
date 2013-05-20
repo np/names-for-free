@@ -1445,7 +1445,7 @@ body = {-slice .-} execWriter $ do -- {{{
 --    it «"free" substitutions»
 
 appendix = execWriter $ do
-  section $ «Appendix: implementation details» `labeled` implementationExtras
+  section $ «Implementation details» `labeled` implementationExtras
   subsection «CPS»
   
   [agdaP|
@@ -1483,6 +1483,29 @@ appendix = execWriter $ do
   |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppC t u >>= θ = AppC (t >>= θ) (u >>= θ)
+  |]
+
+  section $ «Bind an arbitrary name»
+  [agdaP|
+  |pack' :: forall f v a b w. (Functor f, Insert v a b) =>
+  |           v -> f b -> (w -> f (a ▹ w))
+  |pack' _ t x = fmap (shuffle cx) t
+  |  where cx :: v -> w
+  |        cx _ = x
+  |
+  |class Insert v a b where    
+  |  -- inserting 'v' in 'a' yields 'b'.
+  |  shuffle :: (v -> w) -> b -> a ▹ w
+  |
+  |instance Insert v a (a ▹ v) where
+  |  shuffle f (Here x) = Here (f x)
+  |  shuffle f (There x) = There x
+  |  
+  |instance Insert v a b => Insert v (a ▹ v') (b ▹ v') where
+  |  shuffle f (Here x) = There (Here x)
+  |  shuffle f (There x) = case shuffle f x of
+  |    Here y -> Here y
+  |    There y -> There (There y)
   |]
 
   return ()
