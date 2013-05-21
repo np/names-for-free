@@ -1240,10 +1240,13 @@ body = {-slice .-} execWriter $ do -- {{{
   representation to choose upfront a
   particular instanciation for the parameter of {|TmP|} that supports all the operations
   one requires on free variables. 
-  This is not good for modularity and code clarity in general. 
-  »
+  This is not good for modularity and code clarity in general.
+  Another issue arise from the  negative occurence of the variable type.
+  Indeed this makes  the type {|TmP|} invariant and thus  cannot be made
+  a {|Functor|} nor a {|Traversable|}.»
 
   q«We don't do typed representations (yet)»
+
   subsection $ «HOAS»
   p "" «Functions should only be substitutions»
   q«{cite[washburnboxes2003]}»
