@@ -1637,9 +1637,8 @@ refresh_jp_bib = do
 
 main = do
   refresh_jp_bib
-  let base = "out"
   writeAgdaTo "PaperCode.hs" $ doc
-  quickView myViewOpts{basedir=base,showoutput=False,pdfviewer="echo"} "paper" doc
+  compile [] "paper" doc
 
 doc = document title authors keywords abstract body appendix
 -- }}}
