@@ -7,7 +7,7 @@ Build-Type:     Simple
 
 executable paper
     Build-depends: base>=3.0&&<5, containers>=0.1, base-unicode-symbols,
-                   directory, template-haskell, mtl, split, process,
+                   directory, template-haskell, mtl, split, process, HSH,
                    transformers, Agda, uniplate>=1.2, hlatex, wl-pprint
     Main-Is: main.hs
     ghc-options: -Wall

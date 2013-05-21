@@ -10,8 +10,9 @@ module NomPaKit
 import Control.Monad.Writer hiding (lift)
 import Control.Applicative hiding ((<$>))
 import Data.Foldable (Foldable,foldMap)
+import Data.Char
 import qualified Data.Tree as T
--- import HSH
+import HSH
 import qualified Text.PrettyPrint.Leijen as P
 import Text.PrettyPrint.Leijen ((<+>), (<$>), Pretty(..))
 
@@ -30,8 +31,6 @@ import NomPaKit.Config
 import NomPaKit.DSL
 import NomPaKit.QQ (frTop, frAntiq, frQQ, agdaPCode, agdaFPCode, nopagebreak)
 import NomPaKit.Verb (alignVert, purple, firebrick, mediumBlue, myHstring, myCharToMath, colorizeAgdaP, verb{-, colorize-})
-
--- import HSH
 
 -- qm is not exported on purpose, use m instead
 
@@ -210,3 +209,15 @@ nomSysT = «Nominal System »⊕B.math M._T
 sysF = «System »⊕B.math M._F
 etc = [tex|etc.\ |]
 bare = B.texttt «bare»
+
+compile :: [FilePath] -> FilePath -> LatexM Document -> IO ()
+compile input_dirs docName doc = do
+  let texFile = docName++".tex"
+      saneChar x = isAscii x && (isLetter x || isNumber x || x `elem` "_-./")
+      sane x | all saneChar x = x
+             | otherwise      = error "insane chars"
+      opts = concatMap (\x -> "-I "++sane x) input_dirs
+      builddir = sane $ "_build/"++docName
+  writeFile texFile =<< either error return (showLaTeX doc)
+  runIO $ "mkdir -p " ++ builddir
+  runIO $ "rubber --cache --into " ++ builddir ++ " --pdf " ++ opts ++ " " ++ texFile
