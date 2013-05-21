@@ -355,7 +355,7 @@ body = {-slice .-} execWriter $ do -- {{{
     occurrence of a variable is a reference to some previously bound
     variable. With de Bruijn indices, one must (yet again) count the
     number of binders traversed between the variable bindings and its
-    potential occurrences --- as error prone as it gets. Here as well,
+    potential occurrences --- an error prone task. Here as well,
     we can take advantage of polymorphism to ensure that no mistake
     happens. We provide a combinator {|unpack|}, which transforms a
     binding structure (of type {|∀ v. v → Tm (a ▹ v)|}) into a sub-term
@@ -372,7 +372,7 @@ body = {-slice .-} execWriter $ do -- {{{
     reference to a variable in a context, but in a way which is only
     accessible to the type-checker.
 
-    For instance, when facing for example a term {|t|} of type
+    For instance, when facing a term {|t|} of type
     {|Tm (a ▹ v ▹ v1 ▹ v2)|}, {|x|} refers to the third free variable
     in {|t|}.
 
@@ -411,8 +411,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"slogan"
-   «Again, even though our representation is a variant of de Bruijn
-    indices, the use of polymorphism allows to refer to variables by
+   «Again, even though variables are represted by mere 
+    indices, the use of polymorphism allows to refer to them by
     name, using the instance search mechanism to fill in the
     details of implementation.»
 
@@ -431,10 +431,10 @@ body = {-slice .-} execWriter $ do -- {{{
     to {|b|}  where {|a|} is  the type  of free  variables of  the input
     term ({|Tm a|})  and {|b|} is  the  type of  free  variables of  the
     “renamed”  term ({|Tm b|}).  The   renaming  operation  then  simply
-    preserve  the structure  of the  input term,  using {|f|} to  rename
-    free  variables and  upgrading {|f|} to {|(a ▹ v) → (b ▹ v)|}  using
+    preserves the structure  of the  input term,  using {|f|} to  rename
+    free  variables and  upgrade {|f|} to {|(a ▹ v) → (b ▹ v)|}  using
     the  functoriality  of {|(▹ v)|}  with {|mapu f id|}.  Adapting  the
-    function {|f|} is  not only  a type-checking matter  it is  meant to
+    function {|f|} is  not only  a type-checking matter:  it is  meant to
     protect the bound name from being altered by {|f|}.»
 
   -- NP: potentially comment about 'g x'
@@ -822,6 +822,7 @@ body = {-slice .-} execWriter $ do -- {{{
     a context, by using a typeclass similar to {|∈|}. The 
     implementation is straightforward and deferred to the appendix.»
 
+
   -- JP/NP
   section $ «Bigger Examples» `labeled` examples
 
@@ -1124,7 +1125,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |data Tm' a where
   |  Halt' :: a → Tm' a
   |  App'  :: a → a → Tm' a
-  |  Let   :: Primop a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
+  |  Let   :: Value a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
   |
   |data Value a where 
   |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Value a 
@@ -1186,7 +1187,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  cps e1 $ \f -> 
   |  cps (wk e2) $ \x -> 
   |  Let (Abs' (\x -> wk (k x))) $ \k' → 
-  |  Let (x <:> k') $ \p → 
+  |  Let (pair x k') $ \p → 
   |  app' f p
   |cps (Lam e')    k = 
   |  Let (Abs' $ \p → Let (π1 p) $ \x → 
@@ -1579,7 +1580,7 @@ appendix = execWriter $ do
   |]
 
   [agdaP|
-  |x <:> y = Pair (inj x) (inj y)
+  |pair x y = Pair (inj x) (inj y)
   |π1 = Π1 . inj
   |π2 = Π2 . inj
   |app' x y = App' (inj x) (inj y)
