@@ -300,18 +300,34 @@ openTerm b x = fmap (elim id (const x)) (b fresh)
   where fresh = error "cannot identify fresh variables!"
 -}
 
-data Ex f w where
-  Ex :: v -> f (w :▹ v) -> Ex f w
-    
-with' :: (forall v. v → f (w :▹ v)) -> Ex f w
-with' f = unpack f Ex
 
-fresh :: Zero
-fresh = error "cannot access free variables"
+-----------------------------
+-- Pack/Unpack
+
+type Binding f a = forall v. v -> f (a :▹ v)
+
+data DualBinding f a where
+  D :: v -> f (a :▹ v) -> DualBinding f a
+
+unpack_ :: Binding f a -> DualBinding f a 
+unpack_ f = D () (f ())
+
+pack_ :: Functor f => DualBinding f a -> Binding f a
+pack_ (D _ t) x = fmap (mapu id (const x)) t
+
+-- pack :: (Functor f,v ∈ a) => v -> f a -> Binding (Diff a v) a
+pack :: Functor f => v -> f (a :▹ v) -> Binding f a
+pack _ t x = fmap (mapu id (const x)) t
+
+-- Generalisation
+pack' :: forall f v a b w. (Functor f, Insert v a b) => v -> f b -> (w -> f (a :▹ w))
+pack' _ t x = fmap (shuffle cx) t
+  where cx :: v -> w
+        cx _ = x
+
 
 unpack :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
 unpack b k = k () (b ())
-  where fresh = error "cannot query fresh variables!"
 
 unpack2 :: (forall v. v → f (w :▹ v)) -> 
            (forall v. v → g (w :▹ v)) -> 
@@ -319,11 +335,7 @@ unpack2 :: (forall v. v → f (w :▹ v)) ->
            (forall v. v → f (w :▹ v) -> 
                           g (w :▹ v) -> a) ->
            a 
-unpack2 f f' k = k fresh (f ()) (f' ())          
-  where fresh = error "cannot query fresh variables!"
-
-with :: (forall v. v → f (w :▹ v)) -> (forall v. v -> f (w :▹ v) -> a) -> a
-with f k = case with' f of  Ex x t -> k x t
+unpack2 f f' k = k () (f ()) (f' ())          
 
 
 instance Eq w => Eq (w :▹ v) where
@@ -350,8 +362,8 @@ freeVars (Lam _ f) = unpack f $ \_ t -> rm $ freeVars t
 freeVars (App f a) = freeVars f ++ freeVars a
 
 canEta :: Term Zero -> Bool
-canEta (Lam _ e) = case with' e of
-  Ex x (App e1 (Var y)) -> lk x == y && not (lk x `memberOf` e1)
+canEta (Lam _ e) = case unpack_ e of
+  D x (App e1 (Var y)) -> lk x == y && not (lk x `memberOf` e1)
   _ -> False
 canEta _ = False
 
@@ -369,9 +381,9 @@ recognize t0 = case t0 of
 -- recognizer of \x -> \y -> f x
 recognize' :: Term Zero -> Bool
 recognize' t0 = case t0 of 
-    Lam _ f -> case with' f of
-      Ex x (Lam _ g) -> case with' g of 
-        Ex y (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
+    Lam _ f -> case unpack_ f of
+      D x (Lam _ g) -> case unpack_ g of 
+        D y (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
         _ -> False   
       _ -> False   
     _ -> False   
@@ -488,23 +500,11 @@ instance Traversable Term where
   traverse f (Lam nm b) = unpack b $ \x b' -> 
       lam'' nm x <$> traverse (traverseu f pure) b'
 
-type Binding f a = forall v. v -> f (a ∪ v)
-
 lam' :: Name → v -> Term (w :▹ v) → Term w
 lam' nm x t = Lam nm (pack x t)
 
 lam'' :: Insert v a b => Name → v -> Term b → Term a
 lam'' nm x t = Lam nm (pack' x t)
-
--- pack :: (Functor f,v ∈ a) => v -> f a -> Binding (Diff a v) a
-pack :: Functor f => v -> f (a :▹ v) -> Binding f a
-pack _ t x = fmap (mapu id (const x)) t
-
--- Generalisation
-pack' :: forall f v a b w. (Functor f, Insert v a b) => v -> f b -> (w -> f (a :▹ w))
-pack' _ t x = fmap (shuffle cx) t
-  where cx :: v -> w
-        cx _ = x
 
 traverseu :: Applicative f => (a -> f a') -> (b -> f b') ->
                               a ∪ b -> f (a' ∪ b')

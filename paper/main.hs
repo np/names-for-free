@@ -1447,6 +1447,56 @@ body = {-slice .-} execWriter $ do -- {{{
   -- JP
   section $ «Discussion» `labeled` discussion
 
+  subsection $ «Dual reprensentations»
+  q«We use two representations for bindings, one based on universal
+  quantification, the other one based on existential quantification.»
+  
+  commentCode [agdaFP|
+  |type Univ  tm a = forall v.  v -> tm (a :▹ v)
+  |type Exist tm a = exists v. (v ,  tm (a :▹ v))
+  |]
+  q«(Because existentials do not enjoy native support in Haskell we have to encode
+   {|Exist|} in some way).»
+
+  q«These representations are logically equivalent: one can convert at will between them, 
+  using the {|pack|} and {|unpack|} combinators.
+  They are dual from a performance and safety perspective: the universal-based representation
+  is well-suited for construction of terms, while the existential-based representation is
+  is well-suited for analysis of terms.»
+
+  q«In this paper, we have chosen the universal-based representation as primitive 
+  for pedagogical reasons only. One should revisit this choice in the light of 
+  particular applications. To illustrate the tradeoffs we show how untyped lambda terms would
+  be dually represented:»
+
+  [agdaFP|
+  |data TmD a where
+  |  VarD :: a -> TmD a
+  |  AppD :: TmD a -> TmD a -> TmD a
+  |  LamD :: v -> TmD (a ▹ v) -> TmD a
+  |]
+
+  q«The existential is encoded as it is customary: it becomes a universal after inlining it in an argument
+    position of the {|Lam|} constructor.»
+  q«Whith this representation, safe term analysis can be done by mere pattern matching, as can be seen
+    for example in the implementation of freevars:»
+
+  [agdaFP|
+  |freevarsD :: TmD a -> [a]  
+  |freevarsD (LamD x t) = remove x (freevarsD t)
+  |]
+
+  q«However, the construction of a term using {|Lam|} is potentially unsafe, since one might
+    choose unify multiple instances of {|v|} to the same monomorphic type. One should instead
+    locally use the universal representation and unpack the binder:»
+
+  [agdaFP|
+  |lamD :: (forall v. v -> TmD (a ▹ v)) -> TmD a
+  |lamD f = unpack f $ \x t -> LamD x t
+  |]
+  
+  subsection «Misc.»
+
   p "non-intrusive" «the approach can be used locally»
 
   p"" «{citet[guillemettetypepreserving2008]} change representation from HOAS to de Bruijn indices, arguing that HOAS is more suitable for
