@@ -583,20 +583,16 @@ canη' _ = False
 ηexp :: Term a -> Term a
 ηexp t = Lam "x" $ \x-> App (wk t) (var x)
 
-
 class Insert v a b where    
   shuffle :: (v -> w) -> b -> a :▹ w
 
 instance Insert v a (a :▹ v) where
-  shuffle f (Here x) = Here (f x)
-  shuffle f (There x) = There x
+  shuffle = mapu id
   
 instance Insert v a b => Insert v (a :▹ v') (b :▹ v') where
-  shuffle f (Here x) = There (Here x)
-  shuffle f (There x) = case shuffle f x of
-    Here y -> Here y
-    There y -> There (There y)
-                  
+  shuffle _ (Here x)  = There (Here x)
+  shuffle f (There x) = mapu There id $ shuffle f x
+
 class x :∈ γ where
   -- type Diff γ x -- GHC refuses overlapping type family instances!
   lk :: x -> γ
