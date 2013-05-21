@@ -1114,7 +1114,7 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «CPS Transform»
   q«
      The next example is a transformation to continuation-passing style (CPS) based partially on
-     cite[chlipalaparametric2008] and cite[guillemettetypepreserving2008]. 
+     {cite[chlipalaparametric2008]} and {cite[guillemettetypepreserving2008]}. 
 
      The main objective of the transformation is to make explicit the order of evaluation, 
      {|Let|}-binding every intermediate {|Value|} in a specific order.
@@ -1320,8 +1320,8 @@ body = {-slice .-} execWriter $ do -- {{{
         »
   
   commentCode [agdaP|
-  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m))
-  |        → Tm m
+  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m)) →
+  |         fTm m
   |var :: Fin n → Tm n
   |]
   p "" «The above types also reveal somewhat less precise types that what we use.
@@ -1513,6 +1513,38 @@ body = {-slice .-} execWriter $ do -- {{{
   |lamD f = unpack f $ \x t -> LamD x t
   |]
 
+  subsection «Future work: both aspects in one»
+
+  p "even more safety by no instanciation" «
+  Each of the dual representation of bindings ensure one aspect of safety. One may
+  wonder if it is possible to combine the safety of both. This suggest a type-system feature
+  to represent the intersection of {|Univ tm|} and {|Exist tm|}.
+  This is reminiscent of the nabla quantifier of {citet[millerproof2003]}.
+  »
+  notetodo «Can I type nabla?» -- TODO: *** Exception: myHchar: ∇
+
+  p "performance!" « 
+  One could also wish to obtain performance aspects of both representations.
+  A moment's thought  reveals that it might be possible not to pay the cost
+  of the application to {|()|} in the definition of {|unpack|}. Indeed, because
+  of parametricity, the continuation can never inspect the values which have
+  been substituted for the variables. This means that a clever compiler may
+  implement the application specially, omitting to perform any substitution.
+  »
+
+  subsection «Future work: no injections»
+
+  p "getting rid of the injections by using a stronger type system" «
+    We use the powerful GHC instance search in a very specific way: only to discover in injections. 
+    This suggests that a special-purpose type-system (featuring a form of subtyping) 
+    could be built to take care of those injections automatically.
+    An obvious benefit would be some additional shortening of programs manipulating terms. 
+    A more subtle one is that, since injections would not be present at all, the performance 
+    would be increased. Additionally, this simplification of programs would imply an
+    even greater simplification of the proofs about them; indeed, a variation in complexity in
+    an object usually yields a greater variation in complexity in proofs about it.
+  »
+  
   
   subsection «Misc.»
 
@@ -1525,31 +1557,6 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p "" «impredicativity»
 
-  p "even more safety by no instanciation" «
-  A careless user may nullify the safety of our system when instanciating a type variable 
-  with a concrete type. This suggests the following type-system feature: a quantifier for 
-  variables which can be instanciated only by other variables (introduced by the same quantifier).
-  This is reminiscent of the nabla quantifier of {cite[millerproof2003]}.
-  »
-  notetodo «Can I type nabla?» -- TODO: *** Exception: myHchar: ∇
-
-  p "performance!" « 
-  Given such an extension, it would then become possible to improve the performance of term analysis. Indeed, 
-  the only possible value applicable to a binder would be the {|fresh|} exception, and
-  it becomes possible to implement it specially, by a null operation.
-  »
-  -- Actually this is independent of nabla.
-
-  p "getting rid of the injections by using a stronger type system" «
-    We use the powerful GHC instance search in a very specific way: only to discover in injections. 
-    This suggests that a special-purpose type-system (featuring a form of subtyping) 
-    could be built to take care of those injections automatically.
-    An obvious benefit would be some additional shortening of programs manipulating terms. 
-    A more subtle one is that, since injections would not be present at all, the performance 
-    would be increased. Additionally, this simplification of programs would imply an
-    even greater simplification of the proofs about them; indeed, a variation in complexity in
-    an object usually yields a greater variation in complexity in proofs about it.
-  »
 
   notetodo «What about:»
   itemize $ do 
