@@ -1067,9 +1067,14 @@ body = {-slice .-} execWriter $ do -- {{{
   q«{tm|
    \begin{array}{r@{\,}l}
      \llbracket x \rrbracket &= x \\
-     \llbracket \hat\lambda x. e \rrbracket &= closure x \mathnormal{env} \\
-     \llbracket e_1@e_2 \rrbracket &= let (f,x) = open \llbracket e_1 \rrbracket \\
-                                   &\quad in f \langle \llbracket e_2 \rrbracket , x \rangle
+     \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure} (\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body}) e_\mathnormal{env} \\
+                                            &\quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
+                                                                     y_1,\ldots,y_n & = FV(e) \\
+                                                                     e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
+                                                                     e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle 
+                                                                  \end{array}\\
+     \llbracket e_1@e_2 \rrbracket &= \mathsf{let} (x_f,x_\mathnormal{env}) = \mathsf{open} \llbracket e_1 \rrbracket \\
+                                   &\quad \mathsf{in} x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
    \end{array}
   |}»
   notetodo «Include fig. 2 from {cite[guillemettetypepreserving2007]}»
