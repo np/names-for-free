@@ -6,12 +6,12 @@ import Language.LaTeX
 
 import System.Cmd (system)
 import System.Directory (doesFileExist)
-import Control.Monad.Writer hiding (when)
+import Control.Monad.Writer
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
 import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet, citeauthor, acknowledgements)
-import NomPaKit hiding (when)
+import NomPaKit
 import NomPaKit.QQ
 
 --import qualified MiniTikz.Builder as D -- hiding (node)
@@ -70,9 +70,6 @@ notetodo x = p"" $ red «TODO {x}»
 long = True
 short = not long
 debug = False
-when :: Bool → ParItemW → ParItemW
-when True  x = x
-when False _ = return ()
 
 doComment :: ParItemW → ParItemW
 doComment x = startComment >> x >> stopComment
@@ -1629,12 +1626,17 @@ appendix = execWriter $ do
   return ()
 -- }}}
 
-main = do -- {{{
+-- {{{ build
+-- NP: what about moving this outside, such as run.sh
+refresh_jp_bib = do
   let jpbib = "../../gitroot/bibtex/jp.bib"
   e <- doesFileExist jpbib
-  unless (not e) $ do putStrLn "refreshing bib"
-                      system $ "cp " ++ jpbib ++ " ." 
-                      return ()
+  when e $ do putStrLn "refreshing bib"
+              system $ "cp " ++ jpbib ++ " ."
+              return ()
+
+main = do
+  refresh_jp_bib
   let base = "out"
   writeAgdaTo "PaperCode.hs" $ doc
   quickView myViewOpts{basedir=base,showoutput=False,pdfviewer="echo"} "paper" doc
