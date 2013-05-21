@@ -234,12 +234,11 @@ body = {-slice .-} execWriter $ do -- {{{
     to make a mistake when counting the number of binders between the
     declaration of a variable and its occurrence.»
 
-  -- subsection $ «Our stuff»
-
   p""
-   «To address this issue, we propose the following representation:»
+   «To address this issue, we propose a new representation, exposed in
+    the next section.»
 
-  notetodo «Frame this?»
+  subsection «Referring to bound variables by name»
 
   [agdaFP|
   |data Tm a where
@@ -337,14 +336,13 @@ body = {-slice .-} execWriter $ do -- {{{
   constTm
 
   p"pros"
-   «Our term representation allows to construct terms with de Bruijn
+   «Thanks to polymorphism, our term representation allows to construct terms with de Bruijn
     indices, combined with the safety and convenience of named
-    variables. These advantages extend to the analysis and manipulation
-    on terms. Indeed, because the representation contains both concrete
-    indices and functions at binding sites, one can take advantage of
-    either aspect when analysing and manipulating terms.»
+    variables. In the next section we will show how to use the same idea to
+    provide the same advantages for the analysis and manipulation
+    on terms.»
 
-  subsection $ «De Bruijn indices as names»
+  subsection «Referring to free variables by name»
   -- our debruijn indices are typed with the context where they are valid.
   -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
   -- a debruijn index in a given context is similar to a name.
@@ -1072,7 +1070,7 @@ body = {-slice .-} execWriter $ do -- {{{
   q«{tm|
    \begin{array}{r@{\,}l}
      \llbracket x \rrbracket &= x \\
-     \llbracket \hat\lambda x. e \rrbracket &= closure x \\
+     \llbracket \hat\lambda x. e \rrbracket &= closure x \mathnormal{env} \\
      \llbracket e_1@e_2 \rrbracket &= let (f,x) = open \llbracket e_1 \rrbracket \\
                                    &\quad in f \langle \llbracket e_2 \rrbracket , x \rangle
    \end{array}
@@ -1445,8 +1443,25 @@ body = {-slice .-} execWriter $ do -- {{{
   section $ «Proofs» `labeled` proofs
   p "" «isomorphisms, free-theorems»
 
+
+
+  --------------------------------------------------
   -- JP
   section $ «Discussion» `labeled` discussion
+
+  subsection «Power of the representation»
+  p"" «{citet[guillemettetypepreserving2008]} 
+     change representation from HOAS to de Bruijn indices, arguing that HOAS is more suitable for
+     CPS transform, while de Bruijn indices are more suitable for closure conversion.
+     Our reprensentation supports a natural implementation of both transformations.
+     »
+
+  subsection «Non-intrusive ideas»
+  q«The representation can be used only locally. Indeed, it can be  
+  transformed back and forth to other representations of well-scoped terms.
+  We already take advantage of this fact when we {|unpack|} or {|pack|} a binder, 
+  as we expose in the following section.»
+
 
   subsection $ «Dual reprensentations»
   q«We use two representations for bindings, one based on universal
@@ -1495,15 +1510,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |lamD :: (forall v. v -> TmD (a ▹ v)) -> TmD a
   |lamD f = unpack f $ \x t -> LamD x t
   |]
+
   
   subsection «Misc.»
 
-  p "non-intrusive" «the approach can be used locally»
-
-  p"" «{citet[guillemettetypepreserving2008]} change representation from HOAS to de Bruijn indices, arguing that HOAS is more suitable for
-     CPS transform, while de Bruijn indices are more suitable for closure conversion.
-     Our reprensentation supports a natural implementation of both transformations.
-     »
 
   p "more remarks about safety" «
   We do not suffer from name-capture and complicated α-equivalence problems; but
@@ -1539,9 +1549,6 @@ body = {-slice .-} execWriter $ do -- {{{
     an object usually yields a greater variation in complexity in proofs about it.
   »
 
-  acknowledgements
-     «We thank Emil Axelsson for discussions on name binding.»  
-
   notetodo «What about:»
   itemize $ do 
 --    it «PHOAS»
@@ -1561,6 +1568,10 @@ body = {-slice .-} execWriter $ do -- {{{
  --   it «shallow interface/smart constructors»
 --    it «mcbride "classy hack"»
 --    it «"free" substitutions»
+
+  acknowledgements
+     «We thank Emil Axelsson and Koen Claessen for enlightening discussions.»  
+
 
 appendix = execWriter $ do
   section $ «Implementation details» `labeled` implementationExtras
