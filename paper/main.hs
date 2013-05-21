@@ -1625,3 +1625,70 @@ doc = document title authors keywords abstract body appendix
 
 -- vim: foldmarker
 -- -}
+
+
+{-
+
+Pie in the sky:
+---------------
+
+We can then represent binders as:
+
+∇v. v ⊗ (v → Tm (a ▹ v))
+
+
+- 'destroying'/analysis of the term is done by applying the function to the 1st 
+  argument of the pair.
+- constructing a term feels like it should use excluded middle (of LL) to 
+  produce the argument of the pair from whatever is passed to the function.
+  Intuitively, you can do this because any code using either component of the pair
+  must use the other part as well. Unfortunately I cannot see how to implement this
+  technically.
+
+
+Linear logic treatment of ∇:
+
+   α; Γ, A[α] ⊢ 
+------------------ ∇
+   Γ, ∇α.A[α] ⊢ 
+
+
+∇ eliminates with itself:
+
+
+   α; Γ, A[α] ⊢              β; Δ, ~A[β] ⊢ 
+------------------ ∇      ------------------ ∇
+   Γ, ∇α.A[α] ⊢              Γ, ∇β.~A[β] ⊢   
+----------------------------------------------- cut
+        Γ, Δ ⊢ 
+
+
+   α; Γ, A[α] ⊢              α; Δ, ~A[α] ⊢ 
+----------------------------------------------- cut
+      α; Γ, Δ ⊢ 
+
+
+For the fun we can also see the following, but that's just
+a bonus:
+
+∇ eliminates with ∃ (identical to the above)
+∇ eliminates with ∀:
+
+
+  α; Γ, A[α] ⊢              Δ, ~A[B] ⊢ 
+------------------ ∇      ------------------ ∀
+   Γ, ∇α.A[α] ⊢              Γ, ∀β.~A[β] ⊢   
+----------------------------------------------- cut
+        Γ, Δ ⊢ 
+
+
+   Γ, A[~B] ⊢              Δ, ~A[B] ⊢ 
+----------------------------------------------- cut
+        Γ, Δ ⊢ 
+
+
+So it's easy to see that ∇ is a subtype of ∃ and ∀.
+
+
+
+-}
