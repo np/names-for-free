@@ -1632,8 +1632,7 @@ refresh_jp_bib = do
   let jpbib = "../../gitroot/bibtex/jp.bib"
   e <- doesFileExist jpbib
   when e $ do putStrLn "refreshing bib"
-              system $ "cp " ++ jpbib ++ " ."
-              return ()
+              void . system $ "cp " ++ jpbib ++ " ."
 
 main = do
   refresh_jp_bib
