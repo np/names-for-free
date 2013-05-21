@@ -39,6 +39,7 @@ substNbsp :: String -> String
 substNbsp = filter ψ . map θ
   where θ '☐' = ' '
         θ ' ' = ' '
+        θ 'λ' = '\\'
         θ  x  =  x
         ψ '‼' = False
         ψ  _  = True
