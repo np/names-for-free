@@ -980,11 +980,11 @@ body = {-slice .-} execWriter $ do -- {{{
     of the unpack combinator, which maintains the correspondance between contexts in two different terms.»
 
   [agdaFP|
-  |unpack2 :: (forall v. v → f (a ▹ v)) -> 
-  |           (forall v. v → g (a ▹ v)) -> 
+  |unpack2 :: (∀ v. v → f (a ▹ v)) ->
+  |           (∀ v. v → g (a ▹ v)) ->
   |            
-  |           (forall v. v → f (a ▹ v) -> 
-  |                          g (a ▹ v) -> b) ->
+  |           (∀ v. v → f (a ▹ v) ->
+  |                       g (a ▹ v) -> b) ->
   |           b 
   |unpack2 f f' k = k fresh (f fresh) (f' fresh)          
   |  where fresh = error "cannot query fresh variables!"
@@ -1523,8 +1523,8 @@ body = {-slice .-} execWriter $ do -- {{{
   quantification, the other one based on existential quantification.»
   
   commentCode [agdaFP|
-  |type Univ  tm a = forall v.  v -> tm (a :▹ v)
-  |type Exist tm a = exists v. (v ,  tm (a :▹ v))
+  |type Univ  tm a = ∀ v.  v -> tm (a :▹ v)
+  |type Exist tm a = ∃ v. (v ,  tm (a :▹ v))
   |]
   q«(Because existentials do not enjoy native support in Haskell we have to encode
    {|Exist|} in some way).»
@@ -1579,7 +1579,7 @@ body = {-slice .-} execWriter $ do -- {{{
     locally use the universal representation and unpack the binder:»
 
   [agdaFP|
-  |lamD :: (forall v. v -> TmD (a ▹ v)) -> TmD a
+  |lamD :: (∀ v. v -> TmD (a ▹ v)) -> TmD a
   |lamD f = unpack f LamD
   |]
   -- NP: it was: |lamD f = unpack f $ \x t -> LamD x t
@@ -1696,7 +1696,7 @@ appendix = execWriter $ do
 
   section $ «Bind an arbitrary name»
   [agdaP|
-  |packGen :: forall f v a b w. (Functor f, Insert v a b) =>
+  |packGen :: ∀ f v a b w. (Functor f, Insert v a b) =>
   |           v -> f b -> (w -> f (a ▹ w))
   |packGen _ t x = fmap (shuffle cx) t
   |  where cx :: v -> w
