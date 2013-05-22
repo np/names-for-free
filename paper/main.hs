@@ -1435,7 +1435,70 @@ body = {-slice .-} execWriter $ do -- {{{
   section $ «Proofs» `labeled` proofs
   p "" «isomorphisms, free-theorems»
 
+{-
+  Lam :: Binding Tm a -> Tm a
+  type BindingS tm a = tm (Succ a) -- = tm (a :▹ ()) ≅ tm (Maybe a)
+  type BindingH tm a = ∀ v. v -> tm (a :▹ v)
+  data BindingN tm a where
+    Binding :: v -> tm (a :▹ v) -> Binding tm a
 
+  Tm bnd a -> Tm bnd' a'
+
+  BindingS f a ≅ BindingH f a ≅ BindingN f a
+
+  Functor f =>
+  f () ≅ ∀ v. v → f v ≅ ∃ v. (v, f v)
+
+  to :: f () → ∃ v. (v, f v)
+  to t = ((), t)
+
+  {- recall the definition of void from Control.Monad
+
+  -- | @'void' value@ discards or ignores the result of evaluation, such as the return value of an 'IO' action.
+  void :: Functor f => f a -> f ()
+  void = fmap (const ())
+  -}
+
+  from :: Functor f => ∃ v. (v, f v) → f ()
+  from (_, t) = void t
+
+  to (from (x, t)) = to (void t)
+                   = ((), void t)
+                   TODO
+                   ... this works because of the way "extensional" equality on existentials (should) work
+
+  ⟨ f ⟩ x y = f x ≡ y
+  (⟨ id ⟩ x y) ≡ (id x ≡ y) ≡ (x ≡ y)
+
+  ⟦f⟧ : (a → b → ★) → f a → f b → ★
+
+  ⟦f⟧-refl : ∀ x → ⟦f⟧ _≡_ x x
+
+  ⟦f⟧-fmap : ∀ g x → ⟦f⟧ ⟨ g ⟩ x (fmap g x)
+
+    note that
+      ⟦f⟧-fmap id : ∀ x → ⟦f⟧ ⟨ id ⟩ x (fmap id x)
+                  : ∀ x → ⟦f⟧ ⟨ id ⟩ x (id x)
+                  : ∀ x → ⟦f⟧ ⟨ id ⟩ x x
+                  : ∀ x → ⟦f⟧ _≡_    x x
+   so
+      ⟦f⟧-refl = ⟦f⟧-fmap id -- provided fmap id = id
+
+  R-∃ : (p1 p2 : ∃a. f a) → ★
+  R-∃ (X1 , x1) (X2 , x2) = ⟦f⟧ Full x1 x2
+
+  ∀ (t :: f ()) -> void t = t
+
+  -- at type (), const () = id
+  const () ≗ id :: () -> ()
+
+  -- at type (), void = id
+  void = fmap (const ()) = fmap id = id :: Functor f => f () -> f ()
+
+  from (to t) = from ((), t)
+              = void t
+              = t
+-}
 
   --------------------------------------------------
   -- JP
