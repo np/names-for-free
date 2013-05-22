@@ -337,6 +337,22 @@ unpack2 :: (forall v. v → f (w :▹ v)) ->
            a 
 unpack2 f f' k = k () (f ()) (f' ())          
 
+cmpTerm' :: Cmp a b -> Cmp (Term a) (Term b)
+cmpTerm' cmp (Var x1) (Var x2) = cmp x1 x2
+cmpTerm' cmp (App t1 u1) (App t2 u2) =
+  cmpTerm' cmp t1 t2 && cmpTerm' cmp u1 u2
+cmpTerm' cmp (Lam _ f1) (Lam _ f2) =
+  unpack f1 $ \x1 t1 ->
+  unpack f2 $ \x2 t2 ->
+  cmpTerm' (extendCmp' x1 x2 cmp) t1 t2
+cmpTerm' _ _ _ = False
+
+-- The two first arguments are ignored and thus only there
+-- to help the user not make a mistake about a' and b'.
+extendCmp' :: a' -> b' -> Cmp a b -> Cmp (a ∪ a') (b ∪ b')
+extendCmp' _ _ f (There x) (There y)  = f x y
+extendCmp' _ _ _ (Here _)  (Here _)   = True
+extendCmp' _ _ _ _         _          = False
 
 instance Eq w => Eq (w :▹ v) where
   Here _ == Here _ = True
