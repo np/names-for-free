@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types,
+             EmptyDataDecls, PatternGuards,
              UnicodeSyntax, TypeOperators, GADTs, OverlappingInstances,
              UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 module Classy where
@@ -23,8 +24,8 @@ data (:▹) a b = There a | Here b
 data Zero
 
 elim :: (γ -> a) -> (v -> a) -> γ :▹ v -> a
-elim f g (There x) = f x
-elim f g (Here x) = g x
+elim f _ (There x) = f x
+elim _ g (Here x) = g x
   
 deriving instance Eq Zero
 magic :: Zero -> a
@@ -135,11 +136,10 @@ cata :: (b -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term b -> a
 cata fv _  _  (Var x)   = fv x
 cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
 cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
-  
+
 extend :: (a -> b) -> (a ∪ b) -> b
-extend g (Here  a) = a
-extend g (There b) = g b
-        
+extend g = elim g id
+
 -----------------------------------------------------------
 -- Terms are monads
 -- (which means they support substitution as they should)
@@ -372,7 +372,7 @@ canEta _ = False
 recognize :: Term Zero -> Bool
 recognize t0 = case t0 of 
     Lam _ f -> unpack f $ \x t1 -> case t1 of
-      Lam _ g -> unpack g $ \y t2 -> case t2 of
+      Lam _ g -> unpack g $ \_y t2 -> case t2 of
         (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
         _ -> False   
       _ -> False   
@@ -383,7 +383,7 @@ recognize' :: Term Zero -> Bool
 recognize' t0 = case t0 of 
     Lam _ f -> case unpack_ f of
       D x (Lam _ g) -> case unpack_ g of 
-        D y (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
+        D _y (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
         _ -> False   
       _ -> False   
     _ -> False   
@@ -431,7 +431,7 @@ appCps :: Term' a -> Term' a -> Term' a
 appCps t1 t2 = 
   splice t1 $ \ f -> 
   splice (wk t2) $ \ x →
-  Let (Abs' (\x -> Halt' (lk x))) $ \k →
+  Let (Abs' (\y -> Halt' (lk y))) $ \k →
   Let (lk x :- lk k)    $ \p ->
   App' (lk f) (lk p)
   
@@ -454,17 +454,17 @@ splice :: forall v  .
          (∀ w. w  -> Term' (v :▹ w) ) -> 
          Term' v 
 splice (Halt' v) e2 =  fmap untag (e2 v)
-splice (App' f x) e2 = App' f x
+splice (App' f x)  _ = App' f x
 splice (Let p e') e2 = Let (splicePrim p e2)  ( spliceAbs e' e2 )
 
 splicePrim :: forall v. Primop v  ->  (∀ w. w  -> Term' (v :▹ w) ) -> Primop v 
-splicePrim (Abs' e) e2 = Abs' (spliceAbs e e2)
---splicePrim Tru' e2 = Tru'
---splicePrim Fals' e2 = Fals'
-splicePrim (Var' v) e2 = Var' v
-splicePrim (y :- y') e2 = y :- y'
-splicePrim (Π1 y) e2 = Π1 y
-splicePrim (Π2 y) e2 = Π2 y  
+splicePrim (Abs' e1) e2 = Abs' (spliceAbs e1 e2)
+--splicePrim Tru'  _ = Tru'
+--splicePrim Fals' _ = Fals'
+splicePrim (Var' x) _ = Var' x
+splicePrim (x :- y) _ = x :- y
+splicePrim (Π1 x)   _ = Π1 x
+splicePrim (Π2 x)   _ = Π2 x
 
 cps :: Term v -> Term' v
 -- cps Tru = Let Tru' (Halt' . There)
@@ -472,7 +472,7 @@ cps :: Term v -> Term' v
 cps (Var v) = Halt' v
 cps (App e1 e2) = splice (cps e1) $ \ f -> 
                       splice (wk (cps e2)) $ \ x →
-                      Let (Abs' (\x -> Halt' (lk x))) $ \k →
+                      Let (Abs' (\y -> Halt' (lk y))) $ \k →
                       Let (lk x :- lk k)    $ \p ->
                       App' (lk f) (lk p)
                       
@@ -486,8 +486,8 @@ cps (Lam _ e') =  Let (Abs' $ \p -> Let (Π1 (lk  p)) $ \x ->
 -- Traversable
 
 mapu :: (u -> u') -> (v -> v') -> (u :▹ v) -> (u' :▹ v')
-mapu f g (There x) = There (f x)
-mapu f g (Here x) = Here (g x)
+mapu f _ (There x) = There (f x)
+mapu _ g (Here  x) = Here  (g x)
 
 instance Foldable Term where
   foldMap = foldMapDefault
@@ -623,7 +623,8 @@ instance Functor ((:▹) a) where
   fmap _ (There x) = There x
   fmap f (Here x) = Here (f x)
 
-testMe = freeVars ((Lam (Name "x") (\x -> App (var x) (var 'c'))) :: Term (a :▹ Char))
+testMe :: [a :▹ Char]
+testMe = freeVars (Lam (Name "x") (\x -> App (var x) (var 'c')))
        
          
 -----------------------------
@@ -643,7 +644,7 @@ data Closure w where
 type Stack w = [Closure w]  
   
 kam :: Closure w -> Stack w -> Maybe (Closure w,Stack w)
-kam (C (Lam n f) ρ) (u:s) = unpack f $ \ x t -> Just (C t (Cons x u ρ), s)
+kam (C (Lam _ f) ρ) (u:s) = unpack f $ \ x t -> Just (C t (Cons x u ρ), s)
 kam (C (App t u) ρ) s    = Just (C t ρ,C u ρ:s)
 kam (C (Var x)   ρ) s    = Just (look x ρ, s)
 kam _ _ = Nothing
@@ -676,7 +677,7 @@ data LC w where
  
 cc :: forall w. Eq w => Term w -> LC w  
 cc (Var x) = VarC x
-cc (Lam _ f) = unpack f $ \x e -> 
+cc (Lam _ f) = unpack f $ \_x e ->
   let yn = nub $ rm $ freeVars e 
       
   in Closure (\x' env -> subst (\z -> case z of
