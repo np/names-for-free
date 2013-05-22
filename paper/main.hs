@@ -95,18 +95,19 @@ constTm =
 
 body = {-slice .-} execWriter $ do -- {{{
   notetodo «ACM classification (JP: no clue how it's done these days!)»
-  
+
   notetodo «how to hide this stuff?»
   [agdaP|
-  |{-# LANGUAGE RankNTypes, UnicodeSyntax, 
-  |    TypeOperators, GADTs, MultiParamTypeClasses, 
-  |    FlexibleInstances, UndecidableInstances, 
-  |    IncoherentInstances, ScopedTypeVariables #-} 
+  |{-# LANGUAGE RankNTypes, UnicodeSyntax,
+  |    TypeOperators, GADTs, MultiParamTypeClasses,
+  |    FlexibleInstances, UndecidableInstances,
+  |    IncoherentInstances, ScopedTypeVariables #-}
   |import Prelude hiding (elem,any)
   |import Data.Foldable
   |import Data.Traversable
   |import Control.Applicative
   |import Data.List (nub,elemIndex)
+  |import Data.Maybe
   |]
 
   
@@ -204,8 +205,16 @@ body = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |constN :: TmN Zero
-  |constN = LamN $ LamN $ VarN (There (Here ()))
+  |constN = LamN $ LamN $ VarN $ There $ Here ()
   |]
+  {- NP:
+  it was:
+  |constN = LamN $ LamN $ VarN (There (Here ()))
+  why not:
+  |constN = LamN . LamN . VarN . There $ Here ()
+  or:
+  |constN = LamN (LamN (VarN (There (Here ()))))
+  -}
 
   p"the type of constN"
    «As promised, the type is explicit about {|constN|} being a closed
@@ -384,6 +393,15 @@ body = {-slice .-} execWriter $ do -- {{{
   |  _ → False
   |canEta _ = False
   |]
+
+  {-
+   NP: Issue with unpack: it becomes hard to tell if a recursive function is
+       total. Example:
+
+       foo :: Tm a -> ()
+       foo (Lam e) = unpack e $ \x t -> foo t
+       foo _       = ()
+  -}
 
   p"canEta"
    «In the above example, the functions {|isOccurenceOf|}
@@ -953,8 +971,8 @@ body = {-slice .-} execWriter $ do -- {{{
     combinator as below:»
 
   commentCode [agdaFP|
-  |  Lam g == Lam g' = unpack g $ \x t -> 
-  |                    unpack g' $ \ x' t' -> 
+  |  Lam g == Lam g' = unpack g  $ λx  t  →
+  |                    unpack g' $ λx' t' →
   |                    t == t'
   |]
   q«This is however incorrect. Indeed, the fresh variables x and x' will receive incompatible type, and
@@ -979,7 +997,24 @@ body = {-slice .-} execWriter $ do -- {{{
   |                    t == t'
   |]
 
+  {- NP:
+    cmpTerm' :: Cmp a b -> Cmp (Term a) (Term b)
+    cmpTerm' cmp (Var x1) (Var x2) = cmp x1 x2
+    cmpTerm' cmp (App t1 u1) (App t2 u2) =
+      cmpTerm' cmp t1 t2 && cmpTerm' cmp u1 u2
+    cmpTerm' cmp (Lam _ f1) (Lam _ f2) =
+      unpack f1 $ \x1 t1 ->
+      unpack f2 $ \x2 t2 ->
+      cmpTerm' (extendCmp' x1 x2 cmp) t1 t2
+    cmpTerm' _ _ _ = False
 
+    -- The two first arguments are ignored and thus only there
+    -- to help the user not make a mistake about a' and b'.
+    extendCmp' :: a' -> b' -> Cmp a b -> Cmp (a ∪ a') (b ∪ b')
+    extendCmp' _ _ f (There x) (There y)  = f x y
+    extendCmp' _ _ _ (Here _)  (Here _)   = True
+    extendCmp' _ _ _ _         _          = False
+  -}
 
   subsection $ «Normalisation by evaluation»
   p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is 
@@ -999,18 +1034,18 @@ body = {-slice .-} execWriter $ do -- {{{
   uses it.»
 
   [agdaFP|
-  |app :: Tm w → Tm w → Tm w
-  |app (Lam t) u = t u >>>= subst0
+  |app :: Tm a → Tm a → Tm a
+  |app (Lam t) u = subst0 =<<< t u
   |app t u = App t u
   |]
 
   -- NP: This one is the normal bind for Tm. No the app is the fancy one
   -- ok. Then we need to stress the relation with >>=.
   [agdaFP|
-  |(>>>=) :: Tm a -> (a -> Tm b) -> Tm b
-  |Var x >>>= θ = θ x
-  |Lam t >>>= θ = Lam (\x → t x >>>= lift θ)
-  |App t u  >>>= θ = app (t >>>= θ) (u >>>= θ)
+  |(=<<<) :: (a -> Tm b) -> Tm a -> Tm b
+  |θ =<<< Var x   = θ x
+  |θ =<<< Lam t   = Lam (\x → lift θ =<<< t x)
+  |θ =<<< App t u = app (θ =<<< t) (θ =<<< u)
   |]
 
   q«The evaluator can then be written as a simple recursion on the term structure:»
@@ -1064,19 +1099,22 @@ body = {-slice .-} execWriter $ do -- {{{
     whose environment contains each of the free variables in the body. The application must
     open the closure, explicitly applying the argument and the environment.
   »
-  q«{tm|
-   \begin{array}{r@{\,}l}
-     \llbracket x \rrbracket &= x \\
-     \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure} (\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body}) e_\mathnormal{env} \\
-                                            &\quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
-                                                                     y_1,\ldots,y_n & = FV(e) \\
-                                                                     e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
-                                                                     e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle 
-                                                                  \end{array}\\
-     \llbracket e_1@e_2 \rrbracket &= \mathsf{let} (x_f,x_\mathnormal{env}) = \mathsf{open} \llbracket e_1 \rrbracket \\
-                                   &\quad \mathsf{in} x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
-   \end{array}
-  |}»
+
+  dmath
+   [texm|
+   |\begin{array}{r@{\,}l}
+   |  \llbracket x \rrbracket &= x \\
+   |  \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure} (\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body}) e_\mathnormal{env} \\
+   |                                         &\quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
+   |                                                                  y_1,\ldots,y_n & = FV(e) \\
+   |                                                                  e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
+   |                                                                  e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle
+   |                                                               \end{array}\\
+   |  \llbracket e_1@e_2 \rrbracket &= \mathsf{let} (x_f,x_\mathnormal{env}) = \mathsf{open} \llbracket e_1 \rrbracket \\
+   |                                &\quad \mathsf{in} x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
+   |\end{array}
+   |]
+
   notetodo «Include fig. 2 from {cite[guillemettetypepreserving2007]}»
   q«The implementation follows the pattern given by {citet[guillemettetypepreserving2007]}.
     We make one modification: in closure creation, instead of binding one by one the free variables {|yn|} in the body 
@@ -1088,7 +1126,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |cc t0@(Lam f) = 
   |  let yn = nub $ freeVars t0
   |      bindAll :: ∀env. env -> w -> LC (Zero ▹ env)
-  |      bindAll env = \z → idx env (indexOf z yn)
+  |      bindAll env = \z → idx env (fromJust $ elemIndex z yn)
   |  in Closure (\x env → cc (f x) >>= 
   |                   (lift $ bindAll env))
   |          (Tuple $ map VarC yn)
@@ -1096,13 +1134,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  LetOpen (cc e1)
   |          (\f x → var f $$ wk (cc e2) $$ var x)
   |]
-  -- indexOf is not in the prelude?!
-  [agdaP|
-  |indexOf :: Eq a ⇒ a → [a] → Int
-  |indexOf x [] = error "index not found"
-  |indexOf x (y:ys) | x == y = 0
-  |                 | otherwise = 1 + indexOf x ys
-  |]
+
   q«
     Notably, {citeauthor[guillemettetypepreserving2007]} modify the function to 
     take an additional substitution argument, citing the difficulty to support
@@ -1134,7 +1166,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  Π2   :: a → Value a -- Second projection
   |]
 
-  q«We will not use {|Value|}s directly, but instead their composition with injection.»
+  q«We do not use {|Value|}s directly, but instead their composition with injection.»
   [agdaFP|
   |pair :: (v ∈ a, v' ∈ a) ⇒ v → v' → Value a 
   |π1 :: (v ∈ a) ⇒ v → Value a
@@ -1434,6 +1466,23 @@ body = {-slice .-} execWriter $ do -- {{{
   q«(Because existentials do not enjoy native support in Haskell we have to encode
    {|Exist|} in some way).»
 
+  {-
+  NP: I think this will not work well with the Haskell community:
+
+  data Exists f where
+    Exists :: f a -> Exists f
+
+  But in our case there is no need to use Exists we can directly support
+  a custom data type:
+
+  data Binding tm a where
+    Binding :: v -> tm (a :▹ v) -> Binding tm a
+
+  Ok, I see that you do this later on. Why call this an encoding? The fact we don't see
+  the word 'exists' is a mere artifact due to the fact we only describe the introction
+  rule of such existential construct.
+  -}
+
   q«These representations are logically equivalent: one can convert at will between them, 
   using the {|pack|} and {|unpack|} combinators.
   They are dual from a performance and safety perspective: the universal-based representation
@@ -1468,8 +1517,9 @@ body = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |lamD :: (forall v. v -> TmD (a ▹ v)) -> TmD a
-  |lamD f = unpack f $ \x t -> LamD x t
+  |lamD f = unpack f LamD
   |]
+  -- NP: it was: |lamD f = unpack f $ \x t -> LamD x t
 
   subsection «Future work: both aspects in one»
 
