@@ -9,6 +9,7 @@ import System.Directory (doesFileExist)
 import Control.Monad.Writer
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
+import Language.LaTeX.Builder.Math (nabla)
 
 import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet, citeauthor, acknowledgements)
 import NomPaKit
@@ -36,13 +37,14 @@ import NomPaKit.QQ
 
 -- citations
 [keys|pouillard_unified_2012
-      mcbride_am_2010
+      mcbride_not_2010
       chlipala_parametric_2008
       guillemette_type-preserving_2007
       guillemette_type-preserving_2008
       miller_proof_2003
       bird-paterson-99
       washburn_boxes_2003
+      de_bruijn_lambda_1972
      |]
 
 title = «Parametric Nested Abstract Syntax»
@@ -126,11 +128,9 @@ body = {-slice .-} execWriter $ do -- {{{
   p"de Bruijn indices"
    «A common way to represent variables is by the number of variables
     bound between the occurrence of a given variable {|x|} and its
-    declaration.»
+    declaration {cite[debruijnlambda1972]}.»
 
       {- NP: try an alternative way of telling it, "counting the number of λs/binders one has to cross over to reach our λ/binder/binding-site -}
-
-  notetodo «cite»
 
   p"DB make α-eq easy"
    «The main advantage of the technique two α-equivalent terms have
@@ -1293,7 +1293,7 @@ body = {-slice .-} execWriter $ do -- {{{
   -- the point of types isn’t the crap you’re not allowed to write,
   -- it’s the other crap you don’t want to bother figuring out.
 
-  p "" «{citet[mcbrideam2010]} has devised a set of combinators to construct 
+  p "" «{citet[mcbridenot2010]} has devised a set of combinators to construct 
         lambda terms in de Brujin representation, with the ability to refer to 
         bound variables by name. Terms constructed using McBride's technique are 
         textually identical to terms constructed using ours. Another point of 
