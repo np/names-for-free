@@ -761,10 +761,10 @@ body = {-slice .-} execWriter $ do -- {{{
       The type of that argument can be chosen freely --- that freedom is sometimes useful
       to write idiomatic code. One choice is 
       unit type and its single inhabitant {|()|}. However this choice locally reverts to using
-      plain Nested Abstract Syntax, and it is often advisable to chose more specific types.
+      plain Nested Abstract Syntax, and it is often advisable to chose a more specific type.
       
-      In particular, a canonical choice is a maximally polymorphic type. This choice is
-      captured in the {|unpack|} combinator.
+      In particular, a canonical choice is a maximally polymorphic type. This is the choice 
+      is made by using the {|unpack|} combinator.
       »
       -- While I agree that using the unit type everywhere reverts to using
       -- Nested Abstract Syntax, the one time use of () is I think
@@ -813,7 +813,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |pack' t = \y → fmap (mapu id (const y)) t
   |]
   p""«It is preferrable however, as in the variable case, to request a named reference to the
-  variable that one attempts to bind, in order not to rely on the index (zero in this case),
+  variable that one attempts to bind, in order not to rely on the index ({|Here|} in this case),
   but on a name, for correctness.»
   [agdaFP|
   |pack :: Functor tm ⇒ v' → tm (a ▹ v') → 
@@ -825,13 +825,13 @@ body = {-slice .-} execWriter $ do -- {{{
       interface to binders. For example
       the {|lam|} constructor can be implemented as follows.»
   [agdaFP|
-  |lam :: v → Tm (w ▹ v) → Tm w
+  |lam :: v → Tm (a ▹ v) → Tm w
   |lam x t = Lam (pack x t)
   |]
 
   q«It is even possible to make {|pack|} bind any known variable in
-    a context, by using a typeclass similar to {|∈|}. The 
-    implementation is straightforward and deferred to the appendix.»
+    a context, by using a typeclass similar to {|∈|}. This extension
+     is straightforward and the implementation is deferred to the appendix.»
 
 
   -- JP/NP
@@ -891,9 +891,9 @@ body = {-slice .-} execWriter $ do -- {{{
   p"freeVars is toList"
    «Thanks to terms being an instance of {|Traversable|} they are
     also {|Foldable|} meaning that we can combine all the elements
-    of the structure (i.e. the free variables of the term) using any
-    monoid. One particular monoid is the free monoid of lists. In
-    short {|Data.Foldable.toList|} is computing the free variables of a
+    of the structure (i.e. the occurences of free variables in the term) using any
+    {|Monoid|}. One particular monoid is the free monoid of lists. Consequently,
+    {|Data.Foldable.toList|} is computing the free variables of a
     term:»
 
   [agdaFP|
@@ -903,7 +903,8 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Occurence Test»
 
-  q«We first allow to indices to be compared, by providing the following two {|Eq|} instances.
+  q«In order to implement occurence testing, we need indices to be comparable.
+    To do so we provide the following two {|Eq|} instances.
      First, the {|Zero|} type is vaccuously equipped with equality:»
 
   [agdaFP|
@@ -911,7 +912,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  (==) = magic
   |]
   q«Second, if two indices refer to the first variables they are equal; otherwise we recurse.
-  We stress that this equality tests only the {emph«indices »}, not the contained in the type.
+  We stress that this equality tests only the {emph«indices »}, not the values contained in the type.
   For example {|Here 0 == Here 1|} is {|True|}»
   [agdaFP|
   |instance Eq w ⇒ Eq (w ▹ v) where
@@ -923,7 +924,9 @@ body = {-slice .-} execWriter $ do -- {{{
   p"explain isOccurenceOf"
    «Because the comparisons can be performed only on indices sharing the
     same type, it is ensured by the type system that they refer to the
-    same context, and hence are meaningful comparisons. These tests can
+    same context. Consequently, for sufficently polymorphic contexts (for example if one always
+    uses {|unpack|} to inspect binders), the 
+     comparisons between indices will always be meaningful. These tests can then
     be combined with the injection coming from the type class {|(∈)|} to
     test that a variable {|x|} from a context {|a|} is an occurrence of
     a binder {|y|} with a type {|v|}: »
@@ -934,25 +937,27 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"occursIn"
-   «A test of occurrence of any given binder can then be given the following expression»
+   «A test of occurrence of any given bound variable can then be given the following expression,
+    taking advantage of the {|Foldable|} structure of terms:»
 
   [agdaFP|
   |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
-  |x `occursIn` t = any (`isOccurenceOf` x) (freeVars t)
-  |-- OR:
-  |-- x `occursIn` t = inj x `elem` freeVars t
-  |-- OR: Using Data.Foldable.elem
-  |-- x `occursIn` t = inj x `elem` t
+  |x `occursIn` t = inj x `elem` t 
   |]
+  -- OR: any (`isOccurenceOf` x) (freeVars t)
+  -- x `occursIn` t = inj x `elem` freeVars t
+  -- OR: Using Data.Foldable.elem
+  -- x `occursIn` t = inj x `elem` t
+  
 
   subsection $ «Test of α-equivalence»
   p""«
    Using our technique, two α-equivalent terms will have the same underlying representation. Despite this property,
-   the Haskell compiler will refuse to generate an equality-test via a {|deriving Eq|} clause.
+   a Haskell compiler will refuse to generate an equality-test via a {|deriving Eq|} clause.
    This is caused by the presence of a function type inside the {|Tm|} type. Indeed, in general, extensional equality
    of functions is undecidable. Fortunately, equality for the parametric function type that we use {emph«is»} decidable.
    Indeed, thanks to parametricity, the functions cannot inspect their argument at all, and therefore it is 
-   sufficient to test for equality at the unit type, done shown below:
+   sufficient to test for equality at the unit type, as shown below:
   »
   [agdaFP|
   |instance Eq w ⇒ Eq (Tm w) where
@@ -962,10 +967,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
   -- NP: I would like to see my more general cmpTm
 
-  q«However the application of {|()|} is somewhat worrisome, since we might now different 
-    indices get the same {|()|} type. Even though the possibility of a mistake is very low
-    in a direct equality test like the above, one might want to do more complex tests where the
-    possibility of a mistake is real. In order to avoid this, one might want to use the {|unpack|}
+  q«However the application of {|()|} is somewhat worrisome, because now different 
+    indices might get the same {|()|} type. Even though the possibility of a mistake is very low
+    in code as simple as equality, one might want to do more complex analyses where the
+    possibility of a mistake is real. In order to preempt errors, one should like to use the {|unpack|}
     combinator as below:»
 
   commentCode [agdaFP|
@@ -973,9 +978,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |                    unpack g' $ λx' t' →
   |                    t == t'
   |]
-  q«This is however incorrect. Indeed, the fresh variables x and x' will receive incompatible type, and
-    in turn t and t' do not have the same type and cannot be compared. Hence we must use another variant
-    of the unpack combinator, which maintains the correspondance between contexts in two different terms.»
+  q«This is however incorrect. Indeed, the fresh variables {|x|} and {|x'|} would receive incompatible types, and
+    in turn {|t|} and {|t'|} would not have the same type and cannot be compared. Hence we must use another variant
+    of the {|unpack|} combinator, which maintains the correspondance between contexts in two different terms.»
 
   [agdaFP|
   |unpack2 :: (∀ v. v → f (a ▹ v)) ->
@@ -988,7 +993,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  where fresh = error "cannot query fresh variables!"
   |]
 
-  q«One can see {|unpack2|} as allocating a single fresh name which is shared in both {|t|} and {|t'|}.»
+  q«One can see {|unpack2|} as allocating a single fresh name {|x|} which is shared between {|t|} and {|t'|}.»
 
   commentCode [agdaFP|
   |  Lam g == Lam g' = unpack2 g g' $ \x t t' -> 
