@@ -45,6 +45,7 @@ import NomPaKit.QQ
       bird-paterson-99
       washburn_boxes_2003
       de_bruijn_lambda_1972
+      shinwell_freshml_2003
      |]
 
 title = «Parametric Nested Abstract Syntax»
@@ -116,7 +117,7 @@ body = {-slice .-} execWriter $ do -- {{{
 -- JP (when the rest is ready)
   section $ «Intro» `labeled` intro
   p"What is it we offer?"«
-    Nominal-style user code, without the problems of nominal representation (easy substitution).
+    Nominal-style user code {cite[shinwellfreshml2003]}, without the problems of nominal representation (easy substitution).
     »
   commentCode constTm
   
@@ -177,8 +178,6 @@ body = {-slice .-} execWriter $ do -- {{{
 
   -- NP: we should stress that the parameter is the type of free-variables and
   -- therefor does not affect the representation of bound variables at all.
-  -- NP: Term () can also holds closed terms.
-  -- JP: What about Var () :: Term ()
   p"citation"
    «This representation in known as Nested Abstract
     Syntax {cite[birdpaterson99]}»
@@ -648,13 +647,25 @@ body = {-slice .-} execWriter $ do -- {{{
   
   q«
    Our represtentation features three aspects which are usually kept separate. It
-   has an higher-order aspect, a nominal aspect, and a de Bruijn indices aspect.
+   has a nominal aspect, an higher-order aspect, and a de Bruijn indices aspect.
    Consequently, one can take advtantage of the benefits of each of there aspects when
    manipulating terms.
    
    One can take the example of a size function to illustrate this flexibility. 
 
-   We first demonstrate the higher-order aspect. It is common in higher-order representations
+   We first demonstrate nominal aspect.  
+   Each binder is simply {|unpack|}ed (ignoring the fresh variable obtained). 
+   Using this technique, the size computation looks as follows:
+   »
+
+  [agdaP|
+  |size2 :: Tm a → Size
+  |size2 (Var _) = 1
+  |size2 (Lam g) = unpack g $ \x t -> 1 + size2 t
+  |size2 (App t u) = 1 + size2 t + size2 u
+  |]
+
+  p"higher-order"«Second, we show the higher-order aspect. It is common in higher-order representations
    to supply a concrete value to substitute for a variable at each binding site. 
    Consequently we will assume that all free variables 
    are substituted for their size, and here the function will have type {|Tm Int → Int|}.
@@ -683,20 +694,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |untag (Here x) = x 
   |]
 
-  -- TODO: move in 1st position.
-  p""«Second we demonstrate the nominal aspect.
-   Each binder is simply {|unpack|}ed (ignoring the fresh variable obtained). Using this technique,
-   the size computation looks as follows:
-   »
-
-  [agdaP|
-  |size2 :: Tm a → Size
-  |size2 (Var _) = 1
-  |size2 (Lam g) = unpack g $ \x t -> 1 + size2 t
-  |size2 (App t u) = 1 + size2 t + size2 u
-  |]
-
-  p""«Third, we demonstrate the de Bruijn index aspect. This time we assume an environment mapping 
+  p"de Bruijn"«Third, we demonstrate the de Bruijn index aspect. This time we assume an environment mapping 
       de Bruijn indices {|Nat|} to the  their value of the free variables they represent (a {|Size|} 
       in our case).
       In the input term, free variables
@@ -717,7 +715,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |toNat (There x) = Succ x
   |]
 
-  p""«
+  p"mixed style"«
   In our experience it is often convenient to combine the first and third approaches, as we
   illustrate below. 
   This time the environment maps an arbitrary context {|a|} to a value.
@@ -1702,7 +1700,7 @@ appendix = execWriter $ do
   |  where cx :: v -> w
   |        cx _ = x
   |
-  |class Insert v a b where    
+  |class (v ∈ b) => Insert v a b where    
   |  -- inserting 'v' in 'a' yields 'b'.
   |  shuffle :: (v -> w) -> b -> a ▹ w
   |
@@ -1722,6 +1720,7 @@ appendix = execWriter $ do
 
 -- {{{ build
 -- NP: what about moving this outside, such as run.sh
+-- JP: Nope. I'd rather not leave emacs haskell mode.
 refresh_jp_bib = do
   let jpbib = "../../gitroot/bibtex/jp.bib"
   e <- doesFileExist jpbib
@@ -1778,7 +1777,9 @@ Linear logic treatment of ∇:
 
    α; Γ, A[α] ⊢              α; Δ, ~A[α] ⊢ 
 ----------------------------------------------- cut
-      α; Γ, Δ ⊢ 
+      α; Γ, Δ ⊢ prf
+   --------------------
+      Γ, Δ ⊢ να. prf
 
 
 For the fun we can also see the following, but that's just
