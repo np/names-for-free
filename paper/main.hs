@@ -92,8 +92,16 @@ q = p ""
 
 constTm =   
   [agdaFP|
-  |constTm :: Tm Zero
   |constTm = Lam $ λ x → Lam $ λ y → var x
+  |]
+  
+canEta =  
+  [agdaFP|
+  |canEta (Lam e) = unpack e $ \x t → case t of
+  |  App e1 (Var y) → y `isOccurenceOf` x && 
+  |                   not (x `occursIn` e1)
+  |  _ → False
+  |canEta _ = False
   |]
 
 body = {-slice .-} execWriter $ do -- {{{
@@ -116,15 +124,54 @@ body = {-slice .-} execWriter $ do -- {{{
   
 -- JP (when the rest is ready)
   section $ «Intro» `labeled` intro
-  p"What is it we offer?"«
-    Nominal-style user code {cite[shinwellfreshml2003]}, without the problems of nominal representation (easy substitution).
-    »
-  commentCode constTm
+
+  p "the line of work where we belong" «
+  One of the main application area of functional programming languages
+  such as Haskell is programming language technology. In particular, 
+  Haskell programmers often finds themselves manipulating data structures which
+  involve binders and names.»
+
+  p "identifying the gap." «Yet, the most commonly used representation for names
+  and binders yield code which is difficult to read, and error-prone to write and
+  maintain. The techniques in question are often referred as ``nominal'' and ``de Bruijn indices''.»
+
+  p "Nominal why it sucks" «In the nominal approach, one typically use some atomic type to represent names.
+  The main issue with this techniques are that variables must sometimes be renamed in order to avoid name capture (that is,
+  if a binder refers to an already used name, variables might end up referring to the wrong binder). The
+  need for renaming means that a supply for unique atoms might have to be threaded through the program.
+  This side effect is disturbing if one wishes to write functional code.
+  »
+  -- Because a name is referred to by any variable which contains the atom representing it, the nominal style is natural.
+  p "de Bruijn and why it sucks" «
+  To avoid the problem of name capture, one can represent names canonically, for example by the number of binders to traverse
+  between an occurrence and its binder. In practice however, this representation makes it hard to manipulate terms: instead of
+  calling things by name, programmers have to rely on their arithmetic abilities, which turn out to be error-prone. 
+  As soon as one has to deal with just a few free variables, it becomes easy to make mistakes.
+  »
+
+  p "contribution" « 
+  We contribute a new representation for terms and binders, which provides is the ability to write terms in a nominal style.
+  We will for example represent the constant function of the untyped lambda calculus as follows.»
+  constTm
+  q «and we will be able to test is a term is eta-contractible using the following function:»
+  canEta
+  p "contribution continued" «
+  All the while, the representation does not requiring either a name supply, and there is no worry about a chance of name capture.
+  The cost of this achievement is the use of somewhat more involved types for
+  terms, and the use type system extensions implemented only in the Glasgow Haskell Compiler. 
+  The new representation is described in sec. {ref overview}.
+  »
+
+  notetodo «survey the rest of the paper.»
   
   
   -- JP
   section $ «Overview» `labeled` overview
   -- subsection $ «DeBruijn Indices»
+
+  p"Atoms"«  
+    Nominal-style user code {cite[shinwellfreshml2003]}, without the problems of nominal representation (easy substitution).
+    » -- TODO: maybe say a quickword about this.
 
   p"de Bruijn indices"
    «A common way to represent variables is by the number of variables
@@ -386,12 +433,9 @@ body = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |canEta :: Tm Zero → Bool
-  |canEta (Lam e) = unpack e $ \x t → case t of
-  |  App e1 (Var y) → y `isOccurenceOf` x && 
-  |                   not (x `occursIn` e1)
-  |  _ → False
-  |canEta _ = False
   |]
+  canEta
+  
 
   {-
    NP: Issue with unpack: it becomes hard to tell if a recursive function is
