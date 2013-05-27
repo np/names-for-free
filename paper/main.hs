@@ -1030,7 +1030,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |                       g (a ▹ v) -> b) ->
   |           b 
   |unpack2 f f' k = k fresh (f fresh) (f' fresh)          
-  |  where fresh = error "cannot query fresh variables!"
+  |  where fresh = ()
   |]
 
   q«One can see {|unpack2|} as allocating a single fresh name {|x|} which is shared between {|t|} and {|t'|}.»
