@@ -46,6 +46,7 @@ import NomPaKit.QQ
       washburn_boxes_2003
       de_bruijn_lambda_1972
       shinwell_freshml_2003
+      berger_normalization_1998
      |]
 
 title = «Parametric Nested Abstract Syntax»
@@ -175,7 +176,11 @@ body = {-slice .-} execWriter $ do -- {{{
   
   -- JP
   section $ «Overview» `labeled` overview
-  -- subsection $ «DeBruijn Indices»
+
+  p"flow"«In this section we describe our representation. It is a refinement
+  of usual de Bruijn indices representations, so we review those first.»
+
+  subsection $ «de Bruijn Indices»
 
   p"de Bruijn indices"
    «{citet[debruijnlambda1972]} proposed to represent a variable {|x|} is by counting the number binders
@@ -277,11 +282,11 @@ body = {-slice .-} execWriter $ do -- {{{
     to make a mistake when counting the number of binders between the
     declaration of a variable and its occurrence.»
 
-  p""
-   «To address this issue, we propose a new representation, exposed in
-    the next section.»
-
   subsection «Referring to bound variables by name»
+
+  p"flow"
+   «To address the issues touched upon in the previous section, 
+   we propose the following new representation.»
 
   [agdaFP|
   |data Tm a where
@@ -1056,8 +1061,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Normalisation by evaluation»
   p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is 
-      performed. This technique is known as normalisation by evaluation.»
-  notetodo «cite»
+      performed. This technique is known as normalisation by evaluation {cite[bergernormalization1998]}.»
 
   q«The substitution to apply merely embeds free variables into terms:»
   -- NP: unclear, we need to stress that we represent substitutions by
