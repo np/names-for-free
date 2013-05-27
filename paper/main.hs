@@ -148,6 +148,12 @@ body = {-slice .-} execWriter $ do -- {{{
   calling things by name, programmers have to rely on their arithmetic abilities, which turn out to be error-prone. 
   As soon as one has to deal with just a few free variables, it becomes easy to make mistakes.
   »
+  -- p"DB make α-eq easy"   «The main advantage of the technique two α-equivalent terms have  exactly the same representation.»
+
+  -- NP: I sort of object to this, namely this ok for closed terms, but I would say that comparing free variables with equality is not always the right
+  -- choice. One could pick an alternative presentation by stressing that binders and bound names are canonically represented therefor simplifying
+  -- α-equivalence.
+
 
   p "contribution" « 
   We contribute a new representation for terms and binders, which provides is the ability to write terms in a nominal style.
@@ -156,7 +162,9 @@ body = {-slice .-} execWriter $ do -- {{{
   q «and we will be able to test is a term is eta-contractible using the following function:»
   canEta
   p "contribution continued" «
-  All the while, the representation does not requiring either a name supply, and there is no worry about a chance of name capture.
+  All the while, the representation does not requiring either a name supply, there is no worry about a chance of name capture and 
+  α-equivalent terms have identical implementations.
+  
   The cost of this achievement is the use of somewhat more involved types for
   terms, and the use type system extensions implemented only in the Glasgow Haskell Compiler. 
   The new representation is described in sec. {ref overview}.
@@ -169,28 +177,11 @@ body = {-slice .-} execWriter $ do -- {{{
   section $ «Overview» `labeled` overview
   -- subsection $ «DeBruijn Indices»
 
-  p"Atoms"«  
-    Nominal-style user code {cite[shinwellfreshml2003]}, without the problems of nominal representation (easy substitution).
-    » -- TODO: maybe say a quickword about this.
-
   p"de Bruijn indices"
-   «A common way to represent variables is by the number of variables
-    bound between the occurrence of a given variable {|x|} and its
-    declaration {cite[debruijnlambda1972]}.»
-
-      {- NP: try an alternative way of telling it, "counting the number of λs/binders one has to cross over to reach our λ/binder/binding-site -}
-
-  p"DB make α-eq easy"
-   «The main advantage of the technique two α-equivalent terms have
-    exactly the same representation.»
-
-  -- NP: I sort of object to this, namely this ok for closed terms, but I would say that comparing free variables with equality is not always the right
-  -- choice. One could pick an alternative presentation by stressing that binders and bound names are canonically represented therefor simplifying
-  -- α-equivalence.
-
-  p"Untyped DB terms"
-   «A direct implementation of the technique may yield the following
-    represtenation of untyped lambda terms:»
+   «{citet[debruijnlambda1972]} proposed to represent a variable {|x|} is by counting the number binders
+    one has to cross over to reach the binding site of {|x|}.
+    A direct implementation of the idea may yield the following
+    representation of untyped lambda terms:»
 
   [agdaFP|
   |data Nat = Zero | Succ Nat
