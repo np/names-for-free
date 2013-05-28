@@ -49,8 +49,9 @@ import NomPaKit.QQ
       berger_normalization_1998
      |]
 
-title = «Parametric Nested Abstract Syntax»
-  -- «Names For Free --- Implementing Names and Binders with Polymorphism»
+title =  «Names For Free --- A Polymorphic Interface to Names and Binders»
+  -- «Parametric Nested Abstract Syntax» -- Sounds like it's for a representation
+  --
   -- «A Classy Kind of Nested Abstract Syntax»
   -- «Implementing Names and Binders with Polymorphism»
 -- Ingredients:
