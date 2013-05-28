@@ -115,7 +115,7 @@ document title authors keywords abstract body appendix = B.document docclass pre
     docclass = sigplanconf (Just (L.pt 9)) Nothing
                   (fmap BI.latexItem [«preprint»,«authoryear»])
     -- sep = BI.rawTex " \\\\ "
-    andS = BI.rawTex " \\and "
+    -- andS = BI.rawTex " \\and "
     preamble =
         usepackage [] "color" <>
         usepackage [] "tikz" <>
