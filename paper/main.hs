@@ -292,9 +292,9 @@ body = {-slice .-} execWriter $ do -- {{{
   commentCode canEta
 
   p"contribution continued"
-   «All the while, the representation does not requiring either a
-    name supply, there is no worry about a chance of name capture
-    and α-equivalent terms remains straightforward. The cost of this
+   «All the while, the representation does not require either a
+    name supply, not is there to worry about a chance of name capture
+    and testing terms for α-equivalence remains straightforward. The cost of this
     achievement is the use of somewhat more involved types for terms,
     and the use type system extensions implemented only in the Glasgow
     Haskell Compiler. This new construction is described in sec. {ref
@@ -302,19 +302,23 @@ body = {-slice .-} execWriter $ do -- {{{
 
   notetodo «survey the rest of the paper.»
 
-  -- JP
   section $ «Overview» `labeled` overview
 
   p"flow"
    «In this section we describe our construction. Since it is a
     refinement one usual representation of de Bruijn indices, we review
     those first.»
+  
+  p"flow; alternative"
+   «In this section we describe our construction. Since it is a
+    an interface, we first describe a simple implementation which 
+    can support it.
 
   subsection $ «de Bruijn Indices»
 
   p"de Bruijn indices"
    «{citet[debruijnlambda1972]} proposed to represent a variable {|x|}
-    is by counting the number binders one has to cross over to reach the
+    by counting the number binders one has to cross over to reach the
     binding site of {|x|}. A direct implementation of the idea may yield
     the following representation of untyped lambda terms:»
 
@@ -346,14 +350,15 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p"nested data types"
    «In functional programming languages such as Haskell, it is possible
-    to remedy to this situation by “nested recursion”. That is, one
+    to remedy to this situation by using “nested recursion”. That is, one
     parameterises the type of terms by a type that can represent
     {emph«free»} variables. If the parameter is the empty type, terms
     are closed. If the parameter is the unit type, there is at most one
     free variable, etc.»
 
-  -- NP: we should stress that the parameter is the type of free-variables and
-  -- therefor does not affect the representation of bound variables at all.
+  -- We stress that the parameter is the type of free-variables and
+  -- therefore does not affect the representation of bound variables
+  -- at all.
 
   p"citation"
    «This representation in known as Nested Abstract
@@ -403,15 +408,15 @@ body = {-slice .-} execWriter $ do -- {{{
    «In passing, we remark that another type which faithfully captures
     closed terms is {|∀ a. Tm a|} --- literally: the type of terms for
     which one can pick the type from which the free variables are drawn.
+    (TODO: not gramatical)
     Indeed, because {|a|} is universally quantified, there is no way
-    to construct an inhabitant of it; one cannot possibly refer to any
+    to construct an inhabitant of it; therefore one cannot possibly refer to any
     free variable. In particular one can instantiate {|a|} to be the
     type {|Zero|}.»
 
   p"DB drawback"
-   «The main drawback of using de Bruijn indices is that it is easy
-    to make a mistake when counting the number of binders between the
-    declaration of a variable and its occurrence.»
+   «However the main drawback of using de Bruijn indices remains: one must still
+    count the number of binders between the declaration of a variable and its occurrences.»
 
   subsection «Referring to bound variables by name»
 
@@ -441,7 +446,7 @@ body = {-slice .-} execWriter $ do -- {{{
     variables.»
 
   p"explain v →"
-   «We also provide the sub-term with an arbitrary value of type {|v|},
+   «The sub-term receives an arbitrary value of type {|v|},
     to be used at occurrences of the variable bound by {|lam|}.»
 
   -- NP: "provide the sub-term" is one side of the coin, the other side
@@ -459,13 +464,13 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"still the same elephant"
-   «One can remark that unfolding the definition of {|lam|} one recovers
+   «One can remark that by unfolding the definition of {|lam|} in {|apTm|} one recovers
     the definition of {|apNested|}.»
 
   paragraph «Safety»
 
   p"host bindings are the spec"
-   «In our approach, the binding structure, which can be identified as
+   «Using our approach, the binding structure, which can be identified as
     the {emph«specification»}, is written using the host language binders.
 
     However at variable occurrences, de Bruijn indices are still present
@@ -535,8 +540,6 @@ body = {-slice .-} execWriter $ do -- {{{
     convenience of named variables. In the next section we will show how
     to use the same idea to provide the same advantages for the analysis
     and manipulation on terms.»
-
-  p""«NP: STOPPED HERE»
 
   subsection «Referring to free variables by name»
   -- our debruijn indices are typed with the context where they are valid.
