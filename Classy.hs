@@ -174,8 +174,9 @@ instance Monad Term where
   return = Var
 -}
 
--- This instance is much more efficient on an underlying 'nested
--- abstract syntax' representation
+-- In this instance one pays the cost in the packing.  But it could
+-- potentially be optimised away in the '▹ ()' implementation since
+-- the underlying (dynamic) fmap is from () to ().
 instance Monad Term where
   Var x    >>= θ = θ x
   Lam nm f >>= θ = unpack f $ \x t -> lam'' nm x (t >>= lift θ)
