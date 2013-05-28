@@ -179,7 +179,7 @@ On top of Bound:
             * a close term can inhabit any "world": 'vacuous'
     * Traversable =>
         * effectful scope manipulation
-            * 'traverse (const Noting)' is 'closed'
+            * 'traverse (const Nothing)' is 'closed'
         * Foldable =>
             * fold over the free variables
             * monoidal action on the free-vars
@@ -312,7 +312,7 @@ body = {-slice .-} execWriter $ do -- {{{
   p"flow; alternative"
    «In this section we describe our construction. Since it is a
     an interface, we first describe a simple implementation which 
-    can support it.
+    can support it.»
 
   subsection $ «de Bruijn Indices»
 
@@ -750,13 +750,57 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p "" $ «Laws»
   subsection $ «Contexts, inclusion and membership»
-  [agdaFP|
-  |instance x ∈ (γ ▹ x) where
+
+  q«We have seen that the type of free variables essentially describes the context
+  where they are meaningful.
+  A context can either be empty (and we represent it by the type {|Zero|}) or not 
+  (which we can represent by the type {|a ▹ v|}). Given this, we can implement the relation
+  of context membership by a type-class ({|∈|}), whose sole method performs the injection
+  from a member of the context to the full context. The relation is defined
+  by two inference rules, corresponding to finding the variable in the first position of
+  the context, or further away in it, with he obvious injections.»
+  [agdaP|
+  |instance v ∈ (a ▹ v) where
   |  inj = Here
   |
-  |instance (x ∈ γ) ⇒ x ∈ (γ ▹ y) where
+  |instance (v ∈ a) ⇒ v ∈ (a ▹ v') where
   |  inj = There . inj
   |]
+  q«The cognoscenti will recognize the two above instances as {emph«incoherent»}, that is,
+  if {|v|} and {|v'|} were instanciated to the same type, both instances would apply equally.
+  Fortunately, this incoherency will never trigger as long as one uses the interface provided
+  by our combinators: the injection function will always be used on maximally polymorphic
+  contexts.»
+
+  q«
+  We have seen before that the overloading of the {|inj|} function in the {|∈|} class
+  allows to automatically
+  convert a type-level reference to a term into a dynamic de Bruijn index.
+
+  Another useful relation is context inclusion, which we also represent by a type-class
+  ({|⊆|}). The sole method of the typeclass is again an injection, from the small
+  context to the bigger one.»
+  [agdaP|
+  |class a ⊆ b where
+  |  injMany :: a → b
+  |]
+  q«This time we have four instances: inclusion is reflexive; the empty context is 
+  the smallest one; adding a variable makes the context larger;
+  and variable append {|(▹ v)|} is monotonic for inclusion.»
+  [agdaP|
+  |instance a ⊆ a where injMany = id
+  |
+  |instance Zero ⊆ a where injMany = magic
+  |
+  |instance (a ⊆ b) ⇒ a ⊆ (b ▹ v) where
+  |  injMany = There . injMany
+  |
+  |instance (a ⊆ b) ⇒ (a ▹ v) ⊆ (b ▹ v) where
+  |  injMany = mapu injMany id
+  |]
+  q«
+  This last case uses the fact that (▹) is functorial in its first argument.
+  In fact, it is functorial in both, as can be witnessed by the following function.»
 
   [agdaP|
   |mapu :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
@@ -764,29 +808,15 @@ body = {-slice .-} execWriter $ do -- {{{
   |mapu f g (Here x) = Here (g x)
   |]
 
-  [agdaP|
-  |class a ⊆ b where
-  |  injMany :: a → b
-  |
-  |instance a ⊆ a where injMany = id
-  |
-  |instance Zero ⊆ a where injMany = magic
-  |
-  |instance (γ ⊆ δ) ⇒ (γ ▹ v) ⊆ (δ ▹ v) where
-  |  injMany = mapu injMany id
-  |
-  |instance (a ⊆ c) ⇒ a ⊆ (c ▹ b) where
-  |  injMany = There . injMany
-  |]
-
-  p "" $ «free theorems»
-  p "auto-weakening, type-class hack" mempty
-
+  p "auto-weakening"«
+   The {|injMany|} function is map between contexts, and thus can be seen
+   as a renaming of free variables thanks to the functor structure of terms. 
+   Combined with the overloading of {|injMany|}, this allows to automatically weaken a term
+   from a small context to a bigger one.»
   [agdaFP|
-  |wk :: (Functor f, γ ⊆ δ) ⇒ f γ → f δ
+  |wk :: (Functor f, a ⊆ b) ⇒ f a → f b
   |wk = fmap injMany
   |]
-
 
   subsection $ «Traversable»
 
