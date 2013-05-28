@@ -1,7 +1,7 @@
 {-# LANGUAGE RankNTypes, UnicodeSyntax,
     TypeOperators, GADTs, MultiParamTypeClasses,
     FlexibleInstances, UndecidableInstances,
-    IncoherentInstances, ScopedTypeVariables #-}
+    IncoherentInstances, ScopedTypeVariables, ViewPatterns #-}
 import Prelude hiding (elem,any)
 import Data.Foldable
 import Data.Traversable
@@ -93,12 +93,13 @@ recognize t0 = case t0 of
         _ → False   
       _ → False   
     _ → False   
-
+-}
 instance Functor Tm where
   fmap f (Var x)   = Var (f x)
-  fmap f (Lam g)   = Lam (\ x → fmap (mapu f id) (g x))
+  fmap f (Lam g)   = Lam (fmap (mapu f id) g)
   fmap f (App t u) = App (fmap f t) (fmap f u)
 
+{-
 {- --
 
 fmap id ≡ id
@@ -153,12 +154,12 @@ lift :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
 lift θ (There x) = fmap There (θ x) -- wk (θ x)
 lift θ (Here  x) = return (Here x)     -- var x
 
+-- -}
 instance x ∈ (γ ▹ x) where
   inj = Here
   
 instance (x ∈ γ) ⇒ x ∈ (γ ▹ y) where
   inj = There . inj
--- -}
 mapu :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
 mapu f g (There x) = There (f x)
 mapu f g (Here x) = Here (g x)
@@ -178,15 +179,14 @@ instance (a ⊆ c) ⇒ a ⊆ (c ▹ b) where
 
 wk :: (Functor f, γ ⊆ δ) ⇒ f γ → f δ
 wk = fmap injMany
-
+-}
 instance Traversable Tm where
   traverse f (Var x) =
     Var <$> f x
   traverse f (App t u) =
     App <$> traverse f t <*> traverse f u
-  traverse f (Lam g) = 
-    unpack g $ \x b →
-      lam x <$> traverse (traverseu f pure) b
+  traverse f (Lam (toExist -> N x b)) = 
+      (\t -> Lam (fromExist (N x t))) <$> traverse (traverseu f pure) b
 
 traverseu :: Functor f ⇒ (a → f a') → (b → f b') →
                               a ▹ b → f (a' ▹ b')
@@ -195,7 +195,7 @@ traverseu _ g (Here x)  = Here  <$> g x
 
 instance Foldable Tm where
   foldMap = foldMapDefault
-
+{-
 type Size = Int
 
 size2 :: (a -> Size) -> Tm a → Size
@@ -279,6 +279,7 @@ remove _ xs = [x | There x <- xs]
 
 freeVars' :: Tm w → [w]
 freeVars' = toList
+-}
 
 instance Eq Zero where
   (==) = magic
@@ -293,6 +294,8 @@ x `isOccurenceOf` y = x == inj y
 
 occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
 x `occursIn` t = inj x `elem` t 
+
+{- 
 
 instance Eq w ⇒ Eq (Tm w) where
   Var x == Var x' = x == x'
