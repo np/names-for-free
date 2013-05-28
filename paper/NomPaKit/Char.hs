@@ -14,6 +14,8 @@ import qualified Language.LaTeX.Builder.Internal as BI
 import qualified Language.LaTeX.Builder.Math as M
 import Language.LaTeX.Builder.QQ (texm, tex)
 
+import NomPaKit.Config
+
 -- Math commands
 
 defeq :: MathItem
@@ -27,7 +29,8 @@ mnsymbol = BI.pkgName "MnSymbol"
 epsdice = BI.pkgName "epsdice"
 
 -- improve and move to hlatex
-texErr m = [tex|ERROR |] <> fromString m
+texErr | typesetErrors config = ([tex|ERROR |] <>) . fromString
+       | otherwise            = error . ("texErr:" <>)
 
 mathCmdArgIn :: PackageName -> String -> MathItem -> MathItem
 mathCmdArgIn pkg name arg = M.mathCmdArgs name [BI.packageDependency pkg, BI.mandatory (BI.mathItem arg)]
@@ -184,7 +187,4 @@ myMchar mchar x =
    fromMaybe (mchar x) (Map.lookup x unicodesymbolsMap)
 
 myHchar :: Char -> LatexItem
-myHchar = myMchar (M.mchar (err . ("myHchar: " ++) . pure))
-  where
-  err = error
-  -- err = texErr
+myHchar = myMchar (M.mchar (texErr . ("myHchar: " ++) . pure))

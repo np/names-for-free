@@ -4,16 +4,18 @@ data Config = Config { displayNotes
                      , sloppyErrors
                      , sloppyAligns
                      , doCheckTypos
-                     , colorful     :: Bool }
+                     , colorful
+                     , typesetErrors :: Bool }
 
 config, final, draft :: Config
-final = Config { displayNotes = False
-               , sloppyErrors = True
-               , sloppyAligns = False
-               , doCheckTypos = True
-               , colorful     = True
+final = Config { displayNotes  = False
+               , sloppyErrors  = True
+               , sloppyAligns  = False
+               , doCheckTypos  = True
+               , colorful      = True
+               , typesetErrors = False
                }
-draft = final { displayNotes = True, doCheckTypos = False }
+draft = final { displayNotes = True, doCheckTypos = False, typesetErrors = True }
 
 -- CONFIG HERE
 config = draft
