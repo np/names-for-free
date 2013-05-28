@@ -581,12 +581,12 @@ instance Eq a => Eq (Term a) where
 
 
 
-close :: Traversable tm => tm (Succ a) -> Maybe (tm a)
-close = traverse succToMaybe
+closeOne :: Traversable tm => tm (Succ a) -> Maybe (tm a)
+closeOne = traverse succToMaybe
 
 
-closeAll :: Traversable tm => tm a -> Maybe (tm Zero)
-closeAll = traverse (const Nothing)
+close :: Traversable tm => tm a -> Maybe (tm Zero)
+close = traverse (const Nothing)
 
 
 succToMaybe :: Succ a -> Maybe a
@@ -602,7 +602,7 @@ canη' _ = False
 ηred :: Term a -> Term a
 ηred (Lam _ t)
   | App u (Var (Here ())) <- t ()
-  , Just u' <- close u
+  , Just u' <- closeOne u
   = u'
 ηred t = t
 
