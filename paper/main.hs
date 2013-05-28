@@ -908,7 +908,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   [agdaP|
   |size2 :: (a -> Size) -> Tm a → Size
-  |size2 ρ (Var _) = 1
+  |size2 ρ (Var x) = ρ x
   |size2 ρ (App t u) = 1 + size2 t + size2 u
   |size2 ρ (Lam g) = unpack g $ \x t -> 1 + size2 ρ' t
   | where ρ' (Here _) = 1
@@ -1853,7 +1853,6 @@ body = {-slice .-} execWriter $ do -- {{{
     even greater simplification of the proofs about them; indeed, a variation in complexity in
     an object usually yields a greater variation in complexity in proofs about it.
   »
-
 
   subsection «Misc.»
 
