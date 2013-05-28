@@ -839,7 +839,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |    App <$> traverse f t <*> traverse f u
   |  traverse f (Lam g) =
   |    unpack g $ \x b →
-  |      lam x <$> traverse (traverseu f pure) b
+  |      lam' x <$> traverse (traverseu f pure) b
   |]
 
   p"explain traverseu"
@@ -855,13 +855,35 @@ body = {-slice .-} execWriter $ do -- {{{
   |traverseu _ g (Here x)  = Here  <$> g x
   |]
 
+  q«
+  If a term has no free variable, then it can be converted from
+  the type {|Term a|} to  {|Term Zero|}, but this requires a dynamic check.
+  It may seem like a complicated implementation is necessary, but in fact 
+  it is a direct application of the {|traverse|} function.»
+  [agdaFP|
+  |close :: Traversable tm => tm a -> Maybe (tm Zero)
+  |close = traverse (const Nothing)
+  |]
+
   p"explain foldMap"
    «Any traversable structure is also foldable. »
-
   [agdaFP|
   |instance Foldable Tm where
   |  foldMap = foldMapDefault
   |]
+  p"freeVars is toList"
+   «Thanks to terms being an instance of {|Traversable|} they are
+    also {|Foldable|} meaning that we can combine all the elements
+    of the structure (i.e. the occurrences of free variables in the term) using any
+    {|Monoid|}. One particular monoid is the free monoid of lists. Consequently,
+    {|Data.Foldable.toList|} is computing the free variables of a
+    term:»
+
+  [agdaFP|
+  |freeVars' :: Tm a → [a]
+  |freeVars' = toList
+  |]
+
 
   subsection $ «Algebraic Structure/Catamorphism»
   -- NP: this style (of using the variable parameter to represent intermediate
@@ -886,11 +908,11 @@ body = {-slice .-} execWriter $ do -- {{{
 
   [agdaP|
   |size2 :: (a -> Size) -> Tm a → Size
-  |size2 f (Var _) = 1
-  |size2 f (App t u) = 1 + size2 t + size2 u
-  |size2 f (Lam g) = unpack g $ \x t -> 1 + size2 f' t
-  | where f' (Here _) = 1
-  |       f' (There x) = ρ x
+  |size2 ρ (Var _) = 1
+  |size2 ρ (App t u) = 1 + size2 t + size2 u
+  |size2 ρ (Lam g) = unpack g $ \x t -> 1 + size2 ρ' t
+  | where ρ' (Here _) = 1
+  |       ρ' (There x) = ρ x
   |]
 
   p"higher-order"«Second, we show the higher-order aspect. It is common in higher-order representations
@@ -1052,8 +1074,8 @@ body = {-slice .-} execWriter $ do -- {{{
       interface to binders. For example
       the {|lam|} constructor can be implemented as follows.»
   [agdaFP|
-  |lam :: v → Tm (a ▹ v) → Tm w
-  |lam x t = Lam (pack x t)
+  |lam' :: v → Tm (a ▹ v) → Tm w
+  |lam' x t = Lam (pack x t)
   |]
 
   q«It is even possible to make {|pack|} bind any known variable in
@@ -1113,19 +1135,6 @@ body = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |remove :: v -> [a ▹ v] → [a]
   |remove _ xs = [x | There x <- xs]
-  |]
-
-  p"freeVars is toList"
-   «Thanks to terms being an instance of {|Traversable|} they are
-    also {|Foldable|} meaning that we can combine all the elements
-    of the structure (i.e. the occurrences of free variables in the term) using any
-    {|Monoid|}. One particular monoid is the free monoid of lists. Consequently,
-    {|Data.Foldable.toList|} is computing the free variables of a
-    term:»
-
-  [agdaFP|
-  |freeVars' :: Tm w → [w]
-  |freeVars' = toList
   |]
 
   subsection $ «Occurence Test»

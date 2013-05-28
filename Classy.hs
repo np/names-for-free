@@ -581,8 +581,13 @@ instance Eq a => Eq (Term a) where
 
 
 
-close :: Term (Succ a) -> Maybe (Term a)
+close :: Traversable tm => tm (Succ a) -> Maybe (tm a)
 close = traverse succToMaybe
+
+
+closeAll :: Traversable tm => tm a -> Maybe (tm Zero)
+closeAll = traverse (const Nothing)
+
 
 succToMaybe :: Succ a -> Maybe a
 succToMaybe (There a) = Just a
