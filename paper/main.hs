@@ -867,7 +867,7 @@ body = {-slice .-} execWriter $ do -- {{{
   from a member of the context to the full context. The relation is defined
   by two inference rules, corresponding to finding the variable in the first position of
   the context, or further away in it, with he obvious injections.»
-  [agdaP|
+  [agdaFP|
   |instance v ∈ (a ▹ v) where
   |  inj = Here
   |
@@ -888,14 +888,14 @@ body = {-slice .-} execWriter $ do -- {{{
   Another useful relation is context inclusion, which we also represent by a type-class
   ({|⊆|}). The sole method of the typeclass is again an injection, from the small
   context to the bigger one.»
-  [agdaP|
+  [agdaFP|
   |class a ⊆ b where
   |  injMany :: a → b
   |]
   q«This time we have four instances: inclusion is reflexive; the empty context is 
   the smallest one; adding a variable makes the context larger;
   and variable append {|(▹ v)|} is monotonic for inclusion.»
-  [agdaP|
+  [agdaFP|
   |instance a ⊆ a where injMany = id
   |
   |instance Zero ⊆ a where injMany = magic
