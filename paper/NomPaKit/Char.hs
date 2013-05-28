@@ -164,6 +164,7 @@ mathsymbols =
   , c '∙' $ M.mathCmd "bullet"
   , c '✓' $ M.mathCmd "checkmark"
   , c '‼' $ M.negthinspace
+  , c '∇' $ M.nabla
   , c '𝟘' $ ds M._O
   , c '𝟙' $ bb 1
   , c '𝟚' $ bb 2

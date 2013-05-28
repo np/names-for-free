@@ -1829,9 +1829,8 @@ body = {-slice .-} execWriter $ do -- {{{
   Each of the dual representation of bindings ensure one aspect of safety. One may
   wonder if it is possible to combine the safety of both. This suggest a type-system feature
   to represent the intersection of {|Univ tm|} and {|Exist tm|}.
-  This is reminiscent of the nabla quantifier of {citet[millerproof2003]}.
+  This is reminiscent of the ∇ quantifier of {citet[millerproof2003]}.
   »
-  notetodo «Can I type nabla?» -- TODO: *** Exception: myHchar: ∇
 
   p "performance!" «
   One could also wish to obtain performance aspects of both representations.
