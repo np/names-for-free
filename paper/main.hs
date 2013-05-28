@@ -490,7 +490,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"no mistakes at all"
-   «In fact, the possibility of making a mistake in the
+   «In fact, if all variables are introduced with the {|lam|} combinator,
+    the possibility of making a mistake in the
     {emph«implementation»} is inexistent (if we ignore diverging terms).
     Indeed, because the type {|v|} corresponding to a bound variable is
     universally quantified, the only way to construct a value of its
@@ -535,7 +536,7 @@ body = {-slice .-} execWriter $ do -- {{{
   apTm
 
   p"pros"
-   «Thanks to polymorphism, our term representation allows to construct
+   «Thanks to polymorphism, our interface allows to construct
     terms with de Bruijn indices, combined with the safety and
     convenience of named variables. In the next section we will show how
     to use the same idea to provide the same advantages for the analysis
