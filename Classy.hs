@@ -137,8 +137,17 @@ cata fv _  _  (Var x)   = fv x
 cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
 cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
 
-extend :: (a -> b) -> (a ∪ b) -> b
+extend :: (a -> b) -> (a :▹ b) -> b
 extend g = elim g id
+
+cata' :: (b -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term b -> a
+cata' fv _  _  (Var x)   = fv x
+cata' fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
+cata' fv fl fa (Lam _ f) = unpack f $ \x t -> fl $ \xv -> (cata (extend' fv x xv) fl fa t)
+
+extend' :: (a -> b) -> v -> b -> (a :▹ v) -> b
+extend' g _ k = elim g (const k)
+
 
 -----------------------------------------------------------
 -- Terms are monads
@@ -156,13 +165,25 @@ lift θ (There x) = wk (θ x)
 lift _ (Here x) = var x
 
 
-
+{-
 instance Monad Term where
   Var x    >>= θ = θ x
   Lam nm t >>= θ = Lam nm (\x → t x >>= lift θ)
   App t u  >>= θ = App (t >>= θ) (u >>= θ)
 
   return = Var
+-}
+
+-- In this instance one pays the cost in the packing.  But it could
+-- potentially be optimised away in the '▹ ()' implementation since
+-- the underlying (dynamic) fmap is from () to ().
+instance Monad Term where
+  Var x    >>= θ = θ x
+  Lam nm f >>= θ = unpack f $ \x t -> lam'' nm x (t >>= lift θ)
+  App t u  >>= θ = App (t >>= θ) (u >>= θ)
+
+  return = Var
+
 
 subst :: Monad m => (v → m w) → m v → m w
 subst = (=<<)
@@ -249,26 +270,23 @@ sizeM (Lam _ g) = 1 + sizeM (fmap untag (g 1))
 sizeM (App t u) = 1 + sizeM t + sizeM u
 
 
+{-
 sizeFO :: Term a -> Int
 sizeFO (Var _) = 1
 sizeFO (Lam _ g) = 1 + sizeFO (g ())
 sizeFO (App t u) = 1 + sizeFO t + sizeFO u
-
+ 
 sizeSafe :: Term a -> Int
 sizeSafe (Var _) = 1
 sizeSafe (Lam _ g) = unpack g $ \ _ t -> 1 + sizeSafe t
 sizeSafe (App t u) = 1 + sizeSafe t + sizeSafe u
-
+-}
 
 
 sizeSafeEnv :: (a -> Int) -> Term a -> Int
 sizeSafeEnv f (Var x) = f x
 sizeSafeEnv f (Lam _ g) = unpack g $ \ x t -> 
     1 + sizeSafeEnv (extend' f x 1) t
-
-
-extend' :: (a -> b) -> v -> b -> (a :▹ v) -> b
-extend' g _ k = elim g (const k)
 
 sizeC :: Term Zero -> Int
 sizeC = cata magic (\f -> 1 + f 1) (\a b -> 1 + a + b)
