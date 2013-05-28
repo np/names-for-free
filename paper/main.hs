@@ -85,9 +85,9 @@ commentWhen False x = x
 
 commentCode = doComment
 
-unpackTypeSig =  [agdaFP|
-  |unpack :: (∀ v. v → tm (a ▹ v)) →
-  |          (∀ v. v → tm (a ▹ v) → b) → b
+unpackCode =  [agdaFP|
+  |unpack :: f (Succ a) → (∀ v. v → f (a ▹ v) → r) → r
+  |unpack e k = k () e
   |]
 
 q = p ""
@@ -146,12 +146,19 @@ On top of Bound:
   var :: ∀ f v a. (v ∈ a, Monad f) ⇒ v → f a
   var = return . inj
 
+  abs :: ∀ f a. (∀ v. v → f (a ▹ v)) → f (Succ a)
+  abs k = k ()
+
+  unpack :: f (Succ a) → (∀ v. v → f (a ▹ v) → r) → r
+  unpack e k = k () e
+
+  lam :: ∀ a. (∀ v. v → Tm (a ▹ v)) → Tm a
+  lam k = Lam (abs k)
+
+  -- Scopes
+
   abs :: ∀ f a. Monad f ⇒ (∀ v. v → f (a ▹ v)) → Scope () f a
   abs k = toScope . k ()
-
-  unpack :: (∀ v. v → tm (a ▹ v)) →
-            (∀ v. v → tm (a ▹ v) → b) → b
-  unpack e k = k () (e ())
 
   lam :: ∀ a. (∀ v. v → Tm (a ▹ v)) → Tm a
   lam k = Lam (abs k)
@@ -370,6 +377,12 @@ body = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |data a ▹ v = There a | Here v
   |
+  |-- TODO mapu is a poor name
+  |-- (▹) is a BiFunctor
+  |mapu :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
+  |mapu f _ (There x) = There (f x)
+  |mapu _ g (Here x)  = Here (g x)
+  |
   |type Succ a = a ▹ ()
   |
   |data Tm a where
@@ -543,27 +556,33 @@ body = {-slice .-} execWriter $ do -- {{{
     to use the same idea to provide the same advantages for the analysis
     and manipulation on terms.»
 
-  subsection «Referring to free variables by name»
-  -- our debruijn indices are typed with the context where they are valid.
-  -- If that context is sufficently polymorphic, they can not be mistakenly used in a wrong context.
-  -- a debruijn index in a given context is similar to a name.
+  p"more intuitions"
+   «In a nutshell, our de Bruijn indices are typed with the context
+    where they are valid. If that context is sufficiently polymorphic,
+    they can not be mistakenly used in a wrong context. Another
+    intuition is that these {|Here|} and {|There|} are building proofs
+    of “context membership”. Thus, a de Bruijn index in a given context
+    is similar to a well-scoped name.»
 
+  subsection «Pack/Unpack: Referring to free variables by name»
 
   p"unpack"
    «A common use case is that one wants to be able to check if an
     occurrence of a variable is a reference to some previously bound
     variable. With de Bruijn indices, one must (yet again) count the
-    number of binders traversed between the variable bindings and its
-    potential occurrences --- an error prone task. Here as well,
+    number of binders traversed between the variable bindings and
+    its potential occurrences --- an error prone task. Here as well,
     we can take advantage of polymorphism to ensure that no mistake
-    happens. We provide a combinator {|unpack|}, which transforms a
-    binding structure (of type {|∀ v. v → Tm (a ▹ v)|}) into a sub-term
-    with one more free variable {|Tm (a ▹ v)|} and a value (called {|x|}
-    below) of type {|v|}, where {|v|} is bound existentially. We write
-    the combinator in continuation-passing style in order to encode the
-    existential as a universal quantifier:»
+    happens. We provide a combinator {|unpack|}, which takes a binding
+    structure (so far of type {|Tm (Succ a)|}) and existentially hides
+    the type {|()|} as a type {|v|}, a value {|x|} of type {|v|} and a
+    sub-term of type {|Tm (a ▹ v)|}. Here we write the combinator in
+    continuation-passing style as it seems the most convenient to use
+    this way. See section TODO FORWARD REFERENCE for another solution
+    based on view patterns. Since this combinator is not specific to our
+    type {|Tm|} we generalize it to any type constructor {|f|}:»
 
-  unpackTypeSig
+  unpackCode
 
   p"why unpack works"
    «Because {|v|} is existentially bound and occurs only positively
@@ -572,8 +591,8 @@ body = {-slice .-} execWriter $ do -- {{{
     accessible to the type-checker.
 
     For instance, when facing a term {|t|} of type
-    {|Tm (a ▹ v ▹ v1 ▹ v2)|}, {|x|} refers to the third free variable
-    in {|t|}.
+    {|Tm (a ▹ v0 ▹ v1 ▹ v)|}, {|x|} refers to the last introduced free
+    variable in {|t|}.
 
     Using {|unpack|}, one can write a function recognising an
     eta-contractible term as follows: (Recall that an a eta-contractible
@@ -585,7 +604,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
   canEta
 
-
   {-
    NP: Issue with unpack: it becomes hard to tell if a recursive function is
        total. Example:
@@ -593,6 +611,10 @@ body = {-slice .-} execWriter $ do -- {{{
        foo :: Tm a -> ()
        foo (Lam e) = unpack e $ \x t -> foo t
        foo _       = ()
+
+   As long as unpack is that simple, this might be one of those situations
+   where we want to inline unpack. This new code is then termination checked
+   and kept as the running program (let's not make the same mistakes as Coq).
   -}
 
   p"canEta"
@@ -616,10 +638,95 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"slogan"
-   «Again, even though variables are represted by mere
-    indices, the use of polymorphism allows to refer to them by
-    name, using the instance search mechanism to fill in the
-    details of implementation.»
+   «Again, even though variables are represted by mere indices, the use
+    of polymorphism allows to refer to them by name, using the instance
+    search mechanism to fill in the details of implementation.»
+
+  {-
+  subsection $ «Packing and Unpacking Binders»
+
+  p""«In order to examine the content of a term with another bound variable,
+      one must apply a concrete argument to the function of type {|∀v. v → Term (a ▹ v)|}.
+      The type of that argument can be chosen freely --- that freedom is sometimes useful
+      to write idiomatic code. One choice is
+      unit type and its single inhabitant {|()|}. However this choice locally reverts to using
+      plain Nested Abstract Syntax, and it is often advisable to chose a more specific type.
+
+      In particular, a canonical choice is a maximally polymorphic type. This is the choice
+      is made by using the {|unpack|} combinator.
+      »
+      -- While I agree that using the unit type everywhere reverts to using
+      -- Nested Abstract Syntax, the one time use of () is I think
+      -- a good style since there is nothing to confuse about free variables
+      -- since there is only one.
+
+      -- In a total language, unpack would be
+      -- defined as unpack b k = k () (b ()). Which essentially turns
+      -- unpack b λ x t → E into let { x = () ; t = b () } in E.
+      --
+      -- However, a real implementation of the technique would need something like the
+      -- nabla combinator, where unpack would essentially be provided natively.
+      --
+      -- I still like the pack/unpack mode a lot it shines well when multiple
+      -- binders are opened at once.
+  commentCode unpackCode
+
+  {-
+  [agdaP|
+  |unpack binder k = k fresh (binder fresh)
+  |  where fresh = ()
+  |]
+  -}
+
+  p""«The continuation {|k|}
+  is oblivious to the
+  the monomorphic type used by the implementation of {|fresh|}: this is expressed by universally quantifing {|v|} in the type of the continuation {|k|}.
+
+  In fact, thanks to parametricity, and because {|v|} occurs only positively in the arguments of {|k|},
+  it is guaranteed that {|k|} cannot observe the implementation of {|fresh|} at all (except for the escape hatch of {|seq|}).
+  In particular one could even define {|fresh = undefined|}, and the code would continue to work.»
+
+  p""«As we have seen in previous examples, the {|unpack|} combinator gives the possibility
+  to refer to a free variable by name, enabling for example to compare a variable
+  occurrence with a free variable. Essentially, it offers a nominal interface to free variables:
+  even though the running code will use de Bruijn indices, the programmer sees names; and
+  the correspondence is enforced by the type system.
+  »
+  -}
+
+  paragraph «Pack»
+
+  p"pack"
+   «As we shall shortly terms form an instance of {|Functor|}. The
+    function {|pack|} is therefore defined uniformly for all {|tm|}
+    instance of {|Functor|}. It is then easy to invert the job
+    of {|unpack|}. Indeed, given a value {|x|} of type {|v|} and a term
+    of type {|Tm (a ▹ v)|} one can reconstruct a binder as follows: »
+
+  [agdaFP|
+  |pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
+  |pack x = fmap (mapu id (const ()))
+  |]
+
+  p"dynamically useless, statically useful"
+   «As we can see, the value {|x|} is not used by pack. However it
+    statically helps as a specification of the user intention. Therefore
+    we rely on names and not indices.»
+
+  p"lamP"
+   «Hence, the {|pack|} combinator makes it possible to give a nominal-style
+    interface to binders. For example an alternative way to build
+    the {|Lam|} constructor is the following:»
+
+  [agdaFP|
+  |lamP :: v → Tm (a ▹ v) → Tm a
+  |lamP x t = Lam (pack x t)
+  |]
+
+  -- TODO
+  q«It is even possible to make {|pack|} bind any known variable in a
+    context, by using a typeclass similar to {|∈|}. This extension is
+    straightforward and the implementation is deferred to the appendix.»
 
   -- NP
   section $ «Term Structure» `labeled` termStructure
@@ -800,14 +907,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |  injMany = mapu injMany id
   |]
   q«
-  This last case uses the fact that (▹) is functorial in its first argument.
-  In fact, it is functorial in both, as can be witnessed by the following function.»
-
-  [agdaP|
-  |mapu :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
-  |mapu f g (There x) = There (f x)
-  |mapu f g (Here x) = Here (g x)
-  |]
+  This last case uses the fact that (▹) is functorial in its first argument.»
 
   p "auto-weakening"«
    The {|injMany|} function is map between contexts, and thus can be seen
@@ -838,9 +938,9 @@ body = {-slice .-} execWriter $ do -- {{{
   |    Var <$> f x
   |  traverse f (App t u) =
   |    App <$> traverse f t <*> traverse f u
-  |  traverse f (Lam g) =
-  |    unpack g $ \x b →
-  |      lam' x <$> traverse (traverseu f pure) b
+  |  traverse f (Lam t) =
+  |    unpack t $ \x b →
+  |      Lam . pack x <$> traverse (traverseu f pure) b
   |]
 
   p"explain traverseu"
@@ -1003,86 +1103,6 @@ body = {-slice .-} execWriter $ do -- {{{
   |extendAlg :: TmAlg w a -> TmAlg (w ▹ a) a
   |extendAlg φ = φ { pVar = extend (pVar φ) }
   |]
-
-  subsection $ «Packing and Unpacking Binders»
-
-  p""«In order to examine the content of a term with another bound variable,
-      one must apply a concrete argument to the function of type {|∀v. v → Term (a ▹ v)|}.
-      The type of that argument can be chosen freely --- that freedom is sometimes useful
-      to write idiomatic code. One choice is
-      unit type and its single inhabitant {|()|}. However this choice locally reverts to using
-      plain Nested Abstract Syntax, and it is often advisable to chose a more specific type.
-
-      In particular, a canonical choice is a maximally polymorphic type. This is the choice
-      is made by using the {|unpack|} combinator.
-      »
-      -- While I agree that using the unit type everywhere reverts to using
-      -- Nested Abstract Syntax, the one time use of () is I think
-      -- a good style since there is nothing to confuse about free variables
-      -- since there is only one.
-
-      -- In a total language, unpack would be
-      -- defined as unpack b k = k () (b ()). Which essentially turns
-      -- unpack b λ x t → E into let { x = () ; t = b () } in E.
-      --
-      -- However, a real implementation of the technique would need something like the
-      -- nabla combinator, where unpack would essentially be provided natively.
-      --
-      -- I still like the pack/unpack mode a lot it shines well when multiple
-      -- binders are opened at once.
-  commentCode unpackTypeSig
-
-
-  [agdaP|
-  |unpack binder k = k fresh (binder fresh)
-  |  where fresh = ()
-  |]
-
-  p""«The continuation {|k|}
-  is oblivious to the
-  the monomorphic type used by the implementation of {|fresh|}: this is expressed by universally quantifing {|v|} in the type of the continuation {|k|}.
-
-  In fact, thanks to parametricity, and because {|v|} occurs only positively in the arguments of {|k|},
-  it is guaranteed that {|k|} cannot observe the implementation of {|fresh|} at all (except for the escape hatch of {|seq|}).
-  In particular one could even define {|fresh = undefined|}, and the code would continue to work.»
-
-  p""«As we have seen in previous examples, the {|unpack|} combinator gives the possibility
-  to refer to a free variable by name, enabling for example to compare a variable
-  occurrence with a free variable. Essentially, it offers a nominal interface to free variables:
-  even though the running code will use de Bruijn indices, the programmer sees names; and
-  the correspondence is enforced by the type system.
-  »
-
-  p""«
-  It is easy to invert the job of {|unpack|}. Indeed,
-  given a term with a free variable (of type {|Tm (a ▹ v)|}) one can
-  reconstruct a binder as follows: »
-  [agdaFP|
-  |pack' :: Functor tm ⇒ tm (a ▹ v) →
-  |                      (∀ w. w → tm (a ▹ w))
-  |pack' t = \y → fmap (mapu id (const y)) t
-  |]
-  p""«It is preferrable however, as in the variable case, to request a named reference to the
-  variable that one attempts to bind, in order not to rely on the index ({|Here|} in this case),
-  but on a name, for correctness.»
-  [agdaFP|
-  |pack :: Functor tm ⇒ v' → tm (a ▹ v') →
-  |                     (∀ v. v → tm (a ▹ v))
-  |pack x t = \y → fmap (mapu id (const y)) t
-  |]
-
-  p""«Hence, the {|pack|} combinator makes it possible to give a nominal-style
-      interface to binders. For example
-      the {|lam|} constructor can be implemented as follows.»
-  [agdaFP|
-  |lam' :: v → Tm (a ▹ v) → Tm w
-  |lam' x t = Lam (pack x t)
-  |]
-
-  q«It is even possible to make {|pack|} bind any known variable in
-    a context, by using a typeclass similar to {|∈|}. This extension
-     is straightforward and the implementation is deferred to the appendix.»
-
 
   -- JP/NP
   section $ «Bigger Examples» `labeled` examples
