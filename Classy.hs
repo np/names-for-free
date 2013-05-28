@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, Rank2Types,
              EmptyDataDecls, PatternGuards,
              UnicodeSyntax, TypeOperators, GADTs, OverlappingInstances,
-             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
+             UndecidableInstances, IncoherentInstances, OverloadedStrings, StandaloneDeriving, KindSignatures, RankNTypes, ScopedTypeVariables, TypeFamilies, ViewPatterns #-}
 module Classy where
 
 import Prelude hiding (sequence,elem)
@@ -261,6 +261,15 @@ sizeSafe (App t u) = 1 + sizeSafe t + sizeSafe u
 
 
 
+sizeSafeEnv :: (a -> Int) -> Term a -> Int
+sizeSafeEnv f (Var x) = f x
+sizeSafeEnv f (Lam _ g) = unpack g $ \ x t -> 
+    1 + sizeSafeEnv (extend' f x 1) t
+
+
+extend' :: (a -> b) -> v -> b -> (a :▹ v) -> b
+extend' g _ k = elim g (const k)
+
 sizeC :: Term Zero -> Int
 sizeC = cata magic (\f -> 1 + f 1) (\a b -> 1 + a + b)
 
@@ -396,13 +405,9 @@ recognize t0 = case t0 of
 
 -- recognizer of \x -> \y -> f x
 recognize' :: Term Zero -> Bool
-recognize' t0 = case t0 of 
-    Lam _ f -> case unpack_ f of
-      D x (Lam _ g) -> case unpack_ g of 
-        D _y (App func (Var arg)) -> arg == lk x && not (lk x `memberOf` func)
-        _ -> False   
-      _ -> False   
-    _ -> False   
+recognize' (Lam _ (unpack_ -> D x (Lam _ (unpack_ -> D _ (App func (Var arg))))))
+     = arg == lk x && not (lk x `memberOf` func)
+recognize' _ = False        
 
 -------------
 -- CPS
