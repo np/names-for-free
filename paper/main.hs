@@ -159,9 +159,9 @@ body = {-slice .-} execWriter $ do -- {{{
   p "contribution" « 
   We contribute a new representation for terms and binders, which provides is the ability to write terms in a nominal style.
   We will for example represent the constant function of the untyped lambda calculus as follows.»
-  constTm
+  commentCode constTm
   q «and we will be able to test is a term is eta-contractible using the following function:»
-  canEta
+  commentCode canEta
   p "contribution continued" «
   All the while, the representation does not requiring either a name supply, there is no worry about a chance of name capture and 
   α-equivalent terms have identical implementations.
@@ -694,15 +694,21 @@ body = {-slice .-} execWriter $ do -- {{{
    One can take the example of a size function to illustrate this flexibility. 
 
    We first demonstrate nominal aspect.  
-   Each binder is simply {|unpack|}ed (ignoring the fresh variable obtained). 
+   Each binder is simply {|unpack|}ed.
    Using this technique, the size computation looks as follows:
    »
 
+  [agdaFP|
+  |type Size = Int
+  |]
+
   [agdaP|
-  |size2 :: Tm a → Size
-  |size2 (Var _) = 1
-  |size2 (Lam g) = unpack g $ \x t -> 1 + size2 t
-  |size2 (App t u) = 1 + size2 t + size2 u
+  |size2 :: (a -> Size) -> Tm a → Size
+  |size2 f (Var _) = 1
+  |size2 f (App t u) = 1 + size2 t + size2 u
+  |size2 f (Lam g) = unpack g $ \x t -> 1 + size2 f' t
+  | where f' (Here _) = 1
+  |       f' (There x) = ρ x
   |]
 
   p"higher-order"«Second, we show the higher-order aspect. It is common in higher-order representations
@@ -717,9 +723,6 @@ body = {-slice .-} execWriter $ do -- {{{
    to adjust the type to forget the difference between the new variable and the others, by applying an {|untag|} function
    for every variable. The variable and application cases then offer no surprises. 
    »
-  [agdaFP|
-  |type Size = Int
-  |]
 
   [agdaFP|
   |size1 :: Tm Size → Size
