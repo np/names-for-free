@@ -152,6 +152,9 @@ On top of Bound:
   unpack :: f (Succ a) → (∀ v. v → f (a ▹ v) → r) → r
   unpack e k = k () e
 
+  pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
+  pack x = fmap (mapu id (const ()))
+
   lam :: ∀ a. (∀ v. v → Tm (a ▹ v)) → Tm a
   lam k = Lam (abs k)
 
@@ -608,8 +611,8 @@ body = {-slice .-} execWriter $ do -- {{{
    NP: Issue with unpack: it becomes hard to tell if a recursive function is
        total. Example:
 
-       foo :: Tm a -> ()
-       foo (Lam e) = unpack e $ \x t -> foo t
+       foo :: Tm a → ()
+       foo (Lam e) = unpack e $ \x t → foo t
        foo _       = ()
 
    As long as unpack is that simple, this might be one of those situations
@@ -728,40 +731,129 @@ body = {-slice .-} execWriter $ do -- {{{
     context, by using a typeclass similar to {|∈|}. This extension is
     straightforward and the implementation is deferred to the appendix.»
 
+  -- section $ «»
+
+  section $ «Contexts, inclusion and membership»
+
+  p"flow, ∈, inj"
+   «We have seen that the type of free variables essentially describes
+    the context where they are meaningful. A context can either be
+    empty (and we represent it by the type {|Zero|}) or not (which we
+    can represent by the type {|a ▹ v|}). Given this, we can implement
+    the relation of context membership by a type class {|∈|}, whose
+    sole method performs the injection from a member of the context to
+    the full context. The relation is defined by two inference rules,
+    corresponding to finding the variable in the first position of the
+    context, or further away in it, with the obvious injections:»
+
+  [agdaFP|
+  |instance v ∈ (a ▹ v) where
+  |  inj = Here
+  |
+  |instance (v ∈ a) ⇒ v ∈ (a ▹ v') where
+  |  inj = There . inj
+  |]
+
+  p"incoherent instances"
+   «The cognoscenti will recognize the two above instances as
+    {emph«incoherent»}, that is, if {|v|} and {|v'|} were instanciated
+    to the same type, both instances would apply equally. Fortunately,
+    this incoherency will never trigger as long as one uses the
+    interface provided by our combinators: the injection function will
+    always be used on maximally polymorphic contexts.»
+
+  -- NP: maybe mention the fact that GHC let us do that
+
+  p"inj enables var"
+   «We have seen before that the overloading of the {|inj|} function
+    in the type class {|∈|} allows to automatically convert a type-level
+    reference to a term into a properly tagged de Bruijn index, namely
+    the function {|var|}.»
+
+  -- NP: removed dynamically
+
+  p"context inclusion, ⊆"
+   «Another useful relation is context inclusion, which we also
+    represent by a type class, namely {|⊆|}. The sole method of the
+    typeclass is again an injection, from the small context to the
+    bigger one.»
+
+  [agdaFP|
+  |class a ⊆ b where
+  |  injMany :: a → b
+  |]
+
+  p"⊆ instances"
+   «This time we have four instances: inclusion is reflexive; the empty
+    context is the smallest one; adding a variable makes the context
+    larger; and variable append {|(▹ v)|} is monotonic for inclusion.»
+
+  [agdaFP|
+  |instance a ⊆ a where injMany = id
+  |
+  |instance Zero ⊆ a where injMany = magic
+  |
+  |instance (a ⊆ b) ⇒ a ⊆ (b ▹ v) where
+  |  injMany = There . injMany
+  |
+  |instance (a ⊆ b) ⇒ (a ▹ v) ⊆ (b ▹ v) where
+  |  injMany = mapu injMany id
+  |]
+
+  p"(▹) functoriality"
+   «This last case uses the fact that {|(▹)|} is functorial in its first argument.»
+
+  p"auto-weakening"
+   «The {|injMany|} function is a map between contexts, and thus can be
+    seen as a renaming of free variables thanks to the functor structure
+    of terms. Combined with the overloading of {|injMany|}, this allows
+    to automatically weaken a term from a small context to a bigger
+    one.»
+
+  notetodo «Depends on Functor Tm»
+
+  [agdaFP|
+  |wk :: (Functor f, a ⊆ b) ⇒ f a → f b
+  |wk = fmap injMany
+  |]
+
   -- NP
   section $ «Term Structure» `labeled` termStructure
 
   p"intro functor"
-   «As  with the  Nested Abstract  Syntax  approach the  type for  terms
-    enjoys  interesting structures.  For instance  a general  “renaming”
-    operation give  rises to  a {|Functor|} instance.»
+   «This Nested Abstract Syntax approach that we are standing
+    upon {cite[birdpaterson99]} enjoys interesting structures. For
+    instance a general “renaming” operation give rises to a {|Functor|}
+    instance.»
 
   subsection $ «Renaming/Functor»
 
   p"describe Functor Tm"
-   «The  “renaming” to  apply is  given as  a function {|f|}  from {|a|}
-    to {|b|}  where {|a|} is  the type  of free  variables of  the input
-    term ({|Tm a|})  and {|b|} is  the  type of  free  variables of  the
-    “renamed”  term ({|Tm b|}).  The   renaming  operation  then  simply
-    preserves the structure  of the  input term,  using {|f|} to  rename
-    free  variables and  upgrade {|f|} to {|(a ▹ v) → (b ▹ v)|}  using
-    the  functoriality  of {|(▹ v)|}  with {|mapu f id|}.  Adapting  the
-    function {|f|} is  not only  a type-checking matter:  it is  meant to
-    protect the bound name from being altered by {|f|}.»
+   «The “renaming” to apply is given as a function {|f|} from {|a|}
+    to {|b|} where {|a|} is the type of free variables of the input
+    term ({|Tm a|}) and {|b|} is the type of free variables of
+    the “renamed” term ({|Tm b|}). The renaming operation then
+    simply preserves the structure of the input term, using {|f|}
+    to rename free variables and upgrade {|f|} to {|Succ a → Succ
+    b|} using the functoriality of {|Succ|} (any {|(▹ v)|} actually)
+    with {|mapu f id|}. Adapting the function {|f|} is not only a
+    type-checking matter: it is meant to protect the bound name from
+    being altered by {|f|}.»
 
   -- NP: potentially comment about 'g x'
 
   [agdaFP|
   |instance Functor Tm where
   |  fmap f (Var x)   = Var (f x)
-  |  fmap f (Lam g)   = Lam (λ x → fmap (mapu f id) (g x))
+  |  fmap f (Lam t)   = Lam (fmap (mapu f id) t)
   |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
 
   p"functor laws"
-   «Satisfying functor laws implies that the structure is preserved by a
-    renaming.  Namely that  whatever  the function {|f|}  is doing,  the
-    bound names are not going to change. As expected the laws are the following:»
+   «Satisfying functor laws implies that the structure is preserved by
+    a renaming. Namely that whatever the function {|f|} is doing, the
+    bound names are not going to change. As expected the laws are the
+    following:»
 
   doComment
     [agdaFP|
@@ -774,6 +866,33 @@ body = {-slice .-} execWriter $ do -- {{{
     and compositions of renaming functions corresponds to two sequential
     renaming operations.»
 
+  p""
+   «Therfore, solely based on “names” being any type an equality test,
+    and “terms” being any functor one can build standard operations.
+    Here are two examples, {|rename (x,y) t|} replaces free occurences
+    of {|x|} in {|t|} by {|y|} and {|swap (x,y) t|} exchanges free
+    occurences of {|x|} and {|y|} in {|t|}.»
+
+  [agdaFP|
+  |rename0 :: Eq a ⇒ (a, a) → a → a
+  |rename0 (x,y) z | z == x    = y
+  |                | otherwise = z
+  |
+  |rename :: (Functor f, Eq a) ⇒ (a, a) → f a → f a
+  |rename = fmap . rename0
+  |]
+
+  [agdaP|
+  |swap0 :: Eq a ⇒ (a, a) → a → a
+  |swap0 (x,y) z | z == y    = x
+  |              | z == x    = y
+  |              | otherwise = z
+  |
+  |swap :: (Functor f, Eq a) ⇒ (a, a) → f a → f a
+  |swap = fmap . swap0
+  |]
+
+    {-
   -- "proofs", appendix, long version, useless...
   -- using: fmap f (Lam g) = Lam (fmap (mapu f id) . g)
   doComment
@@ -800,35 +919,27 @@ body = {-slice .-} execWriter $ do -- {{{
     |  = fmap f (Lam (fmap (mapu g id) . h))
     |  = fmap f (fmap g (Lam h))
     |]
+  -}
 
   subsection $ «Substitute/Monad»
 
   [agdaFP|
   |instance Monad Tm where
   |  Var x   >>= θ = θ x
-  |  Lam t   >>= θ = Lam (\x → t x >>= lift θ)
+  |  Lam s   >>= θ = Lam (s >>>= θ)
   |  App t u >>= θ = App (t >>= θ) (u >>= θ)
   |
   |  return = Var
   |]
-
-  {-
-  Var x   >>= Var = Var x
-  Lam t   >>= Var = Lam (\x → t x >>= lift Var)
-                  = Lam (\x → t x >>= Var)
-
-  App t u >>= θ = App (t >>= θ) (u >>= θ)
-  -}
 
   [agdaP|
   |var :: (Monad tm, v ∈ a) ⇒ v → tm a
   |var = return . inj
   |]
 
-
   [agdaP|
-  |subst :: Monad m ⇒ (v → m w) → m v → m w
-  |subst = (=<<)
+  |(>>>=) :: f (Succ a) -> (a -> f b) -> f (Succ b)
+  |s >>>= θ = unpack s $ λ x t → pack x (t >>= liftSubst θ)
   |]
 
   [agdaP|
@@ -836,13 +947,15 @@ body = {-slice .-} execWriter $ do -- {{{
   |type Kl m v w = v → m w
   |
   |-- '(▹ v)' is a functor in the category of Kleisli arrows
-  |lift :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
-  |lift θ (There x) = fmap There (θ x) -- wk (θ x)
-  |lift θ (Here  x) = return (Here x)     -- var x
+  |liftSubst :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
+  |liftSubst θ (There x) = fmap There (θ x) -- wk (θ x)
+  |liftSubst θ (Here  x) = return (Here x)     -- var x
   |]
-  -- JP: changed 'Var (Here x)' to 'return (Here x)'
-  -- so that the code complies with the type signature given.
-  -- 'lift' is used below for other monads.
+
+  [agdaP|
+  |substitute :: (Monad tm, Eq a) => a -> tm a -> tm a -> tm a
+  |substitute x t u = u >>= λ y -> if x == y then t else return y
+  |]
 
   {-
   lift Var x = Var x
@@ -857,67 +970,6 @@ body = {-slice .-} execWriter $ do -- {{{
   -}
 
   p "" $ «Laws»
-  subsection $ «Contexts, inclusion and membership»
-
-  q«We have seen that the type of free variables essentially describes the context
-  where they are meaningful.
-  A context can either be empty (and we represent it by the type {|Zero|}) or not 
-  (which we can represent by the type {|a ▹ v|}). Given this, we can implement the relation
-  of context membership by a type-class ({|∈|}), whose sole method performs the injection
-  from a member of the context to the full context. The relation is defined
-  by two inference rules, corresponding to finding the variable in the first position of
-  the context, or further away in it, with he obvious injections.»
-  [agdaFP|
-  |instance v ∈ (a ▹ v) where
-  |  inj = Here
-  |
-  |instance (v ∈ a) ⇒ v ∈ (a ▹ v') where
-  |  inj = There . inj
-  |]
-  q«The cognoscenti will recognize the two above instances as {emph«incoherent»}, that is,
-  if {|v|} and {|v'|} were instanciated to the same type, both instances would apply equally.
-  Fortunately, this incoherency will never trigger as long as one uses the interface provided
-  by our combinators: the injection function will always be used on maximally polymorphic
-  contexts.»
-
-  q«
-  We have seen before that the overloading of the {|inj|} function in the {|∈|} class
-  allows to automatically
-  convert a type-level reference to a term into a dynamic de Bruijn index.
-
-  Another useful relation is context inclusion, which we also represent by a type-class
-  ({|⊆|}). The sole method of the typeclass is again an injection, from the small
-  context to the bigger one.»
-  [agdaFP|
-  |class a ⊆ b where
-  |  injMany :: a → b
-  |]
-  q«This time we have four instances: inclusion is reflexive; the empty context is 
-  the smallest one; adding a variable makes the context larger;
-  and variable append {|(▹ v)|} is monotonic for inclusion.»
-  [agdaFP|
-  |instance a ⊆ a where injMany = id
-  |
-  |instance Zero ⊆ a where injMany = magic
-  |
-  |instance (a ⊆ b) ⇒ a ⊆ (b ▹ v) where
-  |  injMany = There . injMany
-  |
-  |instance (a ⊆ b) ⇒ (a ▹ v) ⊆ (b ▹ v) where
-  |  injMany = mapu injMany id
-  |]
-  q«
-  This last case uses the fact that (▹) is functorial in its first argument.»
-
-  p "auto-weakening"«
-   The {|injMany|} function is map between contexts, and thus can be seen
-   as a renaming of free variables thanks to the functor structure of terms. 
-   Combined with the overloading of {|injMany|}, this allows to automatically weaken a term
-   from a small context to a bigger one.»
-  [agdaFP|
-  |wk :: (Functor f, a ⊆ b) ⇒ f a → f b
-  |wk = fmap injMany
-  |]
 
   subsection $ «Traversable»
 
@@ -962,7 +1014,7 @@ body = {-slice .-} execWriter $ do -- {{{
   It may seem like a complicated implementation is necessary, but in fact 
   it is a direct application of the {|traverse|} function.»
   [agdaFP|
-  |close :: Traversable tm => tm a -> Maybe (tm Zero)
+  |close :: Traversable tm ⇒ tm a → Maybe (tm Zero)
   |close = traverse (const Nothing)
   |]
 
@@ -1008,10 +1060,10 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |size2 :: (a -> Size) -> Tm a → Size
+  |size2 :: (a → Size) → Tm a → Size
   |size2 ρ (Var x) = ρ x
   |size2 ρ (App t u) = 1 + size2 t + size2 u
-  |size2 ρ (Lam g) = unpack g $ \x t -> 1 + size2 ρ' t
+  |size2 ρ (Lam g) = unpack g $ \x t → 1 + size2 ρ' t
   | where ρ' (Here _) = 1
   |       ρ' (There x) = ρ x
   |]
@@ -1036,8 +1088,8 @@ body = {-slice .-} execWriter $ do -- {{{
   |size1 (App t u) = 1 + size1 t + size1 u
   |]
 
-  -- Scope Tm a -> v -> Tm (a ▹ v)
-  -- Scope Tm a -> a -> Tm a
+  -- Scope Tm a → v → Tm (a ▹ v)
+  -- Scope Tm a → a → Tm a
   [agdaP|
   |untag :: a ▹ a → a
   |untag (There x) = x
@@ -1088,19 +1140,19 @@ body = {-slice .-} execWriter $ do -- {{{
 
   p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
       Note that the algebra corresponds to the higher-order representation of lambda terms.»
-  -- type TermAlgebra = TmF w a -> a
+  -- type TermAlgebra = TmF a b → b
   [agdaFP|
-  |data TmAlg w a = TmAlg { pVar :: w → a
-  |                       , pLam :: (a → a) → a
-  |                       , pApp :: a → a → a }
+  |data TmAlg a b = TmAlg { pVar :: a → b
+  |                       , pLam :: (b → b) → b
+  |                       , pApp :: b → b → b }
   |
-  |cata :: TmAlg w a → Tm w → a
+  |cata :: TmAlg a b → Tm a → b
   |cata φ s = case s of
   |   Var x   → pVar φ x
-  |   Lam f   → pLam φ (cata (extendAlg φ) . f)
+  |   Lam b   → pLam φ (cata (extendAlg φ) b)
   |   App t u → pApp φ (cata φ t) (cata φ u)
   |
-  |extendAlg :: TmAlg w a -> TmAlg (w ▹ a) a
+  |extendAlg :: TmAlg a b → TmAlg (Succ a) b
   |extendAlg φ = φ { pVar = extend (pVar φ) }
   |]
 
@@ -1110,12 +1162,12 @@ body = {-slice .-} execWriter $ do -- {{{
   subsection $ «Free variables»
 
   p"explain freeVars"
-   «The function which computes the free variables of a term can be
-    directly transcribed from its nominal-style specification, thanks to
-    the {|unpack|} combinator.»
+   «The function which computes the list of free variables of a term can
+    be directly transcribed from its nominal-style specification, thanks
+    to the {|unpack|} combinator.»
 
   [agdaFP|
-  |freeVars :: Tm w → [w]
+  |freeVars :: Tm a → [a]
   |freeVars (Var x) = [x]
   |freeVars (Lam b) = unpack b $ λ x t →
   |   remove x (freeVars t)
@@ -1123,7 +1175,7 @@ body = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"explain remove"
-   «The function which removes a free variable from a list maps a
+   «The function which removes a free variable from a list, maps a
     context {|a ▹ v|} to a context {|a|}. The function also takes a
     name for the variable being removed --- but it is used only for
     type-checking purposes.»
@@ -1143,7 +1195,7 @@ body = {-slice .-} execWriter $ do -- {{{
             (∀ v. Binder v → tm (w ▹ v) → a) → a
   unpack b k = k TheBinder (b TheBinder)
 
-  remove :: Binder v -> [a ▹ v] → [a]
+  remove :: Binder v → [a ▹ v] → [a]
   remove _ xs = [x | There x <- xs]
 
   ...
@@ -1154,25 +1206,40 @@ body = {-slice .-} execWriter $ do -- {{{
   -}
 
   [agdaFP|
-  |remove :: v -> [a ▹ v] → [a]
+  |remove :: v → [a ▹ v] → [a]
   |remove _ xs = [x | There x <- xs]
   |]
 
   subsection $ «Occurence Test»
 
-  q«In order to implement occurence testing, we need indices to be comparable.
-    To do so we provide the following two {|Eq|} instances.
-     First, the {|Zero|} type is vaccuously equipped with equality:»
+  p"Eq Zero"
+   «In order to implement occurence testing, we need indices to be
+    comparable. To do so we provide the following two {|Eq|} instances.
+    First, the {|Zero|} type is vaccuously equipped with equality:»
 
   [agdaFP|
   |instance Eq Zero where
   |  (==) = magic
   |]
-  q«Second, if two indices refer to the first variables they are equal; otherwise we recurse.
-  We stress that this equality tests only the {emph«indices »}, not the values contained in the type.
-  For example {|Here 0 == Here 1|} is {|True|}»
+
+  p""
+   «Second, if two indices refer to the first variables they are equal;
+    otherwise we recurse. We stress that this equality tests only the
+    {emph«indices»}, not the values contained in the type. For
+    example {|Here 0 == Here 1|} is {|True|}»
+
+  {-
+  instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where
+    Here  x == Here  y = x == y
+    There x == There y = x == y
+    _       == _       = False
+
+  instance Eq (Binder a) where
+    _ == _ = True
+  -}
+
   [agdaFP|
-  |instance Eq w ⇒ Eq (w ▹ v) where
+  |instance Eq a ⇒ Eq (a ▹ v) where
   |  Here  _ == Here  _ = True
   |  There x == There y = x == y
   |  _       == _       = False
@@ -1240,11 +1307,11 @@ body = {-slice .-} execWriter $ do -- {{{
     of the {|unpack|} combinator, which maintains the correspondance between contexts in two different terms.»
 
   [agdaFP|
-  |unpack2 :: (∀ v. v → f (a ▹ v)) ->
-  |           (∀ v. v → g (a ▹ v)) ->
+  |unpack2 :: (∀ v. v → f (a ▹ v)) →
+  |           (∀ v. v → g (a ▹ v)) →
   |
-  |           (∀ v. v → f (a ▹ v) ->
-  |                       g (a ▹ v) -> b) ->
+  |           (∀ v. v → f (a ▹ v) →
+  |                       g (a ▹ v) → b) →
   |           b
   |unpack2 f f' k = k fresh (f fresh) (f' fresh)
   |  where fresh = ()
@@ -1253,24 +1320,24 @@ body = {-slice .-} execWriter $ do -- {{{
   q«One can see {|unpack2|} as allocating a single fresh name {|x|} which is shared between {|t|} and {|t'|}.»
 
   commentCode [agdaFP|
-  |  Lam g == Lam g' = unpack2 g g' $ \x t t' ->
+  |  Lam g == Lam g' = unpack2 g g' $ \x t t' →
   |                    t == t'
   |]
 
   {- NP:
-    cmpTerm' :: Cmp a b -> Cmp (Term a) (Term b)
+    cmpTerm' :: Cmp a b → Cmp (Term a) (Term b)
     cmpTerm' cmp (Var x1) (Var x2) = cmp x1 x2
     cmpTerm' cmp (App t1 u1) (App t2 u2) =
       cmpTerm' cmp t1 t2 && cmpTerm' cmp u1 u2
     cmpTerm' cmp (Lam _ f1) (Lam _ f2) =
-      unpack f1 $ \x1 t1 ->
-      unpack f2 $ \x2 t2 ->
+      unpack f1 $ \x1 t1 →
+      unpack f2 $ \x2 t2 →
       cmpTerm' (extendCmp' x1 x2 cmp) t1 t2
     cmpTerm' _ _ _ = False
 
     -- The two first arguments are ignored and thus only there
     -- to help the user not make a mistake about a' and b'.
-    extendCmp' :: a' -> b' -> Cmp a b -> Cmp (a ∪ a') (b ∪ b')
+    extendCmp' :: a' → b' → Cmp a b → Cmp (a ∪ a') (b ∪ b')
     extendCmp' _ _ f (There x) (There y)  = f x y
     extendCmp' _ _ _ (Here _)  (Here _)   = True
     extendCmp' _ _ _ _         _          = False
@@ -1301,9 +1368,9 @@ body = {-slice .-} execWriter $ do -- {{{
   -- NP: This one is the normal bind for Tm. No the app is the fancy one
   -- ok. Then we need to stress the relation with >>=.
   [agdaFP|
-  |(=<<<) :: (a -> Tm b) -> Tm a -> Tm b
+  |(=<<<) :: (a → Tm b) → Tm a → Tm b
   |θ =<<< Var x   = θ x
-  |θ =<<< Lam t   = Lam (\x → lift θ =<<< t x)
+  |θ =<<< Lam t   = Lam (\x → liftSubst θ =<<< t x)
   |θ =<<< App t u = app (θ =<<< t) (θ =<<< u)
   |]
 
@@ -1330,8 +1397,8 @@ body = {-slice .-} execWriter $ do -- {{{
     »
   [agdaFP|
   |data LC w where
-  |  VarC :: w → LC w
-  |  AppC :: LC w → LC w → LC w
+  |  VarLC :: w → LC w
+  |  AppLC :: LC w → LC w → LC w
   |  Closure :: (∀ vx venv. vx → venv →
   |           LC (Zero ▹ venv ▹ vx)) →
   |           LC w →
@@ -1347,7 +1414,7 @@ body = {-slice .-} execWriter $ do -- {{{
 
   q«We give a couple helper functions to construct applications and indexwise access in a tuple:»
   [agdaFP|
-  |($$) = AppC
+  |($$) = AppLC
   |infixl $$
   |
   |idx :: (v ∈ a) ⇒ v → Int → LC a
@@ -1381,14 +1448,14 @@ body = {-slice .-} execWriter $ do -- {{{
     »
   [agdaFP|
   |cc :: ∀ w. Eq w ⇒ Tm w → LC w
-  |cc (Var x) = VarC x
+  |cc (Var x) = VarLC x
   |cc t0@(Lam f) =
   |  let yn = nub $ freeVars t0
-  |      bindAll :: ∀env. env -> w -> LC (Zero ▹ env)
+  |      bindAll :: ∀env. env → w → LC (Zero ▹ env)
   |      bindAll env = \z → idx env (fromJust $ elemIndex z yn)
   |  in Closure (\x env → cc (f x) >>=
-  |                   (lift $ bindAll env))
-  |          (Tuple $ map VarC yn)
+  |                   (liftSubst $ bindAll env))
+  |          (Tuple $ map VarLC yn)
   |cc (App e1 e2) =
   |  LetOpen (cc e1)
   |          (\f x → var f $$ wk (cc e2) $$ var x)
@@ -1403,93 +1470,105 @@ body = {-slice .-} execWriter $ do -- {{{
     algorithm.»
 
   subsection $ «CPS Transform»
-  q«
-     The next example is a transformation to continuation-passing style (CPS) based partially on
-     {cite[chlipalaparametric2008]} and {cite[guillemettetypepreserving2008]}.
 
-     The main objective of the transformation is to make explicit the order of evaluation,
-     {|Let|}-binding every intermediate {|Value|} in a specific order.
-     To this end, we target as special representation, every intermediate result is named.
-     We allow for {|Value|}s to be pairs, so we can easily replace each argument with a pair of an
-     argument and a continuation.»
+  p"intro"
+   «The next example is a transformation to continuation-passing
+    style (CPS) based partially on {cite[chlipalaparametric2008]} and
+    {cite[guillemettetypepreserving2008]}.
+
+    The main objective of the transformation is to make explicit the
+    order of evaluation, {|let|}-binding every intermediate {|Value|} in
+    a specific order. To this end, we target as special representation,
+    every intermediate result is named. We allow for {|Value|}s to be
+    pairs, so we can easily replace each argument with a pair of an
+    argument and a continuation.»
+
   [agdaFP|
-  |data Tm' a where
-  |  Halt' :: a → Tm' a
-  |  App'  :: a → a → Tm' a
-  |  Let   :: Value a → (∀ w. w → Tm' (a ▹ w)) → Tm' a
+  |data TmC a where
+  |  HaltC :: a → TmC a
+  |  AppC  :: a → a → TmC a
+  |  LetC  :: Value a → TmC (Succ a) → TmC a
   |
   |data Value a where
-  |  Abs' :: (∀ w. w → Tm' (a ▹ w)) → Value a
-  |  Pair :: a → a → Value a
-  |  Π1   :: a → Value a -- First projection
-  |  Π2   :: a → Value a -- Second projection
+  |  LamC  :: TmC (Succ a) → Value a
+  |  PairC :: a → a → Value a
+  |  FstC  :: a → Value a
+  |  SndC  :: a → Value a
   |]
 
-  q«We do not use {|Value|}s directly, but instead their composition with injection.»
+  p"smart constructors"
+   «We do not use {|Value|}s directly, but instead their composition with injection.»
+
   [agdaFP|
-  |pair :: (v ∈ a, v' ∈ a) ⇒ v → v' → Value a
-  |π1 :: (v ∈ a) ⇒ v → Value a
-  |π2 :: (v ∈ a) ⇒ v → Value a
-  |app' :: (v ∈ a, v' ∈ a) ⇒ v → v' → Tm' a
-  |halt' :: (v ∈ a) ⇒ v → Tm' a
+  |pairC :: (v ∈ a, v' ∈ a) ⇒ v → v' → Value a
+  |fstC  :: (v ∈ a) ⇒ v → Value a
+  |sndC  :: (v ∈ a) ⇒ v → Value a
+  |appC  :: (v ∈ a, v' ∈ a) ⇒ v → v' → TmC a
+  |haltC :: (v ∈ a) ⇒ v → TmC a
   |]
 
-  q«As {|Tm|}, {|Tm'|} enjoys a functor structure, with a straightforward implementation found in appendix.
-    The monadic structure
-    however is more involved, and is directly tied to the transformation we perform, so we omit it.»
+  p"Functor TmC"
+   «As {|Tm|}, {|TmC|} enjoys a functor structure, with a
+    straightforward implementation found in appendix. The monadic
+    structure however is more involved, and is directly tied to the
+    transformation we perform, so we omit it.»
 
-  q«We implement a one-pass CPS transform (administrative redexes are not
-  created). This is done by passing a host-language continuation to the transformation.
-  At the top-level the halting continuation is used.
-  A definition of the transformation using mathematical notation could be written as follows. We use a hat
-  to distinguish object-level abstractions ({tm|\hat\lambda|}) from host-level ones.
-  Similarly, the {tm|@|} sign is used for object-level applications.
-  »
+  p"the transformation"
+   «We implement a one-pass CPS transform (administrative redexes are
+    not created). This is done by passing a host-language continuation
+    to the transformation. At the top-level the halting continuation
+    is used. A definition of the transformation using mathematical
+    notation could be written as follows. We use a hat to distinguish
+    object-level abstractions ({tm|\hat\lambda|}) from host-level ones.
+    Similarly, the {tm|@|} sign is used for object-level applications. »
 
-  q« {tm|
-    \begin{array}{r@{\,}l}
-     \llbracket x \rrbracket\,\kappa &= \kappa\,x \\
-     \llbracket e_1@e_2 \rrbracket\,\kappa &= \llbracket e_1 \rrbracket (\lambda f. \\
-                                           &\quad \llbracket e_2 \rrbracket (\lambda x. \\
-                                           &\quad \mathsf{let}\, p = \langle x, \kappa \rangle \\
-                                           &\quad \mathsf{in}\,\quad f @ p ) ) \\
-     \llbracket \hat\lambda x. e \rrbracket \kappa &= \mathsf{let}\, f = (\hat\lambda p. \begin{array}[t]{l}
-                                           \mathsf{let}\, x_1 = \pi_1 p \,\mathsf{in}\\
-                                           \mathsf{let}\, k'  = \pi_2 p \,\mathsf{in} \\
-                                           \llbracket e[x_1/x] \rrbracket (\lambda r. k'@r)) \end{array}  \\
-                                          &\quad \mathsf{in} \, \kappa\,f
-    \end{array}
-  |} »
+  dmath
+   [texm|
+   |\begin{array}{r@{\,}l}
+   | \llbracket x \rrbracket\,\kappa &= \kappa\,x \\
+   | \llbracket e_1 \,@\, e_2 \rrbracket\,\kappa &= \llbracket e_1 \rrbracket (\lambda f. \\
+   |                                       &\quad \llbracket e_2 \rrbracket (\lambda x. \\
+   |                                       &\quad \mathsf{let}\, p = \langle x, \kappa \rangle \\
+   |                                       &\quad \mathsf{in}\,\quad f \, @ \, p ) ) \\
+   | \llbracket \hat\lambda x. e \rrbracket \kappa &= \mathsf{let}\, f = \hat\lambda p. \begin{array}[t]{l}
+   |                                       \mathsf{let}\, x_1 = \mathsf{fst}\, p \,\mathsf{in}\\
+   |                                       \mathsf{let}\, x_2  = \mathsf{snd}\, p \,\mathsf{in} \\
+   |                                       \llbracket e[x_1/x] \rrbracket (\lambda r.\, x_2 \, @ \, r) \end{array}  \\
+   |                                      &\quad \mathsf{in} \, \kappa\,f
+   |\end{array}
+   |]
 
-  q«The implementation follows the above definition, except for the following minor
-  differences. For the {|Lam|} case,
-  the only deviation are is an occurrence of {|wk|}. In the {|App|} case, we have
-  an additional reification of the host-level continuation as a proper {|Value|},
-  {|Abs'|} constructor.
+  p""
+   «The implementation follows the above definition, except for the
+    following minor differences. For the {|Lam|} case, the only
+    deviation are is an occurrence of {|wk|}. In the {|App|} case, we
+    have an additional reification of the host-level continuation as a
+    proper {|Value|}, {|LamC|} constructor.
 
-  In the variable case, we must pass the variable {|v|} to the continuation. Doing so
-  yields a value of type {|Tm' (a ▹ a)|}. To obtain a result of the right type it suffices to remove
-  the extra tagging introduced by {|a ▹ a|} everywhere in the term, using {|fmap untag|}.»
+    In the variable case, we must pass the variable {|v|} to the continuation. Doing so
+    yields a value of type {|TmC (a ▹ a)|}. To obtain a result of the right type it suffices to remove
+    the extra tagging introduced by {|a ▹ a|} everywhere in the term, using {|fmap untag|}.»
 
+  -- TODO
   [agdaFP|
-  |cps :: Tm a -> (∀ v. v -> Tm' (a ▹ v)) → Tm' a
+  |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = fmap untag (k x)
   |cps (App e1 e2) k =
-  |  cps e1 $ \f ->
-  |  cps (wk e2) $ \x ->
-  |  Let (Abs' (\x -> wk (k x))) $ \k' →
-  |  Let (pair x k') $ \p →
-  |  app' f p
+  |  cps e1 $ \f →
+  |  cps (wk e2) $ \x →
+  |  LetC (LamC (\x → wk (k x))) $ \k' →
+  |  LetC (pairC x k') $ \p →
+  |  appC f p
   |cps (Lam e')    k =
-  |  Let (Abs' $ \p → Let (π1 p) $ \x →
-  |                   Let (π2 p) $ \k' →
+  |  LetC (LamC $ \p → LetC (fstC p) $ \x →
+  |                   LetC (π2 p) $ \k' →
   |                   cps (wk (e' x)) $ \r →
-  |                   app' k' r)
+  |                   appC k' r)
   |      k
   |]
 
-  -- |cpsMain :: Tm a -> Tm' a
-  -- |cpsMain x = cps x halt'
+  -- |cpsMain :: Tm a → TmC a
+  -- |cpsMain x = cps x haltC
 
   q«It is folklore that a CPS transformation is easier to implement with higher-order abstract
   syntax {cite[guillemettetypepreserving2008,washburnboxes2003]}. Our representation of
@@ -1510,9 +1589,9 @@ body = {-slice .-} execWriter $ do -- {{{
     lambda calculus are as represented follows:»
   [agdaP|
   |data TmP a where
-  |  VarP :: a -> TmP a
-  |  LamP :: (a -> TmP a) -> TmP a
-  |  AppP :: TmP a -> TmP a -> TmP a
+  |  VarP :: a → TmP a
+  |  LamP :: (a → TmP a) → TmP a
+  |  AppP :: TmP a → TmP a → TmP a
   |]
   q«This reprensentation can be seen as a special version of ours, if all
   variables are assigned the same type. This specialisation has pros and cons.
@@ -1521,7 +1600,7 @@ body = {-slice .-} execWriter $ do -- {{{
   monadic {|join|} is as follows:»
   [agdaP|
   |join' (VarP x) = x
-  |join' (LamP f) = LamP (\x -> join' (f (VarP x)))
+  |join' (LamP f) = LamP (\x → join' (f (VarP x)))
   |join' (AppP t u) = AppP (join' t) (join' u)
   |]
 
@@ -1899,7 +1978,7 @@ body = {-slice .-} execWriter $ do -- {{{
  --   it «Worlds»
     it «free theorem: world-polymorphic term functions»
  --   it «example programs (fv, eta?, nbe, CPS, closure-conv.)»
---    it «type-class coercions»
+--    it «type class coercions»
 --    it «performance benchmark (fv, nbe)»
 --    it «functions are only substitutions»
   --  it «our binder is closest to the "real meaning" of bindings»
@@ -1917,23 +1996,23 @@ appendix = execWriter $ do
 
   [agdaP|
   |instance Functor Value where
-  |  fmap f (Π1 x) = Π1 (f x)
-  |  fmap f (Π2 x) = Π2 (f x)
-  |  fmap f (Pair x y) = Pair (f x) (f y)
-  |  fmap f (Abs' g) = Abs' (\x -> fmap (mapu f id) (g x))
+  |  fmap f (FstC x)    = FstC (f x)
+  |  fmap f (SndC x)    = SndC (f x)
+  |  fmap f (PairC x y) = PairC (f x) (f y)
+  |  fmap f (LamC t)    = LamC (fmap (mapu f id) t)
   |
-  |instance Functor Tm' where
-  |  fmap f (Halt' x) = Halt' (f x)
-  |  fmap f (App' x y) = App' (f x) (f y)
-  |  fmap f (Let p g) = Let (fmap f p) (\x -> fmap (mapu f id) (g x))
+  |instance Functor TmC where
+  |  fmap f (HaltC x)  = HaltC (f x)
+  |  fmap f (AppC x y) = AppC (f x) (f y)
+  |  fmap f (LetC p t) = LetC (fmap f p) (fmap (mapu f id) t)
   |]
 
   [agdaP|
-  |pair x y = Pair (inj x) (inj y)
-  |π1 = Π1 . inj
-  |π2 = Π2 . inj
-  |app' x y = App' (inj x) (inj y)
-  |halt' = Halt' . inj
+  |pairC x y = PairC (inj x) (inj y)
+  |fstC      = FstC . inj
+  |sndC      = SndC . inj
+  |appC x y  = AppC (inj x) (inj y)
+  |haltC     = HaltC . inj
   |]
   subsection «Closure Conversion»
 
@@ -1942,25 +2021,25 @@ appendix = execWriter $ do
   |  fmap f t = t >>= return . f
   |
   |instance Monad LC where
-  |  return = VarC
-  |  VarC x >>= θ = θ x
+  |  return = VarLC
+  |  VarLC x >>= θ = θ x
   |  Closure c env >>= θ = Closure c (env >>= θ)
   |  LetOpen t g >>= θ =
-  |    LetOpen (t >>= θ) (\f env -> g f env >>= lift (lift θ))
+  |    LetOpen (t >>= θ) (\f env -> g f env >>= liftSubst (liftSubst θ))
   |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
   |  Index t i >>= θ = Index (t >>= θ) i
-  |  AppC t u >>= θ = AppC (t >>= θ) (u >>= θ)
+  |  AppLC t u >>= θ = AppLC (t >>= θ) (u >>= θ)
   |]
 
   section $ «Bind an arbitrary name»
   [agdaP|
-  |packGen :: ∀ f v a b w. (Functor f, Insert v a b) =>
+  |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
   |           v -> f b -> (w -> f (a ▹ w))
   |packGen _ t x = fmap (shuffle cx) t
   |  where cx :: v -> w
   |        cx _ = x
   |
-  |class (v ∈ b) => Insert v a b where
+  |class (v ∈ b) ⇒ Insert v a b where
   |  -- inserting 'v' in 'a' yields 'b'.
   |  shuffle :: (v -> w) -> b -> a ▹ w
   |
@@ -1968,7 +2047,7 @@ appendix = execWriter $ do
   |  shuffle f (Here x) = Here (f x)
   |  shuffle f (There x) = There x
   |
-  |instance Insert v a b => Insert v (a ▹ v') (b ▹ v') where
+  |instance Insert v a b ⇒ Insert v (a ▹ v') (b ▹ v') where
   |  shuffle f (Here x) = There (Here x)
   |  shuffle f (There x) = case shuffle f x of
   |    Here y -> Here y
