@@ -803,20 +803,6 @@ body = {-slice .-} execWriter $ do -- {{{
   p"(▹) functoriality"
    «This last case uses the fact that {|(▹)|} is functorial in its first argument.»
 
-  p"auto-weakening"
-   «The {|injMany|} function is a map between contexts, and thus can be
-    seen as a renaming of free variables thanks to the functor structure
-    of terms. Combined with the overloading of {|injMany|}, this allows
-    to automatically weaken a term from a small context to a bigger
-    one.»
-
-  notetodo «Depends on Functor Tm»
-
-  [agdaFP|
-  |wk :: (Functor f, a ⊆ b) ⇒ f a → f b
-  |wk = fmap injMany
-  |]
-
   -- NP
   section $ «Term Structure» `labeled` termStructure
 
@@ -920,6 +906,21 @@ body = {-slice .-} execWriter $ do -- {{{
     |  = fmap f (fmap g (Lam h))
     |]
   -}
+
+  p"auto-weakening"
+   «Another useful function to combine with {|Functor|} is {|injMany|},
+    from the {|⊆|} class.
+    Indeed {|injMany|}, is a map from a context {|a|} to an arbitrary bigger context {|b|},
+    which can be seen as a renaming of free variables via the functorial 
+    structure of terms. In effect,
+    one obtains an arbitrary weakening from the context {|a|} to the bigger context {|b|}.»
+
+  [agdaFP|
+  |wk :: (Functor f, a ⊆ b) ⇒ f a → f b
+  |wk = fmap injMany
+  |]
+
+
 
   subsection $ «Substitute/Monad»
 
