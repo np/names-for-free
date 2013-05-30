@@ -216,22 +216,22 @@ On top of Bound:
 
 -}
 
-body = {-slice .-} execWriter $ do -- {{{
+body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   notetodo «ACM classification (JP: no clue how it's done these days!)»
 
-  notetodo «how to hide this stuff?»
-  [agdaP|
-  |{-# LANGUAGE RankNTypes, UnicodeSyntax,
-  |    TypeOperators, GADTs, MultiParamTypeClasses,
-  |    FlexibleInstances, UndecidableInstances,
-  |    IncoherentInstances, ScopedTypeVariables #-}
-  |import Prelude hiding (elem,any)
-  |import Data.Foldable
-  |import Data.Traversable
-  |import Control.Applicative
-  |import Data.List (nub,elemIndex)
-  |import Data.Maybe
-  |]
+  when includeUglyCode $ do 
+     [agdaP|
+     |{-# LANGUAGE RankNTypes, UnicodeSyntax,
+     |    TypeOperators, GADTs, MultiParamTypeClasses,
+     |    FlexibleInstances, UndecidableInstances,
+     |    IncoherentInstances, ScopedTypeVariables #-}
+     |import Prelude hiding (elem,any)
+     |import Data.Foldable
+     |import Data.Traversable
+     |import Control.Applicative
+     |import Data.List (nub,elemIndex)
+     |import Data.Maybe
+     |]
 
 -- JP (when the rest is ready)
   section $ «Intro» `labeled` intro
@@ -2069,10 +2069,10 @@ refresh_jp_bib = do
 
 main = do
   refresh_jp_bib
-  writeAgdaTo "PaperCode.hs" $ doc
-  compile [] "paper" doc
+  writeAgdaTo "PaperCode.hs" $ (doc True)
+  compile [] "paper" (doc False)
 
-doc = document title authors keywords abstract body appendix
+doc includeUglyCode = document title authors keywords abstract (body includeUglyCode) appendix
 -- }}}
 
 -- vim: foldmarker
