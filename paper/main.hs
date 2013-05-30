@@ -401,11 +401,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |
   |data a ▹ v = There a | Here v
   |
---  |instance Bifunctor (▹) where
   |bimap :: (a → a') → (v → v') → (a ▹ v) → (a' ▹ v')
   |bimap f _ (There x) = There (f x)
   |bimap _ g (Here x)  = Here (g x)
   |]
+--  |instance Bifunctor (▹) where
 
 
   p"apNested example"
