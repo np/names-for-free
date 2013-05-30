@@ -95,7 +95,7 @@ q = p ""
 apTm =
   [agdaFP|
   |-- Building the following term: λ f x → f x
-  |apTm = lam $ λ f → lam $ λ x → var f `app` var x
+  |apTm = lam $ λ f → lam $ λ x → var f `App` var x
   |]
 
 canEta =
@@ -207,8 +207,8 @@ On top of Bound:
     * could be better than 'abstract'/'instantiate'
     * higher-order style:
         * ∀ v. v → f (a ▹ v)
-        * nice constructions: lam \x -> lam \y -> ...
-        * nice unpacking: unpack \x t -> ...
+        * nice constructions: lam λ x → lam λ y → ...
+        * nice unpacking: unpack λ x t → ...
     * nominal style:
         * ∃ v. (v , f (a ▹ v))
         * "fresh x in ..." stands for "case fresh of Fresh x -> ..."
@@ -404,6 +404,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |bimap :: (a → a') → (v → v') → (a ▹ v) → (a' ▹ v')
   |bimap f _ (There x) = There (f x)
   |bimap _ g (Here x)  = Here (g x)
+  |
+  |untag :: a ▹ a → a
+  |untag (There x) = x
+  |untag (Here  x) = x
   |]
 --  |instance Bifunctor (▹) where
 
@@ -623,7 +627,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
        total. Example:
 
        foo :: Tm a → ()
-       foo (Lam e) = unpack e $ \x t → foo t
+       foo (Lam e) = unpack e $ λ x t → foo t
        foo _       = ()
 
    As long as unpack is that simple, this might be one of those situations
@@ -635,15 +639,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «In the above example, the functions {|isOccurenceOf|}
     and {|occursIn|} use the {|inj|} function to lift {|x|} to
     a reference in the right context before comparing it to the
-    occurrences. The calls to theses functions not get more complicated
-    in the presence of multiple binders. For example, the code which
-    recognises the pattern {|λ x y → e x|} is as follows:»
+    occurrences. The calls to theses functions do not get more
+    complicated in the presence of multiple binders. For example, the
+    code which recognises the pattern {|λ x y → e x|} is as follows:»
 
   [agdaFP|
   |recognize :: Tm Zero → Bool
   |recognize t0 = case t0 of
-  |    Lam f → unpack f $ \x t1 → case t1 of
-  |      Lam g → unpack g $ \y t2 → case t2 of
+  |    Lam f → unpack f $ λ x t1 → case t1 of
+  |      Lam g → unpack g $ λ y t2 → case t2 of
   |        App e1 (Var y) → y `isOccurenceOf` x &&
   |                         not (x `occursIn` e1)
   |        _ → False
@@ -963,7 +967,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   [agdaP|
-  |(>>>=) :: f (Succ a) -> (a -> f b) -> f (Succ b)
+  |(>>>=) :: (Functor f, Monad f) ⇒ f (Succ a) → (a → f b) → f (Succ b)
   |s >>>= θ = unpack s $ λ x t → pack x (t >>= liftSubst θ)
   |]
 
@@ -1016,7 +1020,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |  traverse f (App t u) =
   |    App <$> traverse f t <*> traverse f u
   |  traverse f (Lam t) =
-  |    unpack t $ \x b →
+  |    unpack t $ λ x b →
   |      Lam . pack x <$> traverse (traverseu f pure) b
   |]
 
@@ -1062,8 +1066,115 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |freeVars' = toList
   |]
 
+{- NP: cut off-topic?
+  -- TODO flow
+  p""
+   «Here the function {|size|} takes as an argument how to assign
+    a size to each free variable (the type {|a|}). An alternative
+    presentation would instead require a term whose variables are
+    directly of type {|Size|}. One can recover this alternative by
+    passing the identity function as first argument. However the other
+    way around requires to traverse the term.»
+
+  -- TODO maybe too much
+  [agdaFP|
+  |type S f b = forall a. (a -> b) -> f a -> b
+  |type T f b = f b -> b
+  |
+  |to :: S f b -> T f b
+  |to s = s id
+  |
+  |from :: Functor f =>  T f b -> S f b
+  |from t f = t . fmap f
+  |]
+
+could we get some fusion?
+
+s f . fmap g
+==
+s (f . g)
+
+-}
 
   subsection $ «Algebraic Structure/Catamorphism»
+
+  -- NP: I prefered to start over this subsection
+
+  p"flow"
+   «TODO flow»
+
+  p"size example"
+   «One can take the example of a size function, counting the number of
+    data constructors in a term:»
+
+  [agdaFP|
+  |type Size = Int
+  |]
+
+  [agdaFP|
+  |size :: (a → Size) → Tm a → Size
+  |size ρ (Var x)   = ρ x
+  |size ρ (App t u) = 1 + size ρ t + size ρ u
+  |size ρ (Lam b)   = 1 + size ρ' b
+  | where ρ' (Here  ()) = 1
+  |       ρ' (There  x) = ρ x
+  |]
+
+  p""
+   «However one might prefer using our interface in particular in larger examples.
+    Each binder is simply {|unpack|}ed.
+    Using this technique, the size computation looks as follows:»
+
+  [agdaP|
+  |-- sizeU is using 'unpack'
+  |sizeU :: (a → Size) → Tm a → Size
+  |sizeU ρ (Var x)   = ρ x
+  |sizeU ρ (App t u) = 1 + sizeU ρ t + sizeU ρ u
+  |sizeU ρ (Lam b)   = unpack b $ λ x t →
+  |                      1 + sizeU (extend (x,1) ρ) t
+  |
+  |extend :: (v, r) → (a → r) → (a ▹ v → r)
+  |extend (_, x) _ (Here _)  = x
+  |extend _      f (There x) = f x
+  |]
+
+  p"cata"
+   «This pattern can be generalized to any algebra over terms, yielding
+    the following catamorphism over terms. Note that the algebra
+    corresponds to the higher-order representation of lambda terms.»
+
+  -- type TermAlgebra = TmF a b → b
+  [agdaFP|
+  |data TmAlg a r = TmAlg { pVar :: a → r
+  |                       , pLam :: (r → r) → r
+  |                       , pApp :: r → r → r }
+  |
+  |cata :: TmAlg a r → Tm a → r
+  |cata φ s = case s of
+  |   Var x   → pVar φ x
+  |   Lam b   → pLam φ (λ x -> cata (extendAlg x φ) b)
+  |   App t u → pApp φ (cata φ t) (cata φ u)
+  |
+  |extendAlg :: r -> TmAlg a r → TmAlg (Succ a) r
+  |extendAlg x φ = φ { pVar = pVarSucc }
+  |  where
+  |    pVarSucc (Here  _) = x
+  |    pVarSucc (There y) = pVar φ y
+  |]
+
+  p"cataSize"
+   «Finally, it is also possible to use {|cata|} to compute the size:»
+
+  [agdaFP|
+  |sizeAlg :: (a → Size) → TmAlg a Size
+  |sizeAlg ρ = TmAlg { pVar = ρ
+  |                  , pLam = λ f → 1 + f 1
+  |                  , pApp = λ x y → 1 + x + y }
+  |
+  |cataSize :: (a → Size) → Tm a → Size
+  |cataSize = cata . sizeAlg
+  |]
+{-
   -- NP: this style (of using the variable parameter to represent intermediate
   -- results) could be detailed more here.
 
@@ -1073,26 +1184,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    Consequently, one can take advtantage of the benefits of each of there aspects when
    manipulating terms.
 
-   One can take the example of a size function to illustrate this flexibility.
+  ...»
 
-   We first demonstrate nominal aspect.
-   Each binder is simply {|unpack|}ed.
-   Using this technique, the size computation looks as follows:
-   »
+  ...
 
-  [agdaFP|
-  |type Size = Int
-  |]
-
-  [agdaP|
-  |size2 :: (a → Size) → Tm a → Size
-  |size2 ρ (Var x) = ρ x
-  |size2 ρ (App t u) = 1 + size2 t + size2 u
-  |size2 ρ (Lam g) = unpack g $ \x t → 1 + size2 ρ' t
-  | where ρ' (Here _) = 1
-  |       ρ' (There x) = ρ x
-  |]
-
+  startComment -- TODO
   p"higher-order"«Second, we show the higher-order aspect. It is common in higher-order representations
    to supply a concrete value to substitute for a variable at each binding site.
    Consequently we will assume that all free variables
@@ -1115,11 +1211,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   -- Scope Tm a → v → Tm (a ▹ v)
   -- Scope Tm a → a → Tm a
-  [agdaP|
-  |untag :: a ▹ a → a
-  |untag (There x) = x
-  |untag (Here x) = x
-  |]
+
+  {- NP: not sure about the usefulness of this
 
   p"de Bruijn"«Third, we demonstrate the de Bruijn index aspect. This time we assume an environment mapping
       de Bruijn indices {|Nat|} to the  their value of the free variables they represent (a {|Size|}
@@ -1151,35 +1244,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   we extend the environment to use that value on the new variable, or
   lookup in the old environment otherwise.
   »
+  -}
+-}
 
-  [agdaFP|
-  |size :: (a → Size) → Tm a → Size
-  |size f (Var x) = f x
-  |size f (Lam g) = 1 + size (extend f) (g 1)
-  |size f (App t u) = 1 + size f t + size f u
-  |]
-  [agdaP|
-  |extend g (Here a) = a
-  |extend g (There b) = g b
-  |]
-
-  p""«This pattern can be generalized to any algebra over terms, yielding the following catamorphism over terms.
-      Note that the algebra corresponds to the higher-order representation of lambda terms.»
-  -- type TermAlgebra = TmF a b → b
-  [agdaFP|
-  |data TmAlg a b = TmAlg { pVar :: a → b
-  |                       , pLam :: (b → b) → b
-  |                       , pApp :: b → b → b }
-  |
-  |cata :: TmAlg a b → Tm a → b
-  |cata φ s = case s of
-  |   Var x   → pVar φ x
-  |   Lam b   → pLam φ (cata (extendAlg φ) b)
-  |   App t u → pApp φ (cata φ t) (cata φ u)
-  |
-  |extendAlg :: TmAlg a b → TmAlg (Succ a) b
-  |extendAlg φ = φ { pVar = extend (pVar φ) }
-  |]
 
   -- JP/NP
   section $ «Bigger Examples» `labeled` examples
@@ -1309,9 +1376,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    sufficient to test for equality at the unit type, as shown below:
   »
   [agdaFP|
-  |instance Eq w ⇒ Eq (Tm w) where
+  |instance Eq a ⇒ Eq (Tm a) where
   |  Var x == Var x' = x == x'
-  |  Lam g == Lam g' = g () == g' ()
+  |  Lam g == Lam g' = g == g'
   |  App t u == App t' u' = t == t' && u == u'
   |]
   -- NP: I would like to see my more general cmpTm
@@ -1345,28 +1412,31 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«One can see {|unpack2|} as allocating a single fresh name {|x|} which is shared between {|t|} and {|t'|}.»
 
   commentCode [agdaFP|
-  |  Lam g == Lam g' = unpack2 g g' $ \x t t' →
+  |  Lam g == Lam g' = unpack2 g g' $ λ x t t' →
   |                    t == t'
   |]
 
-  {- NP:
-    cmpTerm' :: Cmp a b → Cmp (Term a) (Term b)
-    cmpTerm' cmp (Var x1) (Var x2) = cmp x1 x2
-    cmpTerm' cmp (App t1 u1) (App t2 u2) =
-      cmpTerm' cmp t1 t2 && cmpTerm' cmp u1 u2
-    cmpTerm' cmp (Lam _ f1) (Lam _ f2) =
-      unpack f1 $ \x1 t1 →
-      unpack f2 $ \x2 t2 →
-      cmpTerm' (extendCmp' x1 x2 cmp) t1 t2
-    cmpTerm' _ _ _ = False
-
-    -- The two first arguments are ignored and thus only there
-    -- to help the user not make a mistake about a' and b'.
-    extendCmp' :: a' → b' → Cmp a b → Cmp (a ∪ a') (b ∪ b')
-    extendCmp' _ _ f (There x) (There y)  = f x y
-    extendCmp' _ _ _ (Here _)  (Here _)   = True
-    extendCmp' _ _ _ _         _          = False
-  -}
+  [agdaFP|
+  |type Cmp a b = a -> b -> Bool
+  |
+  |cmpTm :: Cmp a b → Cmp (Tm a) (Tm b)
+  |cmpTm cmp (Var x1)    (Var x2)    =
+  |  cmp x1 x2
+  |cmpTm cmp (App t1 u1) (App t2 u2) =
+  |  cmpTm cmp t1 t2 && cmpTm cmp u1 u2
+  |cmpTm cmp (Lam f1) (Lam f2) =
+  |  unpack f1 $ λ x1 t1 →
+  |  unpack f2 $ λ x2 t2 →
+  |  cmpTm (extendCmp x1 x2 cmp) t1 t2
+  |cmpTm _ _ _ = False
+  |
+  |-- The two first arguments are ignored and thus only there
+  |-- to help the user not make a mistake about a' and b'.
+  |extendCmp :: a' → b' → Cmp a b → Cmp (a ▹ a') (b ▹ b')
+  |extendCmp _ _ f (There x) (There y)  = f x y
+  |extendCmp _ _ _ (Here _)  (Here _)   = True
+  |extendCmp _ _ _ _         _          = False
+  |]
 
   subsection $ «Normalisation by evaluation»
   p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is
@@ -1376,7 +1446,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- NP: unclear, we need to stress that we represent substitutions by
   -- functions from 'names' to 'terms'.
   [agdaFP|
-  |subst0 :: Monad tm ⇒ w ▹ tm w → tm w
+  |subst0 :: Monad tm ⇒ a ▹ tm a → tm a
   |subst0 (Here  x) = x
   |subst0 (There x) = return x
   |]
@@ -1384,6 +1454,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«We can then define (by mutual recursion) the application of normal forms to normal forms, and a substituter which hereditarily
   uses it.»
 
+  startComment -- TODO
   [agdaFP|
   |app :: Tm a → Tm a → Tm a
   |app (Lam t) u = subst0 =<<< t u
@@ -1395,7 +1466,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |(=<<<) :: (a → Tm b) → Tm a → Tm b
   |θ =<<< Var x   = θ x
-  |θ =<<< Lam t   = Lam (\x → liftSubst θ =<<< t x)
+  |θ =<<< Lam t   = Lam (λ x → liftSubst θ =<<< t x)
   |θ =<<< App t u = app (θ =<<< t) (θ =<<< u)
   |]
 
@@ -1469,22 +1540,25 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   notetodo «Include fig. 2 from {cite[guillemettetypepreserving2007]}»
   q«The implementation follows the pattern given by {citet[guillemettetypepreserving2007]}.
     We make one modification: in closure creation, instead of binding one by one the free variables {|yn|} in the body
-    to elements of the environment, we bind them all at once, using a substitution {|\z → idx env (indexOf z yn)|}.
-    »
+    to elements of the environment, we bind them all at once, using a substitution which maps variables to their
+    position in the list {|yn|}.»
+
   [agdaFP|
-  |cc :: ∀ w. Eq w ⇒ Tm w → LC w
+  |cc :: Eq a ⇒ Tm a → LC a
   |cc (Var x) = VarLC x
-  |cc t0@(Lam f) =
+  |cc t0@(Lam b) =
   |  let yn = nub $ freeVars t0
-  |      bindAll :: ∀env. env → w → LC (Zero ▹ env)
-  |      bindAll env = \z → idx env (fromJust $ elemIndex z yn)
-  |  in Closure (\x env → cc (f x) >>=
-  |                   (liftSubst $ bindAll env))
-  |          (Tuple $ map VarLC yn)
+  |  in closure (λ x env → cc (f x) >>=
+  |                   liftSubst (idxFrom yn env))
+  |             (Tuple $ map VarLC yn)
   |cc (App e1 e2) =
-  |  LetOpen (cc e1)
+  |  letOpen (cc e1)
   |          (\f x → var f $$ wk (cc e2) $$ var x)
+  |
+  |idxFrom :: Eq a ⇒ [a] -> v → a → LC (Zero ▹ v)
+  |idxFrom yn env z = idx env $ fromJust $ elemIndex z yn
   |]
+  stopComment
 
   q«
     Notably, {citeauthor[guillemettetypepreserving2007]} modify the function to
@@ -1524,6 +1598,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"smart constructors"
    «We do not use {|Value|}s directly, but instead their composition with injection.»
 
+  startComment -- TODO
   [agdaFP|
   |pairC :: (v ∈ a, v' ∈ a) ⇒ v → v' → Value a
   |fstC  :: (v ∈ a) ⇒ v → Value a
@@ -1625,7 +1700,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   monadic {|join|} is as follows:»
   [agdaP|
   |join' (VarP x) = x
-  |join' (LamP f) = LamP (\x → join' (f (VarP x)))
+  |join' (LamP f) = LamP (λ x → join' (f (VarP x)))
   |join' (AppP t u) = AppP (join' t) (join' u)
   |]
 
@@ -1943,7 +2018,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |lamD :: (∀ v. v -> TmD (a ▹ v)) -> TmD a
   |lamD f = unpack f LamD
   |]
-  -- NP: it was: |lamD f = unpack f $ \x t -> LamD x t
 
   subsection «Future work: both aspects in one»
 
@@ -2076,6 +2150,11 @@ appendix = execWriter $ do
   |    There y -> There (There y)
   |]
 
+  stopComment
+  stopComment
+  stopComment
+  stopComment
+  stopComment
   return ()
 -- }}}
 
