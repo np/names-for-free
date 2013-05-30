@@ -392,8 +392,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"flash-forward"«Anticipating on the amendements we propose, we define {|Succ a|} type as 
    a proper sum of {|a|} and the unit type {|()|}. Because the sum is used in an
-   assymetric fashinon (the left-hand-side corresponds to free variables and the right-hand-side
-   to newly bound ones), we give a special definition, whose the syntax reflects the
+   assymetric fashinon (the left-hand-side corresponds to variables bound earlier and the right-hand-side
+   to the freshly bound one), we give a special definition, whose the syntax reflects the
    intended semantics.»
   
   [agdaFP|
