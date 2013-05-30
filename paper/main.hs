@@ -817,6 +817,19 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- NP
   section $ «Term Structure» `labeled` termStructure
 
+  p""«It is well-known that every term representations parameterised on the type of free variables
+      should exhibit monadic structure,
+      with substitution corresponding to the binding operator {cite[{-TODO-}]}. This implies that 
+      the representation is stable under substitution. In this section we review
+      this structure, as well as other standard related structures on terms. 
+      Theses structures are perhaps easier to implement directly
+      on a concrete term representation, rather than our interface. However,
+      we give an implementation solely based on our interface,
+      to demonstrate that our interface is complete with 
+      respect to these structures. By doing so, we also demonstrate how
+      to work with our interface in practice.
+      »
+
   p"intro functor"
    «This Nested Abstract Syntax approach that we are standing
     upon {cite[birdpaterson99]} enjoys interesting structures. For
@@ -1650,11 +1663,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
         similiarity is the use of instance search to recover the indices from a
         host-language variable name.
 
-        Even though McBride's combinators use polymorphism in a way similar to ours,
-        a difference is that they produce a plain de Brujin representation,
-        while we keep the polymorphism throughout.
-        TODO NOT TRUE ANYMORE
-
         Another difference is that McBride integrates the injection in the abstraction
         constructor rather than the variable constructor. The type of the {|var|} combinator becomes then
         simpler, at the expense of {|lam|}:
@@ -1665,7 +1673,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |         fTm m
   |var :: Fin n → Tm n
   |]
-  p "" «The above types also reveal somewhat less precise types that what we use.
+  p "" «An advantage of McBride's interface is that it does not require the ``incoherent instances'' extension. »
+  -- 'Ordered overlapping type family instances' will improve the situation for us.
+  p "" «However the above interface reveals somewhat less precise types than what we use.
         Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|⊆|}
         in our development),
         namely that one context should be smaller than another.
