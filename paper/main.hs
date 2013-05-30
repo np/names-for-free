@@ -231,6 +231,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |import Control.Applicative
      |import Data.List (nub,elemIndex)
      |import Data.Maybe
+     |import Data.Bifunctor 
      |]
 
 -- JP (when the rest is ready)
@@ -367,8 +368,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     are closed. If the parameter is the unit type, there is at most one
     free variable, etc.»
 
-  -- We stress that the parameter is the type of free-variables and
-  -- therefore does not affect the representation of bound variables
+  -- Because the parameter is the type of free-variables,
+  -- it does not affect the representation of bound variables
   -- at all.
 
   p"citation"
@@ -378,16 +379,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
   -- NP: explain the meaning of Here and There
   [agdaFP|
-  |data a ▹ v = There a | Here v
-  |
-  |-- TODO mapu is a poor name
-  |-- (▹) is a BiFunctor
-  |mapu :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
-  |mapu f _ (There x) = There (f x)
-  |mapu _ g (Here x)  = Here (g x)
-  |
-  |type Succ a = a ▹ ()
-  |
   |data Tm a where
   |  Var :: a → Tm a
   |  App :: Tm a → Tm a → Tm a
@@ -398,6 +389,23 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «The recursive case {|Lam|} changes the type parameter, increasing
     its cardinality by one, since the body can refer to one more
     variable.»
+
+  p"flash-forward"«Anticipating on the amendements we propose, we define {|Succ a|} type as 
+   a proper sum of {|a|} and the unit type {|()|}. Because the sum is used in an
+   assymetric fashinon (the left-hand-side corresponds to free variables and the right-hand-side
+   to newly bound ones), we give a special definition, whose the syntax reflects the
+   intended semantics.»
+  
+  [agdaFP|
+  |type Succ a = a ▹ ()
+  |
+  |data a ▹ v = There a | Here v
+  |
+  |bimap :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
+  |bimap f _ (There x) = There (f x)
+  |bimap _ g (Here x)  = Here (g x)
+  |]
+
 
   p"apNested example"
    «Using this representation, the implementation of the application
@@ -708,7 +716,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
-  |pack x = fmap (mapu id (const ()))
+  |pack x = fmap (bimap id (const ()))
   |]
 
   p"dynamically useless, statically useful"
@@ -797,7 +805,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |  injMany = There . injMany
   |
   |instance (a ⊆ b) ⇒ (a ▹ v) ⊆ (b ▹ v) where
-  |  injMany = mapu injMany id
+  |  injMany = bimap injMany id
   |]
 
   p"(▹) functoriality"
@@ -822,7 +830,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     simply preserves the structure of the input term, using {|f|}
     to rename free variables and upgrade {|f|} to {|Succ a → Succ
     b|} using the functoriality of {|Succ|} (any {|(▹ v)|} actually)
-    with {|mapu f id|}. Adapting the function {|f|} is not only a
+    with {|bimap f id|}. Adapting the function {|f|} is not only a
     type-checking matter: it is meant to protect the bound name from
     being altered by {|f|}.»
 
@@ -831,7 +839,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |instance Functor Tm where
   |  fmap f (Var x)   = Var (f x)
-  |  fmap f (Lam t)   = Lam (fmap (mapu f id) t)
+  |  fmap f (Lam t)   = Lam (fmap (bimap f id) t)
   |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
 
@@ -880,14 +888,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
     {-
   -- "proofs", appendix, long version, useless...
-  -- using: fmap f (Lam g) = Lam (fmap (mapu f id) . g)
+  -- using: fmap f (Lam g) = Lam (fmap (bimap f id) . g)
   doComment
     [agdaFP|
     |fmap id (Var x)
     |  = Var (id x) = Var x
     |
     |fmap id (Lam g)
-    |  = Lam (fmap (mapu id id) . g)
+    |  = Lam (fmap (bimap id id) . g)
     |  = Lam (fmap id . g)
     |  = Lam (id . g)
     |  = Lam g
@@ -899,10 +907,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     |  = fmap f (fmap g (Var x))
     |
     |fmap (f . g) (Lam h)
-    |  = Lam (fmap (mapu (f . g) id) . h)
-    |  = Lam (fmap (mapu f id . mapu g id) . h)
-    |  = Lam (fmap (mapu f id) . fmap (mapu g id) . h)
-    |  = fmap f (Lam (fmap (mapu g id) . h))
+    |  = Lam (fmap (bimap (f . g) id) . h)
+    |  = Lam (fmap (bimap f id . bimap g id) . h)
+    |  = Lam (fmap (bimap f id) . fmap (bimap g id) . h)
+    |  = fmap f (Lam (fmap (bimap g id) . h))
     |  = fmap f (fmap g (Lam h))
     |]
   -}
@@ -2000,12 +2008,12 @@ appendix = execWriter $ do
   |  fmap f (FstC x)    = FstC (f x)
   |  fmap f (SndC x)    = SndC (f x)
   |  fmap f (PairC x y) = PairC (f x) (f y)
-  |  fmap f (LamC t)    = LamC (fmap (mapu f id) t)
+  |  fmap f (LamC t)    = LamC (fmap (bimap f id) t)
   |
   |instance Functor TmC where
   |  fmap f (HaltC x)  = HaltC (f x)
   |  fmap f (AppC x y) = AppC (f x) (f y)
-  |  fmap f (LetC p t) = LetC (fmap f p) (fmap (mapu f id) t)
+  |  fmap f (LetC p t) = LetC (fmap f p) (fmap (bimap f id) t)
   |]
 
   [agdaP|
