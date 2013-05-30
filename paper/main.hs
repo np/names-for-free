@@ -231,7 +231,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |import Control.Applicative
      |import Data.List (nub,elemIndex)
      |import Data.Maybe
-     |import Data.Bifunctor 
+     |-- import Data.Bifunctor 
      |]
 
 -- JP (when the rest is ready)
@@ -401,7 +401,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |
   |data a ▹ v = There a | Here v
   |
-  |bimap :: (u → u') → (v → v') → (u ▹ v) → (u' ▹ v')
+--  |instance Bifunctor (▹) where
+  |bimap :: (a → a') → (v → v') → (a ▹ v) → (a' ▹ v')
   |bimap f _ (There x) = There (f x)
   |bimap _ g (Here x)  = Here (g x)
   |]
