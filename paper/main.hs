@@ -407,9 +407,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 --  |instance Bifunctor (▹) where
 
-
   p"apNested example"
-   «Using this representation, the implementation of the application
+   «Using the {|Tm|} representation, the implementation of the application
     function {|λ f x → f x|} is the following:»
 
   [agdaFP|
@@ -432,9 +431,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"polymorphic terms are closed"
    «In passing, we remark that another type which faithfully captures
-    closed terms is {|∀ a. Tm a|} --- literally: the type of terms for
-    which one can pick the type from which the free variables are drawn.
-    (TODO: not gramatical)
+    closed terms is {|∀ a. Tm a|} --- literally: the type of terms which
+    are meaningful in any context.
     Indeed, because {|a|} is universally quantified, there is no way
     to construct an inhabitant of it; therefore one cannot possibly refer to any
     free variable. In particular one can instantiate {|a|} to be the
@@ -490,7 +488,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"still the same elephant"
-   «One can remark that by unfolding the definition of {|lam|} in {|apTm|} one recovers
+   «By unfolding the definition of {|lam|} in {|apTm|} one recovers
     the definition of {|apNested|}.»
 
   paragraph «Safety»
@@ -504,7 +502,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     purely part of the {emph«implementation»}.»
 
   p"type-checking the number of There..."
-   «If one now makes a mistake and forgets one {|There|} when typing the
+   «The type-checker will make sure that the implementation matches the specification:
+    for example if one now makes a mistake and forgets one {|There|} when typing the
     term, the Haskell type system rejects the definition.»
 
   commentCode [agdaFP|
@@ -561,13 +560,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   apTm
 
-  p"pros"
-   «Thanks to polymorphism, our interface allows to construct
-    terms with de Bruijn indices, combined with the safety and
-    convenience of named variables. In the next section we will show how
-    to use the same idea to provide the same advantages for the analysis
-    and manipulation on terms.»
-
   p"more intuitions"
    «In a nutshell, our de Bruijn indices are typed with the context
     where they are valid. If that context is sufficiently polymorphic,
@@ -575,6 +567,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     intuition is that these {|Here|} and {|There|} are building proofs
     of “context membership”. Thus, a de Bruijn index in a given context
     is similar to a well-scoped name.»
+
+  p"flow to next section"
+   «So far, we have seen that by taking advantage of polymorphism, 
+    our interface allows to construct
+    terms with de Bruijn indices, combined with the safety and
+    convenience of named variables. In the next section we will show how
+    to use the same idea to provide the same advantages for the analysis
+    and manipulation on terms.»
 
   subsection «Pack/Unpack: Referring to free variables by name»
 
@@ -585,13 +585,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     number of binders traversed between the variable bindings and
     its potential occurrences --- an error prone task. Here as well,
     we can take advantage of polymorphism to ensure that no mistake
-    happens. We provide a combinator {|unpack|}, which takes a binding
-    structure (so far of type {|Tm (Succ a)|}) and existentially hides
-    the type {|()|} as a type {|v|}, a value {|x|} of type {|v|} and a
+    happens. We provide a combinator {|unpack|}, which hides the 
+    type of the newly bound variables (the type {|()|}) as an existentially
+    quantified type {|v|}. The combinator {|unpack|} takes a binding
+    structure (of type {|Tm (Succ a)|}) and gives a pair of
+    a value {|x|} of type {|v|} and a
     sub-term of type {|Tm (a ▹ v)|}. Here we write the combinator in
     continuation-passing style as it seems the most convenient to use
-    this way. See section TODO FORWARD REFERENCE for another solution
-    based on view patterns. Since this combinator is not specific to our
+    this way. (See section TODO FORWARD REFERENCE for another solution
+    based on view patterns.) Because this combinator is not specific to our
     type {|Tm|} we generalize it to any type constructor {|f|}:»
 
   unpackCode
@@ -606,7 +608,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     {|Tm (a ▹ v0 ▹ v1 ▹ v)|}, {|x|} refers to the last introduced free
     variable in {|t|}.
 
-    Using {|unpack|}, one can write a function recognising an
+    Using {|unpack|}, one can write a function which can recognise an
     eta-contractible term as follows: (Recall that an a eta-contractible
     term has the form {|λ x → e x|}, where {|x|} does not occur free
     in {|e|}.)»
@@ -633,7 +635,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «In the above example, the functions {|isOccurenceOf|}
     and {|occursIn|} use the {|inj|} function to lift {|x|} to
     a reference in the right context before comparing it to the
-    occurrences. The occurrence checks do not get more complicated
+    occurrences. The calls to theses functions not get more complicated
     in the presence of multiple binders. For example, the code which
     recognises the pattern {|λ x y → e x|} is as follows:»
 
