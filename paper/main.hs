@@ -321,20 +321,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   section $ «Overview» `labeled` overview
 
   p"flow"
-   «In this section we describe our construction. Since it is a
-    refinement one usual representation of de Bruijn indices, we review
-    those first.»
-  
-  p"flow; alternative"
-   «In this section we describe our construction. Since it is a
-    an interface, we first describe a simple implementation which 
-    can support it.»
+   «In this section we describe our interface. We begin
+    by describing a simple implementation which can support it.»
 
   subsection $ «de Bruijn Indices»
 
   p"de Bruijn indices"
    «{citet[debruijnlambda1972]} proposed to represent a variable {|x|}
-    by counting the number binders one has to cross over to reach the
+    by counting the number binders that one has to cross over to reach the
     binding site of {|x|}. A direct implementation of the idea may yield
     the following representation of untyped lambda terms:»
 
@@ -395,7 +389,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     variable.»
 
   p"flash-forward"«Anticipating on the amendements we propose, we define {|Succ a|} type as 
-   a proper sum of {|a|} and the unit type {|()|}. Because the sum is used in an
+   a proper sum of {|a|} and the unit type {|()|} instead of {|Maybe a|} as customary. 
+   Because the sum is used in an
    assymetric fashinon (the left-hand-side corresponds to variables bound earlier and the right-hand-side
    to the freshly bound one), we give a special definition, whose the syntax reflects the
    intended semantics.»
@@ -643,7 +638,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «In the above example, the functions {|isOccurenceOf|}
     and {|occursIn|} use the {|inj|} function to lift {|x|} to
     a reference in the right context before comparing it to the
-    occurrences. The calls to theses functions do not get more
+    occurrences. The calls to these functions do not get more
     complicated in the presence of multiple binders. For example, the
     code which recognises the pattern {|λ x y → e x|} is as follows:»
 
@@ -1688,9 +1683,7 @@ s (f . g)
 
   -- NP
   section $ «Comparisons» `labeled` comparison
-  subsection $ «Fin»
-  subsection $ «Maybe/Nested»
-  p "" $ «Kmett's succ-less»
+  subsection $ «Kmett's succ-less»
   subsection $ «Parametric Higher-Order Abstract Syntax»
   q«{citet[chlipalaparametric2008]} describes a way to represent binders using
     polymorphism and functions. Using that technique, called Parametric Higher-Order Abstract Syntax (PHOAS),
@@ -1735,7 +1728,7 @@ s (f . g)
   p "+" «Negative occurrences of the recursive type»
   subsection $ «Syntax for free»
   p "+" «Forced to use catamorphism to analyse terms»
-  subsection $ «McBride's "Classy Hack"»
+  subsection $ «McBride's ``Classy Hack''»
 
   -- the point of types isn’t the crap you’re not allowed to write,
   -- it’s the other crap you don’t want to bother figuring out.
@@ -1766,7 +1759,7 @@ s (f . g)
         This means, for example, that the class constraint {|w ⊆ w'|} can be meaning fully resolved
         in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
 
-  q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to free variables.»
+  q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to term analysis and manipulation.»
 
   subsection $ «NomPa (nominal fragment)»
 
@@ -1873,10 +1866,6 @@ s (f . g)
   subsection $ «Multiple Binders/Rec/Pattern/Telescope»
 
   -- ??
-  section $ «Performance» `labeled` performance
-  p "" «fv, nbe, ?»
-
-  -- ??
   section $ «Proofs» `labeled` proofs
   p "" «isomorphisms, free-theorems»
 
@@ -1956,13 +1945,6 @@ s (f . g)
      Our reprensentation supports a natural implementation of both transformations.
      »
 
-  subsection «Non-intrusive ideas»
-  q«The representation can be used only locally. Indeed, it can be
-  transformed back and forth to other representations of well-scoped terms.
-  We already take advantage of this fact when we {|unpack|} or {|pack|} a binder,
-  as we expose in the following section.»
-
-
   subsection $ «Dual reprensentations»
   q«We use two representations for bindings, one based on universal
   quantification, the other one based on existential quantification.»
@@ -1971,8 +1953,8 @@ s (f . g)
   |type Univ  tm a = ∀ v.  v -> tm (a :▹ v)
   |type Exist tm a = ∃ v. (v ,  tm (a :▹ v))
   |]
-  q«(Because existentials do not enjoy native support in Haskell we have to encode
-   {|Exist|} in some way).»
+  q«(Because existentials do not enjoy native support in Haskell we must represent 
+   {|Exist|} either using CPS or a data type).»
 
   {-
   NP: I think this will not work well with the Haskell community:
@@ -1991,8 +1973,8 @@ s (f . g)
   rule of such existential construct.
   -}
 
-  q«These representations are logically equivalent: one can convert at will between them,
-  using the {|pack|} and {|unpack|} combinators.
+  q«Both of these representations are isomorphic to the simpler type {|Succ a|}.
+    TODO proof
   They are dual from a performance and safety perspective: the universal-based representation
   is well-suited for construction of terms, while the existential-based representation is
   is well-suited for analysis of terms.»

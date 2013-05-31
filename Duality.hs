@@ -35,7 +35,7 @@ data Exist tm a where
 type Scope tm a = tm (Succ a) 
    
 toUniv :: Functor tm => Scope tm a -> Univ tm a
-toUniv t x = fmap (mapu id (const x)) t
+toUniv t = \x -> fmap (mapu id (const x)) t
  
 fromUniv :: Univ tm a -> Scope tm a 
 fromUniv f = f ()
@@ -45,6 +45,56 @@ toExist t = N () t
 
 fromExist :: Functor tm => Exist tm a -> Scope tm a
 fromExist (N _ t) = fmap (mapu id (const ())) t
+
+
+1.
+
+  fromUniv (toUniv t)
+
+== {- def -}
+  
+  (\x -> fmap (mapu id (const x)) t) ()
+  
+== {- beta-red -}
+  
+  fmap (mapu id (const ())) t)
+
+== {- const () == id -}
+  
+  fmap (mapu id id t)
+  
+== {- bifunctor law -}
+  
+   fmap id t
+
+== {- functor law -}
+
+  t
+
+
+2.
+
+  toUniv (fromUniv t) -> needs param.
+
+3. 
+
+  fromExist (toExist t) 
+  
+== {- def -}
+
+  fmap (mapu id (const ())) t
+  
+==  {- as before -} 
+
+  id
+
+
+4. toExist (fromExist t)
+
+-> an abstraction over the type followed by a specialisation to the original type.
+-> easy to show identity.
+
+
 
 lam :: Univ Tm a -> Tm a
 lam t = Lam (fromUniv t)
