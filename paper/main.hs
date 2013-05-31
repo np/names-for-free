@@ -865,6 +865,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
   -- |  fmap f (Lam t)   = Lam nm (\x -> Lam (fmap (bimap f id) t)
 
+
+ {- As usual satisfying functor laws implies that the structure is preserved by the function action (fmap). 
+    The type for terms being a functor therefor means that applying a renaming is going 
+  to only affect the free variables and leave the structure untouched. -}
+
   p"functor laws"
    «Satisfying functor laws implies that the structure is preserved by
     a renaming. Namely that whatever the function {|f|} is doing, the
@@ -1681,10 +1686,17 @@ s (f . g)
   However limited, this higher-order aspect is enough to allow an easy implementation of
   the CPS transform.»
 
+  
+  section $ «'Theory'» -- TODO: JP
+
+  subsection $ «Proofs» `labeled` proofs
+  p "" «isomorphisms, free-theorems»
+
   -- NP
   section $ «Comparisons» `labeled` comparison
-  subsection $ «Kmett's succ-less»
-  subsection $ «Parametric Higher-Order Abstract Syntax»
+  subsection $ «Fin» -- TODO: NP
+  subsection $ «Kmett's Bound» -- TODO: NP
+  subsection $ «Parametric Higher-Order Abstract Syntax» -- TODO: JP: revise
   q«{citet[chlipalaparametric2008]} describes a way to represent binders using
     polymorphism and functions. Using that technique, called Parametric Higher-Order Abstract Syntax (PHOAS),
     terms of the untyped
@@ -1717,17 +1729,20 @@ s (f . g)
   Indeed this makes  the type {|TmP|} invariant and thus  cannot be made
   a {|Functor|} nor a {|Traversable|}.»
 
-  q«We don't do typed representations (yet)»
+  q«We don't do typed representations (yet)» -- TODO: JP
 
-  subsection $ «HOAS»
+  subsection $ «HOAS» -- TODO: JP
   p "" «Functions should only be substitutions»
   q«{cite[washburnboxes2003]}»
   subsubsection $ «Concrete Terms»
   p "" «TmH → TmH | TmH × TmH»
   p "+" «Exotic terms»
   p "+" «Negative occurrences of the recursive type»
-  subsection $ «Syntax for free»
+  subsection $ «Syntax for free» -- TODO: NP
+  q«Cata is conversion to 'syntax for free'»
   p "+" «Forced to use catamorphism to analyse terms»
+  p "+" «Cannot go back to well-scoped terms (needs
+         parametricity in Kripke version to do so)»
   subsection $ «McBride's ``Classy Hack''»
 
   -- the point of types isn’t the crap you’re not allowed to write,
@@ -1761,7 +1776,7 @@ s (f . g)
 
   q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to term analysis and manipulation.»
 
-  subsection $ «NomPa (nominal fragment)»
+  subsection $ «NomPa (nominal fragment)» -- TODO: JP (revise -- optional eq. tests.) 
 
 {-
     -- minimal kit to define types
@@ -1863,11 +1878,8 @@ s (f . g)
   »
 
 
-  subsection $ «Multiple Binders/Rec/Pattern/Telescope»
+  subsection $ «Multiple Binders/Rec/Pattern/Telescope» -- TODO: NP
 
-  -- ??
-  section $ «Proofs» `labeled` proofs
-  p "" «isomorphisms, free-theorems»
 
 {-
   Lam :: Binding Tm a -> Tm a
