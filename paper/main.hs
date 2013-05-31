@@ -32,6 +32,7 @@ import NomPaKit.QQ
       implementationExtras
       functorSec
       cpsSec
+      nbeSec
      |]
 
 -- figures
@@ -1051,23 +1052,21 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«Or substitution of an arbitrary variable:»
 
   [agdaP|
-  |substitute :: (Monad tm, Eq a, v ∈ a) ⇒
+  |substitute' :: (Monad tm, Eq a, v ∈ a) ⇒
   |              v → tm a → tm a → tm a
-  |substitute x t u = u >>= λ y ->
+  |substitute' x t u = u >>= λ y ->
   |     if y `isOccurenceOf` x then t else return y
   |]
 
-  {- NP: does not type check:
-          Could not deduce (a ~ (a ▹ v))
-  notetodo«explain this»
-  q«Or the well-scoped version»
+  q«One might however also want to remove the substituted
+    variable from the context while performing the substitution:»
   [agdaP|
   |substitute :: Monad tm =>
   |              v -> tm a -> tm (a ▹ v) -> tm a
-  |substitute x t u = u >>= λ y ->
-  |     if y `isOccurenceOf` x then t else return y
+  |substitute x t u = u >>= λ y -> case y of
+  |     Here _ -> t
+  |     There x -> return x
   |]
-  -}
 
   p"laws"
    «The associativity law ensure that applying a composition of
@@ -1526,7 +1525,7 @@ s (f . g)
   |extendCmp _ _ _ _         _          = False
   |]
 
-  subsection $ «Normalisation by evaluation»
+  subsection $ «Normalisation by evaluation» `labeled` nbeSec
 
   p"intro"
    «One way to evaluate terms is to evaluate each subterm to normal
@@ -1534,32 +1533,21 @@ s (f . g)
     performed. This technique is known as normalisation by evaluation
     {cite nbecites}.»
 
-  q«The substitution to apply merely embeds free variables into terms:»
-  -- NP: unclear, we need to stress that we represent substitutions by
-  -- functions from 'names' to 'terms'.
-  [agdaFP|
-  |subst0 :: Monad tm ⇒ a ▹ tm a → tm a
-  |subst0 (Here  x) = x
-  |subst0 (There x) = return x
-  |]
-
-  q«We can then define (by mutual recursion) the application of normal forms to normal forms, and a substituter which hereditarily
+  q«We can then define (by mutual recursion) the application of normal forms to normal forms, and a substittuer which hereditarily
   uses it.»
 
-  startComment -- TODO
   [agdaFP|
   |app :: Tm a → Tm a → Tm a
-  |app (Lam t) u = subst0 =<<< t u
+  |app (Lam b) u = unpack b $ \x t -> substitute x u t --TODO JP: FIXME: use hereditary subst.
   |app t u = App t u
   |]
   
+  notetodo «stress the relation with >>=.»
 
-  -- NP: This one is the normal bind for Tm. No the app is the fancy one
-  -- ok. Then we need to stress the relation with >>=.
   [agdaFP|
   |(=<<<) :: (a → Tm b) → Tm a → Tm b
   |θ =<<< Var x   = θ x
-  |θ =<<< Lam t   = Lam (λ x → liftSubst θ =<<< t x)
+  |θ =<<< Lam b   = unpack b $ \x t -> lamP x (liftSubst θ =<<< t)
   |θ =<<< App t u = app (θ =<<< t) (θ =<<< u)
   |]
 
@@ -1567,10 +1555,11 @@ s (f . g)
   [agdaFP|
   |eval :: Tm w → Tm w
   |eval (Var x) = Var x
-  |eval (Lam t) = Lam (eval . t)
+  |eval (Lam t) = Lam (eval t)
   |eval (App t u) = app (eval t) (eval u)
   |]
 
+  startComment -- TODO
 
   subsection $ «Closure Conversion»
   p"" «Following {citet[guillemettetypepreserving2007]}»
@@ -2041,7 +2030,7 @@ s (f . g)
 
   q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to term analysis and manipulation.»
 
-  subsection $ «NomPa (nominal fragment)» -- TODO: JP (revise -- optional eq. tests.) 
+  subsection $ «NomPa (nominal fragment)» -- TODO: NP (revise -- optional eq. tests.) 
 
 {-
     -- minimal kit to define types
@@ -2102,23 +2091,24 @@ s (f . g)
 ƛ   : ∀ b → Tm (b ◅ α) → Tm α
 -}
 
-  p""«{citet[pouillardunified2012]} describe an interface for names and binders which provides maximum safety.
-      The library is writen in Agda, using dependent types. The interface makes use of an abstract notion
-      of {|World|}s (set of names), {|Binder|}s (name declaration), and {|Name|}s (the occurrence of a name).
+  p""«{citet[pouillardunified2012]} describe an interface for names and binders 
+      which provides maximum safety.
+      The library is writen in _Agda, using dependent types. 
+      The interface makes use of a notion
+      of {|World|}s (set of names), {|Binder|}s (name declaration), 
+      and {|Name|}s (the occurrence of a name).
 
-      A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator.
+      A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator {|(◅)|}. A {|Name|} set is indexed by a {|World|}: this ties occurrences to the context where they make sense. 
      »
   commentCode [agdaP|
-  |-- Abstract interface
   |World :: *
   |Binder :: *
-  |Name :: World → *
   |Empty :: World
   |(◅) :: Binder → World → World
+  |Name :: World → *
   |]
 
   p""«
-  A {|Name|} set is indexed by a {|World|}: this ties occurrences to the context where they make sense.
   On top of these abstract notions, one can construct the following representation of terms (we use
   a Haskell-like syntax for dependent types, similar to that of {_Idris}):
   »
@@ -2136,10 +2126,9 @@ s (f . g)
 
   A drawback of the interface being abstract is that some subterms do not evaluate.
 
-  In contrast, our representation uses polymorphism to ensure safety. This means that
-  there is one way to compromise safety, namely, by instanciating a type variable with
-  a concrete type. We do not suffer the drawback abstraction: the representation is concrete,
-  and concrete terms will always evaluate.
+  In contrast, our is interfaces are concrete (code using it will always evaluate), but 
+  it requires the user to chose the representation appropriate to the current use
+  ({|Univ|} or {|Exist|}).
   »
 
 
