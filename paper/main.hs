@@ -1746,6 +1746,37 @@ s (f . g)
   -- NP
   section $ «Comparisons» `labeled` comparison
   subsection $ «Fin» -- TODO: NP
+
+  p"Fin approach description"
+   «Another approach already used and described in {cite fincites} is
+    to index terms, names, etc. by a number, a bound. This bound is the
+    maximum number of distinct free variables allowed in the value. This
+    rule is enforced in two parts: variables have to be strictly lower
+    than their bound, and the bound is incremented by one when crossing
+    a name abstraction (a λ-abstraction for instance).»
+
+  p"Fin type description"
+   «The type {|Fin n|} is used for variables and represents natural
+    numbers strictly lower than {|n|}. The name {|Fin n|} comes from the
+    fact that it defines finite sets of size {|n|}.»
+
+  p"Fin/Maybe connection"
+   «We can draw a link with the Nested Abstract Syntax. Indeed,
+    as with the type {|Succ|} ({|(▹ ())|} or {|Maybe|}), the
+    type {|Fin (suc n)|} has exactly one more element than the
+    type {|Fin n|}. However, these approaches are not equivalent for at
+    least two reasons. The Nested Abstract Syntax can accept any type to
+    represent variables. This makes the structure more like a container
+    and this can be particularly helpful to define the monadic structure
+    (substitution). The {|Fin|} approach has advantages as well: the
+    representation is concrete and simpler since closer to the original
+    approach for de Brujin indices. In particular the representation of
+    variables free and bound is more regular and could be more amenable
+    to optimize variables as machine integers.»
+
+  {- There might even be ways to get a similar interface for Fin,
+     it might get closer McBride approach, tough -}
+
   subsection $ «Kmett's Bound» -- TODO: NP
   subsection $ «Parametric Higher-Order Abstract Syntax» -- TODO: JP: revise
   q«{citet[chlipalaparametric2008]} describes a way to represent binders using
