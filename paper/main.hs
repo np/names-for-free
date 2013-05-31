@@ -50,7 +50,35 @@ import NomPaKit.QQ
       shinwell_freshml_2003
       berger_normalization_1998
       mcbride_applicative_2007
+
+      de-bruijn-72 mcbride-mckinna-04 altenkirch-reus-99
+      atkey-hoas-09 pouillard-pottier-10 pouillard-11
+      bernardy-10 reynolds-83 mcbride-paterson-08 altenkirch-93 wadler-free-89
+      bellegarde-94
+
+      shinwell-03 pitts-06 licata-harper-09 pottier-lics-07 urban-04
+
+      poplmark guillemette-monnier-08 elphin-05 delphin-08 delphin-09
+      pientka-08 pitts-10 harper-93
+      atkey-lindley-yallop-09 weirich-yorgey-sheard-11
+      wadler-views-87
+
+      taha-99 engler-96 norell-07 hutton-07 tapl attapl pottier-alphacaml
+      fresh-ocaml pollack-sato-ricciotti-11 sato-pollack-10
+      chargueraud-11-ln aydemir-08 cave-12
      |]
+
+{-
+alphacaml = pottieralphacaml
+nominalsigs = urban04
+lfcite = harper93
+lncites = [chargueraud11ln, aydemir08]
+spcites = [pollacksatoricciotti11, satopollack10]
+-}
+belugamu = cave12
+fincites = [altenkirch93, mcbridemckinna04]
+nestedcites = [bellegarde94, birdpaterson99, altenkirchreus99]
+nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu]
 
 title =  «Names For Free --- A Polymorphic Interface to Names and Binders»
   -- «Parametric Nested Abstract Syntax» -- Sounds like it's for a representation
@@ -372,7 +400,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"citation"
    «This representation in known as Nested Abstract
-    Syntax {cite[birdpaterson99]}»
+    Syntax {cite nestedcites}»
 
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
   -- NP: explain the meaning of Here and There
@@ -1467,8 +1495,12 @@ s (f . g)
   |]
 
   subsection $ «Normalisation by evaluation»
-  p""«One way to evaluate terms is to evaluate each subterm to normal form. If a redex is encountered, a hereditary substitution is
-      performed. This technique is known as normalisation by evaluation {cite[bergernormalization1998]}.»
+
+  p"intro"
+   «One way to evaluate terms is to evaluate each subterm to normal
+    form. If a redex is encountered, a hereditary substitution is
+    performed. This technique is known as normalisation by evaluation
+    {cite nbecites}.»
 
   q«The substitution to apply merely embeds free variables into terms:»
   -- NP: unclear, we need to stress that we represent substitutions by
@@ -1604,9 +1636,9 @@ s (f . g)
     {cite[guillemettetypepreserving2008]}.
 
     The main objective of the transformation is to make explicit the
-    order of evaluation, {|let|}-binding every intermediate {|Value|} in
+    order of evaluation, {|let|}-binding every intermediate {|Value|} in
     a specific order. To this end, we target as special representation,
-    every intermediate result is named. We allow for {|Value|}s to be
+    every intermediate result is named. We allow for {|Value|}s to be
     pairs, so we can easily replace each argument with a pair of an
     argument and a continuation.»
 
