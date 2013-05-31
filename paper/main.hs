@@ -836,7 +836,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
       to work with our interface in practice.
       »
 
-  subsection $ «Renaming/Functor» `labeled` functorSec
+  subsection $ «Renaming and Functors» `labeled` functorSec
 
   p"intro functor"
    «The first, perhaps simplest, property of terms is that free variables
@@ -959,41 +959,62 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     program transformation. We demonstrate this feature in sec. {ref cpsSec} »
 
 
-  subsection $ «Substitute/Monad»
-
+  subsection $ «Substitution and Monads»
+  q«Another property of terms is that free variables can be substituted with terms. This property is 
+  captured algebraically by asserting that terms form a {|Monad|}, where the {|return|} is the variable 
+  constructor and {|>>=|} acts as substitution. 
+  Indeed, one can see a substitution from a context {|a|} to a context {|b|} 
+  as mapping {|a|} to {|Tm b|}, (Technically, substitutions are Kleisli arrows.) and (>>=) applies a substitution
+  everywhere in a term.» 
+  q«The definition of the {|Monad|} instance is straightforward for variable and application, and we
+    isolate the handling of binders in the {|>>>=|} function.»
   [agdaFP|
   |instance Monad Tm where
   |  Var x   >>= θ = θ x
   |  Lam s   >>= θ = Lam (s >>>= θ)
   |  App t u >>= θ = App (t >>= θ) (u >>= θ)
-  |
   |  return = Var
   |]
 
+  q«At binding sites, one needs to lift the substitution 
+    so it does not act on the newly bound variables. As for the 
+    {|Functor|} instance, the type-system will guarantee that no mistake
+    is made. Perhaps noteworthy is that this operation is independent of the
+    concrete term structure. We use only renaming ({|fmap|}) and variables {|return|}.»
+  [agdaP|
+  |liftSubst :: (Functor tm, Monad tm) ⇒ 
+  |             (a -> tm b) → (a ▹ v) -> tm (b ▹ v)
+  |liftSubst θ (There x) = fmap There (θ x) 
+  |liftSubst θ (Here  x) = return (Here x)  
+  |]
+  q«Substitution under a binder {|>>>=|} is then the wrapping of {|liftSubst|} between 
+  {|unpack|} and {|pack|}. Is is generic as well, and thus can be reused for every 
+  structure with binders.»
+  
+  [agdaP|
+  |(>>>=) :: (Functor tm, Monad tm) ⇒
+  |          tm (Succ a) → (a → tm b) → tm (Succ b)
+  |s >>>= θ = unpack s $ λ x t → 
+  |             pack x (t >>= liftSubst θ)
+  |]
+  q«
+  We can combine to monad structure with the membership ({|∈|}) class to get useful 
+  polymorphic code, such as a generic reference to a variable:»
   [agdaP|
   |var :: (Monad tm, v ∈ a) ⇒ v → tm a
   |var = return . inj
   |]
 
+  q«Or substitution of an arbitrary variable:»
   [agdaP|
-  |(>>>=) :: (Functor f, Monad f) ⇒ f (Succ a) → (a → f b) → f (Succ b)
-  |s >>>= θ = unpack s $ λ x t → pack x (t >>= liftSubst θ)
+  |substitute :: (Monad tm, Eq a, v ∈ a) => 
+  |              v -> tm a -> tm a -> tm a
+  |substitute x t u = u >>= λ y -> 
+  |     if y `isOccurenceOf` x then t else return y
   |]
-
-  [agdaP|
-  |-- Kleisli arrows
-  |type Kl m v w = v → m w
-  |
-  |-- '(▹ v)' is a functor in the category of Kleisli arrows
-  |liftSubst :: (Functor tm, Monad tm) ⇒ Kl tm a b → Kl tm (a ▹ v) (b ▹ v)
-  |liftSubst θ (There x) = fmap There (θ x) -- wk (θ x)
-  |liftSubst θ (Here  x) = return (Here x)     -- var x
-  |]
-
-  [agdaP|
-  |substitute :: (Monad tm, Eq a) => a -> tm a -> tm a -> tm a
-  |substitute x t u = u >>= λ y -> if x == y then t else return y
-  |]
+  q«The associativity law ensure that applying a composition of substitutions is equivalent
+    to sequentially applying them, while the identity law ensure that variables act indeed 
+    as such.»
 
   {-
   lift Var x = Var x
@@ -1007,8 +1028,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   lift return (Here  x) = return (Here x)
   -}
 
-  p "" $ «Laws»
-
   subsection $ «Traversable»
 
   p"explain traverse"
@@ -1020,7 +1039,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     than a {|Functor|} and strictly less powerful than a {|Monad|}.
     Any {|Monad|} is an {|Applicative|} and any {|Applicative|} is
     a {|Functor|}. To be traversed a structure only need an applicative
-    and therefore will support monadic actions directly. {cite[mcbrideapplicative2007]}»
+    and therefore will support monadic actions directly {cite[mcbrideapplicative2007]}.»
 
   [agdaFP|
   |instance Traversable Tm where
