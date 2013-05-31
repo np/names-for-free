@@ -1675,6 +1675,7 @@ s (f . g)
     pairs, so we can easily replace each argument with a pair of an
     argument and a continuation.»
 
+{-
   [agdaFP|
   |data TmC a where
   |  HaltC :: a → TmC a
@@ -1687,24 +1688,74 @@ s (f . g)
   |  FstC  :: a → Value a
   |  SndC  :: a → Value a
   |]
+-}
+
+  [agdaFP|
+  |data TmC a where
+  |  HaltC :: Value a → TmC a
+  |  AppC  :: Value a → Value a → TmC a
+  |  LetC  :: Value a → TmC (Succ a) → TmC a
+  |
+  |data Value a where
+  |  LamC  :: TmC (Succ a) → Value a
+  |  PairC :: Value a → Value a → Value a
+  |  VarC  :: a → Value a
+  |  FstC  :: a → Value a
+  |  SndC  :: a → Value a
+  |]
 
   p"smart constructors"
    «We do not use {|Value|}s directly, but instead their composition with injection.»
 
-  startComment -- TODO
+  {-
   [agdaFP|
+  |type PolyScope f a = ∀ v. v → f (a ▹ v)
+  |
+  |haltC :: (v ∈ a) ⇒ v → TmC a
+  |appC  :: (v ∈ a, v' ∈ a) ⇒ v → v' → TmC a
+  |letC  :: Value a → PolyScope TmC a → TmC a
+  |
+  |lamC  :: PolyScope TmC a → Value a
   |pairC :: (v ∈ a, v' ∈ a) ⇒ v → v' → Value a
   |fstC  :: (v ∈ a) ⇒ v → Value a
   |sndC  :: (v ∈ a) ⇒ v → Value a
-  |appC  :: (v ∈ a, v' ∈ a) ⇒ v → v' → TmC a
-  |haltC :: (v ∈ a) ⇒ v → TmC a
+  |]
+  -}
+
+  [agdaFP|
+  |type PolyScope f a = ∀ v. v → f (a ▹ v)
+  |
+  |varC :: (v ∈ a) ⇒ v → Value a
+  |letC :: Value a → PolyScope TmC a → TmC a
+  |lamC :: PolyScope TmC a → Value a
+  |fstC :: (v ∈ a) ⇒ v → Value a
+  |sndC :: (v ∈ a) ⇒ v → Value a
+  |]
+
+  -- smart constructor for
+  --    λ(x1,x2)→f x1 x2
+  -- internally producing
+  --    λp→ let x1 = fst p in
+  --        let x2 = snd p in
+  --        f x1 x2
+
+  [agdaFP|
+  |type PolyScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
+  |
+  |lamPairC :: PolyScope2 TmC a → Value a
+  |lamPairC f = lamC $ \p ->
+  |              letC (fstC p) $ \x1 ->
+  |              letC (sndC p) $ \x2 ->
+  |              wk $ f x1 x2
   |]
 
   p"Functor TmC"
-   «As {|Tm|}, {|TmC|} enjoys a functor structure, with a
-    straightforward implementation found in appendix. The monadic
-    structure however is more involved, and is directly tied to the
-    transformation we perform, so we omit it.»
+   «As {|Tm|}, {|TmC|} enjoys a functor structure, with a
+    straightforward implementation found in appendix. However, this
+    new syntax is not stable under substitution. Building a monadic
+    structure would be more involved, and is directly tied to the
+    transformation we perform and the operational semantics of the
+    language, so we omit it.»
 
   p"the transformation"
    «We implement a one-pass CPS transform (administrative redexes are
@@ -1731,7 +1782,7 @@ s (f . g)
    |\end{array}
    |]
 
-  p""
+  p"latex vs. haskell"
    «The implementation follows the above definition, except for the
     following minor differences. For the {|Lam|} case, the only
     deviation are is an occurrence of {|wk|}. In the {|App|} case, we
@@ -1742,7 +1793,7 @@ s (f . g)
     yields a value of type {|TmC (a ▹ a)|}. To obtain a result of the right type it suffices to remove
     the extra tagging introduced by {|a ▹ a|} everywhere in the term, using {|fmap untag|}.»
 
-  -- TODO
+  {-
   [agdaFP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = fmap untag (k x)
@@ -1758,6 +1809,30 @@ s (f . g)
   |                   cps (wk (e' x)) $ \r →
   |                   appC k' r)
   |      k
+  |]
+  -}
+
+  -- |cps :: Tm a -> Poly TmC a -> TmC a
+  [agdaFP|
+  |-- same as succToPoly
+  |inst1 :: Functor f => f (Succ a) → v → f (a ▹ v)
+  |inst1 t x = fmap (bimap id (const x)) t
+  |
+  |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
+  |cps (Var x)     k = untag <$> k x
+  |cps (App e1 e2) k =
+  |  cps e1 $ \x1 →
+  |  cps (wk e2) $ \x2 →
+  |  AppC (varC x1)
+  |       (PairC (varC x2)
+  |              (lamC (\x -> wk $ k x)))
+  |cps (Lam e')    k =
+  |  letC (lamPairC $ \x1 x2 →
+  |        cps (fmap There $ inst1 e' x1) $ \r →
+  |        AppC (varC x2) (varC r)) k
+  |
+  |cps0 :: Tm a → TmC a
+  |cps0 t = cps t $ HaltC . varC
   |]
 
   -- |cpsMain :: Tm a → TmC a
@@ -1776,7 +1851,7 @@ s (f . g)
   q«In nested abstract systax, a binder introducing one variable in scope is represented as»
 
   [agdaP|
-  |type Scope1 tm a = tm (Succ a)
+  |type SuccScope tm a = tm (Succ a)
   |]
 
   q«In essence, we propose two new, dual representations of binders,
@@ -1784,8 +1859,8 @@ s (f . g)
   quantification, the other one based on existential quantification.»
 
   commentCode [agdaFP|
-  |type Univ  tm a = ∀ v.  v -> tm (a :▹ v)
-  |type Exist tm a = ∃ v. (v ,  tm (a :▹ v))
+  |type PolyScope  tm a = ∀ v.  v -> tm (a ▹ v)
+  |type ExistScope tm a = ∃ v. (v ,  tm (a ▹ v))
   |]
   q«The above syntax for existentials is not supported in Haskell, so we must use
     one of the lightweight encodings available. In the absence of view patterns,   
@@ -1793,10 +1868,10 @@ s (f . g)
     convenient for programming (so we used this so far),
     but in the following a datatype representation is more convenient in the following:»
 
-  [agdaP|
-  |data Exist tm a where
-  |  N :: v -> tm (a :▹ v) -> Exist tm a
-  |]
+  [agdaFP|
+  |data ExistScope tm a where
+  |  E :: v -> tm (a ▹ v) -> ExistScope tm a
+  |] 
 
   q«As we observe in a number of examples, these representations are dual from a safety perspective: 
   the universal-based representation
@@ -1805,23 +1880,27 @@ s (f . g)
 
   For this reason, we do not commit to either side, and use the suitable representation on 
   a case-by-case basis. This is possible because the representations are both isomorphic to
-  a concrete represention of binders such as {|Scope1|} (and by transivitity between each other).
+  a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
   »
   subsection«Isomorphisms»
-  q«The conversion functions witnessing the isomorphism are the following.»
-  [agdaP|
-  |toUniv :: Functor tm => Scope tm a -> Univ tm a
-  |toUniv t = \x -> fmap (mapu id (const x)) t
-  | 
-  |fromUniv :: Univ tm a -> Scope tm a 
-  |fromUniv f = f ()
+
+  p"conversions"
+   «The conversion functions witnessing the isomorphism are the following.»
+
+  [agdaFP|
+  |succToPoly :: Functor tm => SuccScope tm a -> PolyScope tm a
+  |succToPoly t = λ x → fmap (bimap id (const x)) t
   |
-  |toExist :: Scope tm a -> Exist tm a
-  |toExist t = N () t
+  |polyToSucc :: PolyScope tm a -> SuccScope tm a 
+  |polyToSucc f = f ()
   |
-  |fromExist :: Functor tm => Exist tm a -> Scope tm a
-  |fromExist (N _ t) = fmap (mapu id (const ())) t
+  |succToExist :: SuccScope tm a -> ExistScope tm a
+  |succToExist t = E () t
+  |
+  |existToSucc :: Functor tm => ExistScope tm a -> SuccScope tm a
+  |existToSucc (E _ t) = fmap (bimap id (const ())) t
   |]
+
   q«One will recognise pack and unpack as CPS versions of fromExist and toExist.
     The {|fromUniv|} function was not named before, but was implicitly used 
     in the definition of {|lam|}.»
@@ -1868,7 +1947,7 @@ s (f . g)
   of the host language. One naive translation of this idea yields the
   following term representation:»
   [agdaP|
-  | data TmH = TmH → TmH | TmH × TmH 
+  |data TmH = LamH (TmH → TmH) | AppH TmH TmH
   |]
   q«An issue with this kind of representation is the presence of so-called ``exotic terms'':
   a function of type {|TmH → TmH|} which performs pattern matching on its argument
@@ -2148,7 +2227,7 @@ s (f . g)
   p "even more safety by no instanciation" «
   Each of the dual representation of bindings ensure one aspect of safety. One may
   wonder if it is possible to combine the safety of both. This suggest a type-system feature
-  to represent the intersection of {|Univ tm|} and {|Exist tm|}.
+  to represent the intersection of {|PolyScope tm|} and {|ExistScope tm|}.
   This is reminiscent of the ∇ quantifier of {citet[millerproof2003]}.
   »
 
@@ -2214,28 +2293,51 @@ appendix = execWriter $ do
   section $ «Implementation details» `labeled` implementationExtras
   subsection «CPS»
 
-  [agdaP|
-  |instance Functor Value where
+{-
   |  fmap f (FstC x)    = FstC (f x)
   |  fmap f (SndC x)    = SndC (f x)
   |  fmap f (PairC x y) = PairC (f x) (f y)
   |  fmap f (LamC t)    = LamC (fmap (bimap f id) t)
-  |
-  |instance Functor TmC where
+
   |  fmap f (HaltC x)  = HaltC (f x)
   |  fmap f (AppC x y) = AppC (f x) (f y)
   |  fmap f (LetC p t) = LetC (fmap f p) (fmap (bimap f id) t)
+  -}
+  [agdaP|
+  |instance Functor Value where
+  |  fmap f (VarC x)      = VarC (f x)
+  |  fmap f (FstC x)      = FstC (f x)
+  |  fmap f (SndC x)      = SndC (f x)
+  |  fmap f (PairC v1 v2) = PairC (fmap f v1) (fmap f v2)
+  |  fmap f (LamC t)      = LamC (fmap (bimap f id) t)
+  |
+  |instance Functor TmC where
+  |  fmap f (HaltC v)    = HaltC (fmap f v)
+  |  fmap f (AppC v1 v2) = AppC  (fmap f v1) (fmap f v2)
+  |  fmap f (LetC p t)   = LetC (fmap f p) (fmap (bimap f id) t)
   |]
 
   [agdaP|
+  |letC p f = LetC p (f ())
+  |varC = VarC . inj
+  |lamC f = LamC (f ())
+  |fstC = FstC . inj
+  |sndC = SndC . inj
+  |]
+
+{-
+  |letC p f  = LetC p (f ())
+  |lamC f    = LamC (f ())
   |pairC x y = PairC (inj x) (inj y)
   |fstC      = FstC . inj
   |sndC      = SndC . inj
   |appC x y  = AppC (inj x) (inj y)
   |haltC     = HaltC . inj
-  |]
+  -}
+
   subsection «Closure Conversion»
 
+  startComment -- TODO: uncomment
   [agdaP|
   |instance Functor LC where
   |  fmap f t = t >>= return . f
@@ -2250,6 +2352,7 @@ appendix = execWriter $ do
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppLC t u >>= θ = AppLC (t >>= θ) (u >>= θ)
   |]
+  stopComment
 
   section $ «Bind an arbitrary name»
   [agdaP|
