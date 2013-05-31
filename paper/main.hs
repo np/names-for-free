@@ -775,13 +775,18 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   -- section $ «»
 
-  section $ «Contexts, inclusion and membership»
+  section $ «Contexts»
 
   p"flow, ∈, inj"
    «We have seen that the type of free variables essentially describes
     the context where they are meaningful. A context can either be
     empty (and we represent it by the type {|Zero|}) or not (which we
-    can represent by the type {|a ▹ v|}). Given this, we can implement
+    can represent by the type {|a ▹ v|}).»
+
+  notetodo «Insert remove, freevars, etc. here»
+
+  subsection «Membership»
+  q«Given this, we can implement
     the relation of context membership by a type class {|∈|}, whose
     sole method performs the injection from a member of the context to
     the full context. The relation is defined by two inference rules,
@@ -814,8 +819,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   -- NP: removed dynamically
 
+  subsection «Inclusion»
   p"context inclusion, ⊆"
-   «Another useful relation is context inclusion, which we also
+   «Context inclusion is another useful relation, which we also
     represent by a type class, namely {|⊆|}. The sole method of the
     typeclass is again an injection, from the small context to the
     bigger one.»
@@ -1035,12 +1041,22 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   q«Or substitution of an arbitrary variable:»
   [agdaP|
-  |substitute :: (Monad tm, Eq a, v ∈ a) => 
+  |substitute' :: (Monad tm, Eq a, v ∈ a) => 
   |              v -> tm a -> tm a -> tm a
+  |substitute' x t u = u >>= λ y -> 
+  |     if y `isOccurenceOf` x then t else return y
+  |] 
+
+  notetodo«explain this»
+  q«Or the well-scoped version»
+  [agdaP|
+  |substitute :: Monad tm => 
+  |              v -> tm a -> tm (a ▹ v) -> tm a
   |substitute x t u = u >>= λ y -> 
   |     if y `isOccurenceOf` x then t else return y
   |]
-  q«The associativity law ensure that applying a composition of substitutions is equivalent
+
+  p"laws"«The associativity law ensure that applying a composition of substitutions is equivalent
     to sequentially applying them, while the identity law ensure that variables act indeed 
     as such.»
 
@@ -1304,7 +1320,6 @@ s (f . g)
 -}
 
 
-  -- JP/NP
   section $ «Bigger Examples» `labeled` examples
 
   subsection $ «Free variables»
@@ -1520,6 +1535,7 @@ s (f . g)
   |app (Lam t) u = subst0 =<<< t u
   |app t u = App t u
   |]
+  
 
   -- NP: This one is the normal bind for Tm. No the app is the fancy one
   -- ok. Then we need to stress the relation with >>=.
@@ -1738,14 +1754,65 @@ s (f . g)
   the CPS transform.»
 
   
-  section $ «'Theory'» -- TODO: JP
+  section $ «Recap» -- TODO: JP
 
-  subsection $ «Proofs» `labeled` proofs
-  p "" «isomorphisms, free-theorems»
+  q«In nested abstract systax, a binder introducing one variable in scope is represented as»
+
+  [agdaP|
+  |type Scope1 tm a = tm (Succ a)
+  |]
+
+  q«In essence, we propose two new, dual representations of binders,
+                                             one based on universal
+  quantification, the other one based on existential quantification.»
+
+  commentCode [agdaFP|
+  |type Univ  tm a = ∀ v.  v -> tm (a :▹ v)
+  |type Exist tm a = ∃ v. (v ,  tm (a :▹ v))
+  |]
+  q«The above syntax for existentials is not supported in Haskell, so we must use
+    one of the lightweight encodings available. In the absence of view patterns,   
+    a CPS encoding is
+    convenient for programming (so we used this so far),
+    but in the following a datatype representation is more convenient in the following:»
+
+  [agdaP|
+  |data Exist tm a where
+  |  N :: v -> tm (a :▹ v) -> Exist tm a
+  |] 
+
+  q«As we observe in a number of examples, these representations are dual from a safety perspective: 
+  the universal-based representation
+  ensures safety in the construction of terms, while the existential-based representation is
+  ensures safety in the analysis of terms.
+
+  For this reason, we do not commit to either side, and use the suitable representation on 
+  a case-by-case basis. This is possible because the representations are both isomorphic to
+  a concrete represention of binders such as {|Scope1|} (and by transivitity between each other).
+  »
+  subsection«Isomorphisms»
+  q«The conversion functions witnessing the isomorphism are the following.»
+  [agdaP|
+  |toUniv :: Functor tm => Scope tm a -> Univ tm a
+  |toUniv t = \x -> fmap (mapu id (const x)) t
+  | 
+  |fromUniv :: Univ tm a -> Scope tm a 
+  |fromUniv f = f ()
+  |
+  |toExist :: Scope tm a -> Exist tm a
+  |toExist t = N () t
+  |
+  |fromExist :: Functor tm => Exist tm a -> Scope tm a
+  |fromExist (N _ t) = fmap (mapu id (const ())) t
+  |]
+  q«One will recognise pack and unpack as CPS versions of fromExist and toExist.
+    The {|fromUniv|} function was not named before, but was implicitly used 
+    in the definition of {|lam|}.»
+  notetodo«insert proofs here. See a sketch in Duality.hs»
 
   -- NP
   section $ «Comparisons» `labeled` comparison
-  subsection $ «Fin» -- TODO: NP
+  subsection $ «Fin»
 
   p"Fin approach description"
    «Another approach already used and described in {cite fincites} is
@@ -2038,71 +2105,6 @@ s (f . g)
      CPS transform, while de Bruijn indices are more suitable for closure conversion.
      Our reprensentation supports a natural implementation of both transformations.
      »
-
-  subsection $ «Dual reprensentations»
-  q«We use two representations for bindings, one based on universal
-  quantification, the other one based on existential quantification.»
-
-  commentCode [agdaFP|
-  |type Univ  tm a = ∀ v.  v -> tm (a :▹ v)
-  |type Exist tm a = ∃ v. (v ,  tm (a :▹ v))
-  |]
-  q«(Because existentials do not enjoy native support in Haskell we must represent 
-   {|Exist|} either using CPS or a data type).»
-
-  {-
-  NP: I think this will not work well with the Haskell community:
-
-  data Exists f where
-    Exists :: f a -> Exists f
-
-  But in our case there is no need to use Exists we can directly support
-  a custom data type:
-
-  data Binding tm a where
-    Binding :: v -> tm (a :▹ v) -> Binding tm a
-
-  Ok, I see that you do this later on. Why call this an encoding? The fact we don't see
-  the word 'exists' is a mere artifact due to the fact we only describe the introction
-  rule of such existential construct.
-  -}
-
-  q«Both of these representations are isomorphic to the simpler type {|Succ a|}.
-    TODO proof
-  They are dual from a performance and safety perspective: the universal-based representation
-  is well-suited for construction of terms, while the existential-based representation is
-  is well-suited for analysis of terms.»
-
-  q«In this paper, we have chosen the universal-based representation as primitive
-  for pedagogical reasons only. One should revisit this choice in the light of
-  particular applications. To illustrate the tradeoffs we show how untyped lambda terms would
-  be dually represented:»
-
-  [agdaFP|
-  |data TmD a where
-  |  VarD :: a -> TmD a
-  |  AppD :: TmD a -> TmD a -> TmD a
-  |  LamD :: v -> TmD (a ▹ v) -> TmD a
-  |]
-
-  q«The existential is encoded as it is customary: it becomes a universal after inlining it in an argument
-    position of the {|Lam|} constructor.»
-  q«Whith this representation, safe term analysis can be done by mere pattern matching, as can be seen
-    for example in the implementation of freevars:»
-
-  [agdaFP|
-  |freevarsD :: TmD a -> [a]
-  |freevarsD (LamD x t) = remove x (freevarsD t)
-  |]
-
-  q«However, the construction of a term using {|Lam|} is potentially unsafe, since one might
-    choose unify multiple instances of {|v|} to the same monomorphic type. One should instead
-    locally use the universal representation and unpack the binder:»
-
-  [agdaFP|
-  |lamD :: (∀ v. v -> TmD (a ▹ v)) -> TmD a
-  |lamD f = unpack f LamD
-  |]
 
   subsection «Future work: both aspects in one»
 
