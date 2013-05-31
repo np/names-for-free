@@ -1845,14 +1845,25 @@ s (f . g)
 
   subsection $ «Kmett's Bound» -- TODO: NP
 
-  subsection $ «HOAS» -- TODO: JP
+  subsection $ «HOAS»
   
-  p "" «Functions should only be substitutions»
-  q«{cite[washburnboxes2003]}»
-  subsubsection $ «Concrete Terms»
-  p "" «TmH → TmH | TmH × TmH»
-  p "+" «Exotic terms»
-  p "+" «Negative occurrences of the recursive type»
+  q«A way to represent bindings of an object language is via the bindings
+  of the host language. One naive translation of this idea yields the
+  following term representation:»
+  [agdaP|
+  | data TmH = TmH → TmH | TmH × TmH 
+  |]
+  q«An issue with this kind of representation is the presence of so-called ``exotic terms'':
+  a function of type {|TmH → TmH|} which performs pattern matching on its argument
+  does not necessarily represent a term of the object language.
+  A proper realisation of the HOAS ideas should only allow functions which use
+  their argument for substitution.
+  »
+  q«It has been observed before that one
+    implement this can restriction by using polymorphism. This observation underlies
+    the safety of our {|Univ|} representation.»
+  q«Another disadvantage of HOAS the negative occurrences of the recursive type,
+    which makes it tricky to analyse terms ({citet[washburnboxes2003]}).»
 
   subsection $ «Parametric Higher-Order Abstract Syntax» 
   q«{citet[chlipalaparametric2008]} describes a way to represent binders using
