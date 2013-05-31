@@ -184,7 +184,7 @@ On top of Bound:
   unpack e k = k () e
 
   pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
-  pack x = fmap (mapu id (const ()))
+  pack x = fmap (bimap id (const ()))
 
   lam :: ∀ a. (∀ v. v → Tm (a ▹ v)) → Tm a
   lam k = Lam (abs k)
@@ -856,59 +856,55 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- NP
   section $ «Term Structure» `labeled` termStructure
 
-  p"motivation"«
-      It is well-known that every term representations parameterised on the type of free variables
-      should exhibit monadic structure,
-      with substitution corresponding to the binding operator {cite[{-TODO-}]}. This implies that 
-      the representation is stable under substitution. In this section we review
-      this structure, as well as other standard related structures on terms. 
-      Theses structures are perhaps easier to implement directly
-      on a concrete term representation, rather than our interface. However,
-      we give an implementation solely based on our interface,
-      to demonstrate that our interface is complete with 
-      respect to these structures. By doing so, we also demonstrate how
-      to work with our interface in practice.
-      »
+  p"motivation"
+   «It is well-known that every term representations parameterised
+    on the type of free variables should exhibit monadic structure,
+    with substitution corresponding to the binding operator {cite
+    nestedcites{-TODO-}}. This implies that the representation is stable
+    under substitution. In this section we review this structure,
+    as well as other standard related structures on terms. Theses
+    structures are perhaps easier to implement directly on a concrete
+    term representation, rather than our interface. However, we give an
+    implementation solely based on our interface, to demonstrate that
+    our interface is complete with respect to these structures. By doing
+    so, we also demonstrate how to work with our interface in practice.»
 
   subsection $ «Renaming and Functors» `labeled` functorSec
 
   p"intro functor"
-   «The first, perhaps simplest, property of terms is that free variables
-    can be renamed. This property is captured by the {|Functor|}
-    structure.»
+   «The first, perhaps simplest, property of terms is that free
+    variables can be renamed. This property is captured by
+    the {|Functor|} structure.»
 
   p"describe Functor Tm"
    «The “renaming” to apply is given as a function {|f|} from {|a|}
     to {|b|} where {|a|} is the type of free variables of the input
-    term ({|Tm a|}) and {|b|} is the type of free variables of
-    the “renamed” term ({|Tm b|}). The renaming operation then
-    simply preserves the structure of the input term. At binding sites, using {|f|}
-    to rename free variables. At binding sites, {|f|} is upgraded form {|a → b|} to
-    {|a ▹ v → b ▹ v|} using the functoriality of {|(▹ v)|}
-    with {|bimap f id|}. Adapting the function {|f|} is necessary to 
-    protect the bound name from being altered by {|f|}, and thanks to our
-    use of polymorphism, the type-checker ensures that we make no mistake in doing so.»
-
-  -- NP: potentially comment about 'g x'
+    term ({|Tm a|}) and {|b|} is the type of free variables of the
+    “renamed” term ({|Tm b|}). The renaming operation then simply
+    preserves the structure of the input term. At occurence sites,
+    using {|f|} to rename free variables. At binding sites, {|f|} is
+    upgraded form {|a → b|} to {|a ▹ v → b ▹ v|} using the functoriality
+    of {|(▹ v)|} with {|bimap f id|}. Adapting the function {|f|} is
+    necessary to protect the bound name from being altered by {|f|}, and
+    thanks to our use of polymorphism, the type-checker ensures that we
+    make no mistake in doing so.»
 
   [agdaFP|
   |instance Functor Tm where
   |  fmap f (Var x)   = Var (f x)
-  |  fmap f (Lam g) = unpack g $ \x t -> lamP nm x (fmap (mapu f id) t)
+  |  fmap f (Lam b)   = unpack b $ λ x t →
+  |                       Lam . pack x $ fmap (bimap f id) t
   |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
   -- |  fmap f (Lam t)   = Lam nm (\x -> Lam (fmap (bimap f id) t)
 
-
- {- As usual satisfying functor laws implies that the structure is preserved by the function action (fmap). 
-    The type for terms being a functor therefor means that applying a renaming is going 
-  to only affect the free variables and leave the structure untouched. -}
-
   p"functor laws"
-   «Satisfying functor laws implies that the structure is preserved by
-    a renaming. Namely that whatever the function {|f|} is doing, the
-    bound names are not going to change. As expected the laws are the
-    following:»
+   «As usual satisfying functor laws implies that the structure is
+    preserved by the function action (fmap). The type for terms being a
+    functor therefore means that applying a renaming is going to only
+    affect the free variables and leave the structure untouched. Namely
+    that whatever the function {|f|} is doing, the bound names are not
+    going to change. As expected the laws are the following:»
 
   doComment
     [agdaFP|
@@ -921,13 +917,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     and compositions of renaming functions corresponds to two sequential
     renaming operations.»
 
-  q«Assuming only a functor structure, it is possible to write useful 
-    function on terms which involve only renaming. A couple examples follow.»
-  q«First, let us assume an equality test on “names” (the argument of the
-    functor structure. We can then write a function {|rename (x,y) t|} which 
-    replaces free occurences
-    of {|x|} in {|t|} by {|y|} and {|swap (x,y) t|} which exchanges free
-    occurences of {|x|} and {|y|} in {|t|}.»
+  q«Assuming only a functor structure, it is possible to write useful
+    function on terms which involve only renaming. A couple examples
+    follow.»
+
+  q«First, let us assume an equality test on “names” (the argument
+    of the functor structure. We can then write a function
+    {|rename (x,y) t|} which replaces free occurences of {|x|} in {|t|}
+    by {|y|} and {|swap (x,y) t|} which exchanges free occurences
+    of {|x|} and {|y|} in {|t|}.»
 
   [agdaFP|
   |rename0 :: Eq a ⇒ (a, a) → a → a
@@ -978,30 +976,36 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -}
 
   p"auto-weakening"
-   «Second, let us assume two arguments {|a|} and {|b|} related by the {|⊆|} class.
-    Hence we have {|injMany|} of type {|a -> b|},
-    which can be seen as a renaming of free variables via the functorial 
-    structure of terms. By applying it to {|fmap|},
-    one obtains an arbitrary weakening from the context {|a|} to the bigger context {|b|}.»
+   «Second, let us assume two arguments {|a|} and {|b|} related by the
+    type class {|⊆|}. Hence we have {|injMany|} of type {|a → b|}, which
+    can be seen as a renaming of free variables via the functorial
+    structure of terms. By applying it to {|fmap|}, one obtains
+    an arbitrary weakening from the context {|a|} to the bigger
+    context {|b|}.»
 
   [agdaFP|
   |wk :: (Functor f, a ⊆ b) ⇒ f a → f b
   |wk = fmap injMany
   |]
 
-  q«Again, this arbitrary weakening function relieves programmer from tediously counting indices when doing a
-    program transformation. We demonstrate this feature in sec. {ref cpsSec} »
-
+  q«Again, this arbitrary weakening function relieves programmer from
+    tediously counting indices when doing a program transformation. We
+    demonstrate this feature in section {ref cpsSec}.»
 
   subsection $ «Substitution and Monads»
-  q«Another property of terms is that free variables can be substituted with terms. This property is 
-  captured algebraically by asserting that terms form a {|Monad|}, where the {|return|} is the variable 
-  constructor and {|>>=|} acts as substitution. 
-  Indeed, one can see a substitution from a context {|a|} to a context {|b|} 
-  as mapping {|a|} to {|Tm b|}, (Technically, substitutions are Kleisli arrows.) and (>>=) applies a substitution
-  everywhere in a term.» 
-  q«The definition of the {|Monad|} instance is straightforward for variable and application, and we
-    isolate the handling of binders in the {|>>>=|} function.»
+
+  q«Another property of terms is that free variables can be substituted
+    with terms. This property is captured algebraically by asserting
+    that terms form a {|Monad|}, where the {|return|} is the variable
+    constructor and {|>>=|} acts as parallel substitution. Indeed, one
+    can see a substitution from a context {|a|} to a context {|b|} as
+    mapping {|a|} to {|Tm b|}, (Technically, substitutions are Kleisli
+    arrows.) and {|(>>=)|} applies a substitution everywhere in a term.»
+
+  q«The definition of the {|Monad|} instance is straightforward for
+    variable and application, and we isolate the handling of binders in
+    the {|(>>>=)|} function.»
+
   [agdaFP|
   |instance Monad Tm where
   |  Var x   >>= θ = θ x
@@ -1010,55 +1014,65 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |  return = Var
   |]
 
-  q«At binding sites, one needs to lift the substitution 
-    so it does not act on the newly bound variables. As for the 
-    {|Functor|} instance, the type-system will guarantee that no mistake
-    is made. Perhaps noteworthy is that this operation is independent of the
-    concrete term structure. We use only renaming ({|fmap|}) and variables {|return|}.»
-  [agdaP|
+  q«At binding sites, one needs to lift the substitution so it does not
+    act on the newly bound variables. As for the {|Functor|} instance,
+    the type system will guarantee that no mistake is made. Perhaps
+    noteworthy is that this operation is independent of the concrete
+    term structure. We only “rename” with {|fmap|} and inject variables
+    with {|return|}.»
+
+  [agdaFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒ 
   |             (a -> tm b) → (a ▹ v) -> tm (b ▹ v)
   |liftSubst θ (There x) = fmap There (θ x) 
   |liftSubst θ (Here  x) = return (Here x)  
   |]
-  q«Substitution under a binder {|>>>=|} is then the wrapping of {|liftSubst|} between 
-  {|unpack|} and {|pack|}. Is is generic as well, and thus can be reused for every 
-  structure with binders.»
-  
+
+  q«Substitution under a binder {|(>>>=)|} is then the wrapping
+    of {|liftSubst|} between {|unpack|} and {|pack|}. It is uniform as
+    well, and thus can be reused for every structure with binders.»
+
   [agdaP|
   |(>>>=) :: (Functor tm, Monad tm) ⇒
   |          tm (Succ a) → (a → tm b) → tm (Succ b)
-  |s >>>= θ = unpack s $ λ x t → 
+  |s >>>= θ = unpack s $ λ x t →
   |             pack x (t >>= liftSubst θ)
   |]
-  q«
-  We can combine to monad structure with the membership ({|∈|}) class to get useful 
-  polymorphic code, such as a generic reference to a variable:»
+
+  q«We can combine the monadic structure with the membership ({|∈|})
+    type class to get useful polymorphic code, such as a generic
+    reference to a variable:»
+
   [agdaP|
   |var :: (Monad tm, v ∈ a) ⇒ v → tm a
   |var = return . inj
   |]
 
   q«Or substitution of an arbitrary variable:»
-  [agdaP|
-  |substitute' :: (Monad tm, Eq a, v ∈ a) => 
-  |              v -> tm a -> tm a -> tm a
-  |substitute' x t u = u >>= λ y -> 
-  |     if y `isOccurenceOf` x then t else return y
-  |] 
 
-  notetodo«explain this»
-  q«Or the well-scoped version»
   [agdaP|
-  |substitute :: Monad tm => 
-  |              v -> tm a -> tm (a ▹ v) -> tm a
-  |substitute x t u = u >>= λ y -> 
+  |substitute :: (Monad tm, Eq a, v ∈ a) ⇒
+  |              v → tm a → tm a → tm a
+  |substitute x t u = u >>= λ y ->
   |     if y `isOccurenceOf` x then t else return y
   |]
 
-  p"laws"«The associativity law ensure that applying a composition of substitutions is equivalent
-    to sequentially applying them, while the identity law ensure that variables act indeed 
-    as such.»
+  {- NP: does not type check:
+          Could not deduce (a ~ (a ▹ v))
+  notetodo«explain this»
+  q«Or the well-scoped version»
+  [agdaP|
+  |substitute :: Monad tm =>
+  |              v -> tm a -> tm (a ▹ v) -> tm a
+  |substitute x t u = u >>= λ y ->
+  |     if y `isOccurenceOf` x then t else return y
+  |]
+  -}
+
+  p"laws"
+   «The associativity law ensure that applying a composition of
+    substitutions is equivalent to sequentially applying them, while the
+    identity law ensure that variables act indeed as such.»
 
   {-
   lift Var x = Var x
@@ -1072,7 +1086,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   lift return (Here  x) = return (Here x)
   -}
 
-  subsection $ «Traversable»
+  subsection «Traversable»
 
   p"explain traverse"
    «Functors enable to apply any pure function {|f :: a → b|} to the
@@ -1081,9 +1095,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     function {|f :: a → m b|} where {|m|} can be any {|Applicative|}
     functor. An {|Applicative|} functor is strictly more powerful
     than a {|Functor|} and strictly less powerful than a {|Monad|}.
-    Any {|Monad|} is an {|Applicative|} and any {|Applicative|} is
-    a {|Functor|}. To be traversed a structure only need an applicative
-    and therefore will support monadic actions directly {cite[mcbrideapplicative2007]}.»
+    Any {|Monad|} is an {|Applicative|} and any {|Applicative|}
+    is a {|Functor|}. To be traversed a structure only need
+    an applicative and therefore will support monadic actions
+    directly {cite[mcbrideapplicative2007]}.»
 
   [agdaFP|
   |instance Traversable Tm where
@@ -1093,45 +1108,47 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |    App <$> traverse f t <*> traverse f u
   |  traverse f (Lam t) =
   |    unpack t $ λ x b →
-  |      Lam . pack x <$> traverse (traverseu f pure) b
+  |      Lam . pack x <$> traverse (bitraverse f pure) b
   |]
 
-  p"explain traverseu"
-   «In order to traverse name-abstractions, indices need to be traversed
+  p"explain bitraverse"
+   «In order to traverse name abstractions, indices need to be traversed
     as well. The type {|(▹)|} is a bi-functor that is bi-traversable.
-    The function {|traverseu|} is given two effectful functions, one for
+    The function {|bitraverse|} is given two effectful functions, one for
     each case:»
 
   [agdaFP|
-  |traverseu :: Functor f ⇒ (a → f a') → (b → f b') →
+  |bitraverse :: Functor f ⇒ (a → f a') → (b → f b') →
   |                              a ▹ b → f (a' ▹ b')
-  |traverseu f _ (There x) = There <$> f x
-  |traverseu _ g (Here x)  = Here  <$> g x
+  |bitraverse f _ (There x) = There <$> f x
+  |bitraverse _ g (Here x)  = Here  <$> g x
   |]
 
-  q«
-  If a term has no free variable, then it can be converted from
-  the type {|Term a|} to  {|Term Zero|}, but this requires a dynamic check.
-  It may seem like a complicated implementation is necessary, but in fact 
-  it is a direct application of the {|traverse|} function.»
+  q«If a term has no free variable, then it can be converted from the
+    type {|Tm a|} to {|Tm Zero|}, but this requires a dynamic check. It
+    may seem like a complicated implementation is necessary, but in fact
+    it is a direct application of the {|traverse|} function.»
+
   [agdaFP|
   |close :: Traversable tm ⇒ tm a → Maybe (tm Zero)
   |close = traverse (const Nothing)
   |]
 
   p"explain foldMap"
-   «Any traversable structure is also foldable. »
+   «Any traversable structure is also foldable.»
+
   [agdaFP|
   |instance Foldable Tm where
   |  foldMap = foldMapDefault
   |]
+
   p"freeVars is toList"
    «Thanks to terms being an instance of {|Traversable|} they are
-    also {|Foldable|} meaning that we can combine all the elements
-    of the structure (i.e. the occurrences of free variables in the term) using any
-    {|Monoid|}. One particular monoid is the free monoid of lists. Consequently,
-    {|Data.Foldable.toList|} is computing the free variables of a
-    term:»
+    also {|Foldable|} meaning that we can combine all the elements of
+    the structure (i.e. the occurrences of free variables in the term)
+    using any {|Monoid|}. One particular monoid is the free monoid of
+    lists. Consequently, {|Data.Foldable.toList|} is computing the free
+    variables of a term:»
 
   [agdaFP|
   |freeVars' :: Tm a → [a]
