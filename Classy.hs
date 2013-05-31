@@ -195,10 +195,18 @@ subst = (=<<)
 -- instance Functor Term where
 --  fmap f t = t >>= return . f
 
+{-
 instance Functor Term where
   fmap f (Var x) = Var (f x)
   fmap f (Lam nm g) = Lam nm (\x -> fmap (mapu f id) (g x))
   fmap f (App t u) = App (fmap f t) (fmap f u)
+-}
+
+instance Functor Term where
+  fmap f (Var x) = Var (f x)
+  fmap f (Lam nm g) = unpack g $ \x t -> lam'' nm x (fmap (mapu f id) t)
+  fmap f (App t u) = App (fmap f t) (fmap f u)
+
 
 -- Substitute in an open term
 subst' :: (∀v. v → Term v) → Term w → Term w

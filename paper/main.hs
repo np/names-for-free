@@ -30,6 +30,8 @@ import NomPaKit.QQ
       proofs
       discussion
       implementationExtras
+      functorSec
+      cpsSec
      |]
 
 -- figures
@@ -47,6 +49,7 @@ import NomPaKit.QQ
       de_bruijn_lambda_1972
       shinwell_freshml_2003
       berger_normalization_1998
+      mcbride_applicative_2007
      |]
 
 title =  «Names For Free --- A Polymorphic Interface to Names and Binders»
@@ -234,6 +237,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |-- import Data.Bifunctor 
      |]
 
+  notetodo «unify the terminology names/context/free variables»
 -- JP (when the rest is ready)
   section $ «Intro» `labeled` intro
 
@@ -818,10 +822,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"(▹) functoriality"
    «This last case uses the fact that {|(▹)|} is functorial in its first argument.»
 
+  q«The main application of {|⊆|} is presented at the end of sec. {ref functorSec}.»
+
   -- NP
   section $ «Term Structure» `labeled` termStructure
 
-  p""«It is well-known that every term representations parameterised on the type of free variables
+  p"motivation"«
+      It is well-known that every term representations parameterised on the type of free variables
       should exhibit monadic structure,
       with substitution corresponding to the binding operator {cite[{-TODO-}]}. This implies that 
       the representation is stable under substitution. In this section we review
@@ -834,34 +841,34 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
       to work with our interface in practice.
       »
 
-  p"intro functor"
-   «This Nested Abstract Syntax approach that we are standing
-    upon {cite[birdpaterson99]} enjoys interesting structures. For
-    instance a general “renaming” operation give rises to a {|Functor|}
-    instance.»
+  subsection $ «Renaming/Functor» `labeled` functorSec
 
-  subsection $ «Renaming/Functor»
+  p"intro functor"
+   «The first, perhaps simplest, property of terms is that free variables
+    can be renamed. This property is captured by the {|Functor|}
+    structure.»
 
   p"describe Functor Tm"
    «The “renaming” to apply is given as a function {|f|} from {|a|}
     to {|b|} where {|a|} is the type of free variables of the input
     term ({|Tm a|}) and {|b|} is the type of free variables of
     the “renamed” term ({|Tm b|}). The renaming operation then
-    simply preserves the structure of the input term, using {|f|}
-    to rename free variables and upgrade {|f|} to {|Succ a → Succ
-    b|} using the functoriality of {|Succ|} (any {|(▹ v)|} actually)
-    with {|bimap f id|}. Adapting the function {|f|} is not only a
-    type-checking matter: it is meant to protect the bound name from
-    being altered by {|f|}.»
+    simply preserves the structure of the input term. At binding sites, using {|f|}
+    to rename free variables. At binding sites, {|f|} is upgraded form {|a → b|} to
+    {|a ▹ v → b ▹ v|} using the functoriality of {|(▹ v)|}
+    with {|bimap f id|}. Adapting the function {|f|} is necessary to 
+    protect the bound name from being altered by {|f|}, and thanks to our
+    use of polymorphism, the type-checker ensures that we make no mistake in doing so.»
 
   -- NP: potentially comment about 'g x'
 
   [agdaFP|
   |instance Functor Tm where
   |  fmap f (Var x)   = Var (f x)
-  |  fmap f (Lam t)   = Lam (fmap (bimap f id) t)
+  |  fmap f (Lam g) = unpack g $ \x t -> lamP nm x (fmap (mapu f id) t)
   |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
+  -- |  fmap f (Lam t)   = Lam nm (\x -> Lam (fmap (bimap f id) t)
 
   p"functor laws"
    «Satisfying functor laws implies that the structure is preserved by
@@ -880,11 +887,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     and compositions of renaming functions corresponds to two sequential
     renaming operations.»
 
-  p""
-   «Therfore, solely based on “names” being any type an equality test,
-    and “terms” being any functor one can build standard operations.
-    Here are two examples, {|rename (x,y) t|} replaces free occurences
-    of {|x|} in {|t|} by {|y|} and {|swap (x,y) t|} exchanges free
+  q«Assuming only a functor structure, it is possible to write useful 
+    function on terms which involve only renaming. A couple examples follow.»
+  q«First, let us assume an equality test on “names” (the argument of the
+    functor structure. We can then write a function {|rename (x,y) t|} which 
+    replaces free occurences
+    of {|x|} in {|t|} by {|y|} and {|swap (x,y) t|} which exchanges free
     occurences of {|x|} and {|y|} in {|t|}.»
 
   [agdaFP|
@@ -936,11 +944,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -}
 
   p"auto-weakening"
-   «Another useful function to combine with {|Functor|} is {|injMany|},
-    from the {|⊆|} class.
-    Indeed {|injMany|}, is a map from a context {|a|} to an arbitrary bigger context {|b|},
+   «Second, let us assume two arguments {|a|} and {|b|} related by the {|⊆|} class.
+    Hence we have {|injMany|} of type {|a -> b|},
     which can be seen as a renaming of free variables via the functorial 
-    structure of terms. In effect,
+    structure of terms. By applying it to {|fmap|},
     one obtains an arbitrary weakening from the context {|a|} to the bigger context {|b|}.»
 
   [agdaFP|
@@ -948,6 +955,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |wk = fmap injMany
   |]
 
+  q«Again, this arbitrary weakening function relieves programmer from tediously counting indices when doing a
+    program transformation. We demonstrate this feature in sec. {ref cpsSec} »
 
 
   subsection $ «Substitute/Monad»
@@ -1011,7 +1020,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     than a {|Functor|} and strictly less powerful than a {|Monad|}.
     Any {|Monad|} is an {|Applicative|} and any {|Applicative|} is
     a {|Functor|}. To be traversed a structure only need an applicative
-    and therefore will support monadic actions directly.»
+    and therefore will support monadic actions directly. {cite[mcbrideapplicative2007]}»
 
   [agdaFP|
   |instance Traversable Tm where
@@ -1568,7 +1577,7 @@ s (f . g)
     our representation is natural enough to support a direct implementation of the
     algorithm.»
 
-  subsection $ «CPS Transform»
+  subsection $ «CPS Transform» `labeled` cpsSec
 
   p"intro"
    «The next example is a transformation to continuation-passing
