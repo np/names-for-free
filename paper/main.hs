@@ -1722,7 +1722,7 @@ s (f . g)
   the CPS transform.»
 
   
-  section $ «Recap» -- TODO: JP
+  section $ «Recap» 
 
   q«In nested abstract systax, a binder introducing one variable in scope is represented as»
 
@@ -1747,7 +1747,7 @@ s (f . g)
   [agdaP|
   |data Exist tm a where
   |  N :: v -> tm (a :▹ v) -> Exist tm a
-  |] 
+  |]
 
   q«As we observe in a number of examples, these representations are dual from a safety perspective: 
   the universal-based representation
@@ -1778,11 +1778,20 @@ s (f . g)
     in the definition of {|lam|}.»
   notetodo«insert proofs here. See a sketch in Duality.hs»
 
-  -- NP
   section $ «Comparisons» `labeled` comparison
   subsection $ «Fin» -- TODO: NP
   subsection $ «Kmett's Bound» -- TODO: NP
-  subsection $ «Parametric Higher-Order Abstract Syntax» -- TODO: JP: revise
+
+  subsection $ «HOAS» -- TODO: JP
+  
+  p "" «Functions should only be substitutions»
+  q«{cite[washburnboxes2003]}»
+  subsubsection $ «Concrete Terms»
+  p "" «TmH → TmH | TmH × TmH»
+  p "+" «Exotic terms»
+  p "+" «Negative occurrences of the recursive type»
+
+  subsection $ «Parametric Higher-Order Abstract Syntax» 
   q«{citet[chlipalaparametric2008]} describes a way to represent binders using
     polymorphism and functions. Using that technique, called Parametric Higher-Order Abstract Syntax (PHOAS),
     terms of the untyped
@@ -1793,7 +1802,8 @@ s (f . g)
   |  LamP :: (a → TmP a) → TmP a
   |  AppP :: TmP a → TmP a → TmP a
   |]
-  q«This reprensentation can be seen as a special version of ours, if all
+  q«The reprensentation of binders used by Chlipala can be seen as a special version 
+    of {|Univ|}, where all
   variables are assigned the same type. This specialisation has pros and cons.
   On the plus side, substitution is easier to implement with PHOAS: one needs not
   handle fresh variables specially. The corresponding implementation of the
@@ -1806,24 +1816,23 @@ s (f . g)
 
   q«
   On the minus side, all the free variables have the same representation. This means that
-  they cannot be identified using the polymorphic type. This forces the user of the
-  representation to choose upfront a
+  they cannot be told apart within a term of type {|∀a. TmP a|}. Additionally, once the type variable
+  {|a|} is instanciated to a monotype, one cannot recover the polymorphic version. Therefore, 
+  whenever a user of PHOAS needs to perform some manipulation on terms, they
+  must make an upfront choice of a
   particular instanciation for the parameter of {|TmP|} that supports all the operations
-  one requires on free variables.
-  This is not good for modularity and code clarity in general.
-  Another issue arise from the  negative occurence of the variable type.
-  Indeed this makes  the type {|TmP|} invariant and thus  cannot be made
+  required on free variables.
+  This limitation is not good for modularity and code clarity in general.
+  Another issue arises from the  negative occurence of the variable type.
+  Indeed this makes the type {|TmP|} invariant: is cannot be made
   a {|Functor|} nor a {|Traversable|}.»
 
-  q«We don't do typed representations (yet)» -- TODO: JP
+  q«The use-case of PHOAS presented by Chlipala is the representation of 
+    well-typed terms. That is, the parameter to {|TmP|} can be made a type-function,
+    to capture the type associated with each variable. This is not our concern here, but
+    we have no reason to believe that our technique cannot support this, beyond the lack
+    of proper for type-level computation in Haskell --- Chlipala uses _Coq for his development.»
 
-  subsection $ «HOAS» -- TODO: JP
-  p "" «Functions should only be substitutions»
-  q«{cite[washburnboxes2003]}»
-  subsubsection $ «Concrete Terms»
-  p "" «TmH → TmH | TmH × TmH»
-  p "+" «Exotic terms»
-  p "+" «Negative occurrences of the recursive type»
   subsection $ «Syntax for free» -- TODO: NP
   q«Cata is conversion to 'syntax for free'»
   p "+" «Forced to use catamorphism to analyse terms»
