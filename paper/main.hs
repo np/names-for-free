@@ -1945,7 +1945,7 @@ s (f . g)
 
   q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to term analysis and manipulation.»
 
-  subsection $ «NomPa (nominal fragment)» -- TODO: JP (revise -- optional eq. tests.) 
+  subsection $ «NomPa (nominal fragment)» -- TODO: NP (revise -- optional eq. tests.) 
 
 {-
     -- minimal kit to define types
@@ -2006,23 +2006,24 @@ s (f . g)
 ƛ   : ∀ b → Tm (b ◅ α) → Tm α
 -}
 
-  p""«{citet[pouillardunified2012]} describe an interface for names and binders which provides maximum safety.
-      The library is writen in Agda, using dependent types. The interface makes use of an abstract notion
-      of {|World|}s (set of names), {|Binder|}s (name declaration), and {|Name|}s (the occurrence of a name).
+  p""«{citet[pouillardunified2012]} describe an interface for names and binders 
+      which provides maximum safety.
+      The library is writen in _Agda, using dependent types. 
+      The interface makes use of a notion
+      of {|World|}s (set of names), {|Binder|}s (name declaration), 
+      and {|Name|}s (the occurrence of a name).
 
-      A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator.
+      A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator {|(◅)|}. A {|Name|} set is indexed by a {|World|}: this ties occurrences to the context where they make sense. 
      »
   commentCode [agdaP|
-  |-- Abstract interface
   |World :: *
   |Binder :: *
-  |Name :: World → *
   |Empty :: World
   |(◅) :: Binder → World → World
+  |Name :: World → *
   |]
 
   p""«
-  A {|Name|} set is indexed by a {|World|}: this ties occurrences to the context where they make sense.
   On top of these abstract notions, one can construct the following representation of terms (we use
   a Haskell-like syntax for dependent types, similar to that of {_Idris}):
   »
@@ -2040,10 +2041,9 @@ s (f . g)
 
   A drawback of the interface being abstract is that some subterms do not evaluate.
 
-  In contrast, our representation uses polymorphism to ensure safety. This means that
-  there is one way to compromise safety, namely, by instanciating a type variable with
-  a concrete type. We do not suffer the drawback abstraction: the representation is concrete,
-  and concrete terms will always evaluate.
+  In contrast, our is interfaces are concrete (code using it will always evaluate), but 
+  it requires the user to chose the representation appropriate to the current use
+  ({|Univ|} or {|Exist|}).
   »
 
 
