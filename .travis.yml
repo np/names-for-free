@@ -4,7 +4,7 @@ before_install:
   # - mkdir -p ~/.cabal && cp travis/config ~/.cabal/config && cabal update
   - cabal update
 
-  - sudo apt-get -q -y texlive-base rubber
+  - sudo apt-get -q -y install texlive-base rubber
 
   # Try installing some of the build-deps with apt-get for speed.
   #LATER - travis/cabal-apt-install $mode
