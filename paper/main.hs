@@ -2010,12 +2010,46 @@ s (f . g)
     type-level computation in Haskell --- Chlipala uses {_Coq} for his
     development.»
 
-  subsection $ «Syntax for free» -- TODO: NP
-  q«Cata is conversion to 'syntax for free'»
-  p "+" «Forced to use catamorphism to analyse terms»
-  p "+" «Cannot go back to well-scoped terms (needs
-         parametricity in Kripke version to do so)»
-  subsection $ «McBride's ``Classy Hack''»
+  subsection «Syntax for free»
+
+  q«Robert Atkey {cite[atkeyhoas09]} revisited the polymorphic encoding
+    of the HOAS representation of the untyped lambda calculus. By
+    constructing a model of System F's parametricity in {_Coq} he could
+    formally prove that polymorphism indeed rules out the exotic terms.
+    Name abstractions, while represented by computational functions,
+    these functions cannot react to the shape of their argument and thus
+    behave as substitutions. Here is this representation in Haskell:»
+
+  [agdaFP|
+  |type TmF = ∀ a. ((a → a) → a)  -- lam
+  |              → (a → a → a)    -- app
+  |              → a
+  |]
+
+  q«And our familiar application function:»
+
+  [agdaFP|
+  |apTmF :: TmF
+  |apTmF lam app = lam $ λ f → lam $ λ x → f `app` x
+  |]
+
+  p"catamorphism only & can't go back"
+   «Being a polymorphic encoding, this technique is locked away in the
+    use of fold-based/catamorphism-based elimination of terms. Moreover
+    there seems to be no safe way to convert a term of this polymorphic
+    encoding to another safe representation of names. Indeed, as Atkey
+    shows it, this conversion relies on the Kripke version of the
+    parametricity result of this type.»
+
+{- NP: what about putting this in the catamorphism section with a forward ref
+  - to here?
+  [agdaFP|
+  |tmToTmF :: Tm Zero → TmF
+  |tmToTmF t lam app = cata (TmAlg magic lam app)
+  |]
+  -}
+
+  subsection $ «McBride's “Classy Hack”»
 
   -- the point of types isn’t the crap you’re not allowed to write,
   -- it’s the other crap you don’t want to bother figuring out.
