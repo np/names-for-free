@@ -5,11 +5,12 @@ before_install:
   - cabal update
 
   # Try installing some of the build-deps with apt-get for speed.
-  - travis/cabal-apt-install $mode
+  #LATER - travis/cabal-apt-install $mode
+  - (cd paper && ../travis/cabal-apt-install $mode)
 
 install:
-  - cabal configure $mode
-  - cabal build
+  #LATER - cabal configure $mode
+  #LATER - cabal build
   - (cd paper && cabal configure $mode)
   - (cd paper && cabal build)
 
