@@ -1935,6 +1935,17 @@ s (f . g)
 
   subsection $ «Kmett's Bound» -- TODO: NP
 
+  -- TODO flow
+  q«The main performance issue with de Brujin indices from the cost
+    of importing terms into scopes without capture, this requires to
+    increment the free-variables which incures not only a cost but a
+    lost of sharing.»
+
+  -- TODO off-topic
+  q«On top of that Nested Abstract Syntax misses a controlled and
+    uniform way to represent variables which prevents from using machine
+    integers to represent all the variables.»
+
   subsection $ «HOAS: Higher-Order Abstract Syntax»
 
   q«A way to represent bindings of an object language is via the
