@@ -4,6 +4,8 @@ before_install:
   # - mkdir -p ~/.cabal && cp travis/config ~/.cabal/config && cabal update
   - cabal update
 
+  - sudo apt-get -q -y texlive-base rubber
+
   # Try installing some of the build-deps with apt-get for speed.
   #LATER - travis/cabal-apt-install $mode
   - (cd paper && ../travis/cabal-apt-install $mode)
@@ -13,10 +15,11 @@ install:
   #LATER - cabal build
   - (cd paper && cabal configure $mode)
   - (cd paper && cabal build)
+  - (cd paper && ./dist/build/paper/paper)
 
 script:
   #- $script && hlint src --cpp-define HLINT
-  - (cd paper && $script && hlint src --cpp-define HLINT)
+  #- (cd paper && $script && hlint src --cpp-define HLINT)
 
 notifications:
   irc:
@@ -27,4 +30,4 @@ notifications:
       - "\x0313names-for-free\x03/\x0306%{branch}\x03 \x0314%{commit}\x03 %{build_url} %{message}"
 
 env:
-  - mode="--enable-tests" script="cabal test --show-details=always"
+  #- mode="--enable-tests" script="cabal test --show-details=always"
