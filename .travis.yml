@@ -15,7 +15,8 @@ install:
   - (cd paper && cabal build)
 
 script:
-  - $script && hlint src --cpp-define HLINT
+  #- $script && hlint src --cpp-define HLINT
+  - (cd paper && $script && hlint src --cpp-define HLINT)
 
 notifications:
   irc:
