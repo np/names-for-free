@@ -327,7 +327,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «We contribute a new programming interface for binders, which
     provides the ability to write terms in a natural style close to
     concrete syntax. We can for example build the application function
-    of the untyped lambda calculus as follows.»
+    of the untyped λ-calculus as follows.»
 
   commentCode apTm
 
@@ -359,7 +359,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «{citet[debruijnlambda1972]} proposed to represent a variable {|x|}
     by counting the number binders that one has to cross over to reach the
     binding site of {|x|}. A direct implementation of the idea may yield
-    the following representation of untyped lambda terms:»
+    the following representation of untyped λ-terms:»
 
   [agdaFP|
   |data Nat = Zero | Succ Nat
@@ -1229,9 +1229,8 @@ s (f . g)
   p"cata"
    «This pattern can be generalized to any algebra over terms, yielding
     the following catamorphism over terms. Note that the algebra
-    corresponds to the higher-order representation of lambda terms.»
+    corresponds to the higher-order representation of λ-terms.»
 
-  -- type TermAlgebra = TmF a b → b
   [agdaFP|
   |data TmAlg a r = TmAlg { pVar :: a → r
   |                       , pLam :: (r → r) → r
@@ -2003,7 +2002,7 @@ s (f . g)
   -- it’s the other crap you don’t want to bother figuring out.
 
   p "" «{citet[mcbridenot2010]} has devised a set of combinators to construct
-        lambda terms in de Brujin representation, with the ability to refer to
+        λ-terms in de Brujin representation, with the ability to refer to
         bound variables by name. Terms constructed using McBride's technique are
         textually identical to terms constructed using ours. Another point of
         similiarity is the use of instance search to recover the indices from a
@@ -2128,7 +2127,7 @@ s (f . g)
 
   In contrast, our is interfaces are concrete (code using it will always evaluate), but 
   it requires the user to chose the representation appropriate to the current use
-  ({|Univ|} or {|Exist|}).
+  ({|PolyScope|} or {|ExistScope|}).
   »
 
 
