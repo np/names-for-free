@@ -1895,6 +1895,12 @@ s (f . g)
   notetodo«insert proofs here. See a sketch in Duality.hs»
 
   section $ «Comparisons» `labeled` comparison
+
+  notetodo «Why don't we compare interfaces instead of representation?»
+  notetodo «Tell that any representation embodies an interface»
+  notetodo «Tell how interfaces of locally-nameless (including Binders Unbound), α-caml, Fresh(OCaml)ML are all
+            unsafe and require some side effects.»
+
   subsection $ «Fin»
 
   p"Fin approach description"
