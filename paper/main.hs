@@ -1929,67 +1929,86 @@ s (f . g)
 
   subsection $ «Kmett's Bound» -- TODO: NP
 
-  subsection $ «HOAS»
-  
-  q«A way to represent bindings of an object language is via the bindings
-  of the host language. One naive translation of this idea yields the
-  following term representation:»
+  subsection $ «HOAS: Higher-Order Abstract Syntax»
+
+  q«A way to represent bindings of an object language is via the
+    bindings of the host language. One naive translation of this idea
+    yields the following term representation:»
+
   [agdaP|
   |data TmH = LamH (TmH → TmH) | AppH TmH TmH
   |]
-  q«An issue with this kind of representation is the presence of so-called ``exotic terms'':
-  a function of type {|TmH → TmH|} which performs pattern matching on its argument
-  does not necessarily represent a term of the object language.
-  A proper realisation of the HOAS ideas should only allow functions which use
-  their argument for substitution.
-  »
-  q«It has been observed before that one
-    implement this can restriction by using polymorphism. This observation underlies
-    the safety of our {|Univ|} representation.»
-  q«Another disadvantage of HOAS the negative occurrences of the recursive type,
-    which makes it tricky to analyse terms ({citet[washburnboxes2003]}).»
 
-  subsection $ «Parametric Higher-Order Abstract Syntax» 
-  q«{citet[chlipalaparametric2008]} describes a way to represent binders using
-    polymorphism and functions. Using that technique, called Parametric Higher-Order Abstract Syntax (PHOAS),
-    terms of the untyped
-    lambda calculus are as represented follows:»
-  [agdaP|
+  q«An issue with this kind of representation is the presence of
+    so-called “exotic terms”: a function of type {|TmH → TmH|} which
+    performs pattern matching on its argument does not necessarily
+    represent a term of the object language. A proper realisation of the
+    HOAS ideas should only allow functions which use their argument for
+    substitution.»
+
+  q«It has been observed before that one can implement this restriction
+    by using polymorphism. This observation also underlies the safety of
+    our {|PolyScope|} representation.»
+
+  q«Another disadvantage of HOAS is the negative occurrence
+    of the recursive type, which makes it tricky to analyse
+    terms {citet[washburnboxes2003]}.»
+
+  subsection «PHOAS: Parametric Higher-Order Abstract Syntax» 
+
+  q«{citet[chlipalaparametric2008]} describes a way to represent binders
+    using polymorphism and functions. Using that technique, called
+    Parametric Higher-Order Abstract Syntax (PHOAS), terms of the
+    untyped λ-calculus are as represented follows:»
+
+  [agdaFP|
   |data TmP a where
   |  VarP :: a → TmP a
   |  LamP :: (a → TmP a) → TmP a
   |  AppP :: TmP a → TmP a → TmP a
   |]
-  q«The reprensentation of binders used by Chlipala can be seen as a special version 
-    of {|Univ|}, where all
-  variables are assigned the same type. This specialisation has pros and cons.
-  On the plus side, substitution is easier to implement with PHOAS: one needs not
-  handle fresh variables specially. The corresponding implementation of the
-  monadic {|join|} is as follows:»
-  [agdaP|
-  |join' (VarP x) = x
-  |join' (LamP f) = LamP (λ x → join' (f (VarP x)))
-  |join' (AppP t u) = AppP (join' t) (join' u)
+
+  q«Then, only universally quantified terms corresponds to terms of the λ-calculus:»
+
+  [agdaFP|
+  |type TmP' = ∀ a. TmP a
   |]
 
-  q«
-  On the minus side, all the free variables have the same representation. This means that
-  they cannot be told apart within a term of type {|∀a. TmP a|}. Additionally, once the type variable
-  {|a|} is instanciated to a monotype, one cannot recover the polymorphic version. Therefore, 
-  whenever a user of PHOAS needs to perform some manipulation on terms, they
-  must make an upfront choice of a
-  particular instanciation for the parameter of {|TmP|} that supports all the operations
-  required on free variables.
-  This limitation is not good for modularity and code clarity in general.
-  Another issue arises from the  negative occurence of the variable type.
-  Indeed this makes the type {|TmP|} invariant: is cannot be made
-  a {|Functor|} nor a {|Traversable|}.»
+  q«The reprensentation of binders used by Chlipala can be seen as a
+    special version of {|PolyScope|}, where all variables are assigned
+    the same type. This specialisation has pros and cons. On the plus
+    side, substitution is easier to implement with PHOAS: one needs not
+    handle fresh variables specially. The corresponding implementation
+    of the monadic {|join|} is as follows:»
 
-  q«The use-case of PHOAS presented by Chlipala is the representation of 
-    well-typed terms. That is, the parameter to {|TmP|} can be made a type-function,
-    to capture the type associated with each variable. This is not our concern here, but
-    we have no reason to believe that our technique cannot support this, beyond the lack
-    of proper for type-level computation in Haskell --- Chlipala uses _Coq for his development.»
+  [agdaP|
+  |joinP (VarP x)   = x
+  |joinP (LamP f)   = LamP (λ x → joinP (f (VarP x)))
+  |joinP (AppP t u) = AppP (joinP t) (joinP u)
+  |]
+
+  q«On the minus side, all the variables (bound and free) have the
+    same representation. This means that they cannot be told apart
+    within a term of type {|∀a. TmP a|}. Additionally, once the type
+    variable {|a|} is instantiated to a closed type, one cannot recover
+    the polymorphic version. Furthermore while {|Tm Zero|} denotes a
+    close term, {|TmP Zero|} denotes a term without variables, hence no
+    term at all. Therefore, whenever a user of PHOAS needs to perform
+    some manipulation on terms, they must make an upfront choice of a
+    particular instantiation for the parameter of {|TmP|} that supports
+    all the operations required on free variables. This limitation is
+    not good for modularity and code clarity in general. Another issue
+    arises from the negative occurence of the variable type. Indeed this
+    makes the type {|TmP|} invariant: it cannot be made a {|Functor|}
+    nor a {|Traversable|} and this not a proper {|Monad|} either.»
+
+  q«The use-case of PHOAS presented by Chlipala is the representation
+    of well-typed terms. That is, the parameter to {|TmP|} can be made
+    a type-function, to capture the type associated with each variable.
+    This is not our concern here, but we have no reason to believe that
+    our technique cannot support this, beyond the lack of proper for
+    type-level computation in Haskell --- Chlipala uses {_Coq} for his
+    development.»
 
   subsection $ «Syntax for free» -- TODO: NP
   q«Cata is conversion to 'syntax for free'»
@@ -2018,7 +2037,7 @@ s (f . g)
   |         fTm m
   |var :: Fin n → Tm n
   |]
-  p "" «An advantage of McBride's interface is that it does not require the ``incoherent instances'' extension. »
+  p "" «An advantage of McBride's interface is that it does not require the “incoherent instances” extension. »
   -- 'Ordered overlapping type family instances' will improve the situation for us.
   p "" «However the above interface reveals somewhat less precise types than what we use.
         Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|⊆|}
