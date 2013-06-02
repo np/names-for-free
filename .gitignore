@@ -10,3 +10,7 @@ cabal-dev
 *.agdai
 *~
 .*.swp
+
+.redo/
+.do_built
+.do_built.dir/
