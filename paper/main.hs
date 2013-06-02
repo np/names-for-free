@@ -2122,17 +2122,19 @@ s (f . g)
     binderᴺ : ∀ {α} → Name α → Binder
 
     -- There is no name in the empty world
-    ø        : World
-    ¬Nameø☐ : ¬ (Name ø)
+    ø      : World
+    ¬Nameø : ¬ (Name ø)
 
     -- Names are comparable and exportable
     _==ᴺ_   : ∀ {α} (x y : Name α) → Bool
-    exportᴺ : ∀ {α b} → Name (b ◅ α) → Name (b ◅ ø) ⊎ Name α
 
     -- The fresh-for relation
     _#_  : Binder → World → Set
     _#ø  : ∀ b → b # ø
     suc# : ∀ {α b} → b # α → (sucᴮ b) # (b ◅ α)
+
+    Since we follow a de Bruijn style these are moot: type (:#) a b = (),
+      const (), const ()
 
     -- inclusion between worlds
     _⊆_     : World → World → Set
@@ -2143,14 +2145,8 @@ s (f . g)
     ⊆-◅     : ∀ {α β} b → α ⊆ β → (b ◅ α) ⊆ (b ◅ β)
     ⊆-#     : ∀ {α b} → b # α → α ⊆ (b ◅ α)
 
-* exportᴺ? : ∀ {b α} → Name (b ◅ α) → Maybe (Name α)
-
-  Celui la est ok est trivial
-  exportᴺ? (here _)  = nothing
-  exportᴺ? (there x) = just x
-
-  nameᴮ : ∀ {α} b → Name (b ◅ α)
-  nameᴮ = Here
+    In Haskell respectively (->), id, id, (.), magic, \f -> bimap f id,
+      const There.
 
   zeroᴮ : Binder
   zeroᴮ = Zero
@@ -2158,22 +2154,23 @@ s (f . g)
   sucᴮ : Binder → Binder
   sucᴮ = Succ
 
-  _#_ : Binder → World → Set
-  b # α = ?
-
 * name abstraction
 ƛ   : ∀ b → Tm (b ◅ α) → Tm α
 -}
 
-  p""«{citet[pouillardunified2012]} describe an interface for names and binders 
-      which provides maximum safety.
-      The library is writen in _Agda, using dependent types. 
-      The interface makes use of a notion
-      of {|World|}s (set of names), {|Binder|}s (name declaration), 
-      and {|Name|}s (the occurrence of a name).
+  p""
+   «{citet[pouillardunified2012]} describe an interface for names and
+    binders which provides maximum safety. The library {|NomPa|} is
+    writen in {_Agda}, using dependent types. The interface makes use
+    of a notion of {|World|}s (intuitively a set of names), {|Binder|}s
+    (name declaration), and {|Name|}s (the occurrence of a name).
 
-      A {|World|} can either be {|Empty|} or result of the addition of a {|Binder|} to an existing {|World|}, using the operator {|(◅)|}. A {|Name|} set is indexed by a {|World|}: this ties occurrences to the context where they make sense. 
-     »
+    A {|World|}   can   either   be {|Empty|}   (called {|ø|}   in   the
+    library {|NomPa|}) in or  result of the addition  of a {|Binder|} to
+    an existing {|World|}, using the operator {|(◅)|}. The type {|Name|}
+    is indexed by {|World|}s: this ties occurrences to the context where
+    they make sense.»
+
   commentCode [agdaP|
   |World :: *
   |Binder :: *
@@ -2194,17 +2191,81 @@ s (f . g)
   |  Lam :: (b :: Binder) → Tm (b ◅ α) → Tm α
   |]
 
-  q«The safety of the technique comes from the abstract character of the interface. If one
-  were to give concrete definitions for {|Binder|}, {|World|} and their related operations,
-  it becomes possible for user code to cheat the system.
+  q«The safety of the technique comes from the abstract character of the
+    interface. If one were to give concrete definitions for {|Binder|},
+    {|World|} and their related operations, it becomes possible for user
+    code to cheat the system.
 
-  A drawback of the interface being abstract is that some subterms do not evaluate.
+    A drawback of the interface being abstract is that some subterms
+    do not evaluate. This point is of prime concern in the context of
+    reasoning about programs involving binders.
 
-  In contrast, our is interfaces are concrete (code using it will always evaluate), but 
-  it requires the user to chose the representation appropriate to the current use
-  ({|PolyScope|} or {|ExistScope|}).
-  »
+    In contrast, our is interfaces are concrete (code using it
+    will always evaluate), but it requires the user to chose the
+    representation appropriate to the current use ({|SuccScope|},
+    {|PolyScope|} or {|ExistScope|}).»
 
+  {- NP
+
+    NomPa names are always comparable for equality (when they inhabit a common
+    world). I would now prefer some notion of equality-world (Eqᵂ).
+
+    Eqᵂ : World → Set
+    _==ᴺ_ : ∀ {α} {{αᴱ : Eqᵂ α}} → Name α → Name α → Bool
+
+    and then some rules for Eqᵂ (instances):
+
+    øᴱ : Eqᵂ ø
+    _◅ᴱ_ : ∀ {α} b → Eqᵂ α → Eqᵂ (b ◅ α)
+    _+1ᴱ : ∀ α → Eqᵂ α → Eqᵂ (α +1)
+
+    Derived
+    _↑1ᴱ : ∀ α → Eqᵂ α → Eqᵂ (α ↑1)
+    α ↑1ᴱ = 0ᴮ ◅ᴱ (α +1ᴱ)
+
+    The goal then would be to gain stronger free-thms for instance:
+      E = ∀ {α} → Eqᵂ α → Tm α → Tm α
+
+      vs.
+
+      F = ∀ {α} → Tm α → Tm α
+
+    In the old model both where undistinguished. Now E is as the old one
+    and F is stronger. Functions of type E commutes with injective functions,
+    and F commutes with all functions.
+
+    It seems that the construction would be as follows:
+    ⟦World⟧ was a relation on names which preserves equalities, now have
+    two parts:
+
+    ⟦World⟧ α₁ α₂ = Name α₁ → Name α₂ → Set
+
+    ⟦Eqᴱ⟧ αᵣ = Preserve-≡ αᵣ
+    -- expanded
+    ⟦Eqᴱ⟧ αᵣ = ∀ x₁ y₁ x₂ y₂ → αᵣ x₁ x₂ → αᵣ y₁ y₂
+                             → x₁ ≡ y₁ ↔ x₂ ≡ y₂
+
+    ⟦Name⟧ = id
+    -- expanded
+    ⟦Name⟧ αᵣ x₁ x₂ = αᵣ x₁ x₂
+
+    ⟦ø⟧ and _⟦◅⟧_ carry only their relation part.
+    ⟦øᴱ⟧ and _⟦◅ᴱ⟧_ carry the preservation property.
+
+    _⟦==ᴺ⟧_ is the only one needing this property and now it's the only
+    one receiving it!
+
+    The main benefit is when using a parametricity theorem of a truly
+    (no Eq) world-polymorphic object, we would now be able to pick any
+    relation and thus such a relation can be the graph (i.e. underlying
+    relation) of any function!
+
+    In the end this seems like to fit very nicely alotgether and the design
+    was really close to that. One question could be: What process could
+    have let us uncover this sooner? I think that definition of ⟦World⟧ was
+    culpirt. It was a subset of all the relations and this should seen as
+    a signal for further separation of concerns.
+  -}
 
   subsection $ «Multiple Binders/Rec/Pattern/Telescope» -- TODO: NP
 
@@ -2410,7 +2471,7 @@ appendix = execWriter $ do
   |  VarLC x >>= θ = θ x
   |  Closure c env >>= θ = Closure c (env >>= θ)
   |  LetOpen t g >>= θ =
-  |    LetOpen (t >>= θ) (\f env → g f env >>= liftSubst (liftSubst θ))
+  |    LetOpen (t >>= θ) (λ f env → g f env >>= liftSubst (liftSubst θ))
   |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppLC t u >>= θ = AppLC (t >>= θ) (u >>= θ)
@@ -2438,6 +2499,27 @@ appendix = execWriter $ do
   |  shuffle f (There x) = case shuffle f x of
   |    Here y → Here y
   |    There y → There (There y)
+  |]
+
+  section $ «NomPa details»
+  [agdaP|
+  |-- ¬Nameø : ¬ (Name ø)
+  |noEmptyName :: Zero → a
+  |noEmptyName = magic
+  |
+  |-- nameᴮ : ∀ {α} b → Name (b ◅ α)
+  |name :: b → a ▹ b
+  |name = Here
+  |
+  |-- In Agda: exportᴺ? : ∀ {b α} → Name (b ◅ α) → Maybe (Name α)
+  |exportM :: a ▹ b → Maybe a
+  |exportM (Here _)  = Nothing
+  |exportM (There x) = Just x
+  |
+  |-- In Agda: exportᴺ : ∀ {α b} → Name (b ◅ α) → Name (b ◅ ø) ⊎ Name α
+  |export :: a ▹ b → Either (Zero ▹ b) a
+  |export (Here x)  = Left (Here x)
+  |export (There x) = Right x
   |]
 
   stopComment

@@ -1,2 +1,2 @@
-#runghc '-hide-package monads-tf' -- main.hs
+echo "Consider using 'redo all' or './do all' instead of this script"
 runghc -- main.hs
