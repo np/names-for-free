@@ -108,7 +108,9 @@ stopComment  = tell . B.para $ B.comment "-- -}"
 indent       = tell . B.para . return $ T.LatexNote (T.MkKey "indent") emptyTextNote ø
 dedent       = tell . B.para . return $ T.LatexNote (T.MkKey "dedent") emptyTextNote ø
 
-writeAgdaTo destFile doc = writeFile destFile . unlines $ commentsOf doc
+showAgdaDocument = unlines . commentsOf
+printAgdaDocument = putStrLn . showAgdaDocument
+writeAgdaTo destFile = writeFile destFile . showAgdaDocument
 
 document title authors keywords abstract body appendix = B.document docclass preamble body'
   where

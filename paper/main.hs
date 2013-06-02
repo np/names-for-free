@@ -6,12 +6,12 @@ import Language.LaTeX
 
 import System.Cmd (system)
 import System.Directory (doesFileExist)
+import System.Environment (getArgs)
 import Control.Monad.Writer
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
-import Language.LaTeX.Builder.Math (nabla)
 
-import Kit (document, itemize, it, dmath, {-pc, pcm,-} footnote, writeAgdaTo, startComment, stopComment, indent, dedent, citet, citeauthor, acknowledgements)
+import Kit (document, itemize, it, dmath, {-pc, pcm,-} printAgdaDocument, writeAgdaTo, startComment, stopComment, citet, citeauthor, acknowledgements)
 import NomPaKit
 import NomPaKit.QQ
 
@@ -2453,9 +2453,15 @@ refresh_jp_bib = do
               void . system $ "cp " ++ jpbib ++ " ."
 
 main = do
+  args ← getArgs
   refresh_jp_bib
-  writeAgdaTo "PaperCode.hs" $ (doc True)
-  compile ["sigplanconf"] "paper" (doc False)
+  case args of
+    ["--tex"]  → printLatexDocument (doc False)
+    ["--agda"] → printAgdaDocument  (doc True)
+    [] → do
+      writeAgdaTo "PaperCode.hs" $ (doc True)
+      compile ["sigplanconf"] "paper" (doc False)
+    _ → error "unexpected arguments"
 
 doc includeUglyCode = document title authors keywords abstract (body includeUglyCode) appendix
 -- }}}
