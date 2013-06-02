@@ -13,14 +13,12 @@ before_install:
 install:
   #LATER - cabal configure $mode
   #LATER - cabal build
-  #- (cd paper && cabal configure $mode)
-  #- (cd paper && cabal build)
-  #- (cd paper && ./dist/build/paper/paper)
-  #- (cd paper && ./do all)
+  - (cd paper && cabal configure $mode)
 
 script:
   #- $script && hlint src --cpp-define HLINT
   #- (cd paper && $script && hlint src --cpp-define HLINT)
+  - (cd paper && ./do all)
 
 notifications:
   irc:
