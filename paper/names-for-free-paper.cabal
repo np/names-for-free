@@ -1,13 +1,17 @@
-Name:           names-for-free-paper
-Cabal-Version:  >= 1.2
-Version:        0.1
-Author:         Nicolas Pouillard, Jean-Philippe Bernardy
-Maintainer:     Nicolas Pouillard <nicolas.pouillard@gmail.com>
-Build-Type:     Simple
+name:           names-for-free-paper
+cabal-Version:  >= 1.2
+version:        0.1
+author:         Nicolas Pouillard, Jean-Philippe Bernardy
+maintainer:     Nicolas Pouillard <nicolas.pouillard@gmail.com>
+build-Type:     Simple
 
 executable paper
-    Build-depends: base>=3.0&&<5, containers>=0.1, base-unicode-symbols,
-                   directory, template-haskell, mtl, split, process, HSH>=2.1,
+    build-depends: base>=3.0&&<5, containers>=0.1, base-unicode-symbols,
+                   directory, template-haskell, mtl, split, process,
                    transformers, Agda, uniplate>=1.2, hlatex, wl-pprint
-    Main-Is: main.hs
+    if impl(ghc >= 7.6)
+      build-depends: HSH>=2.1
+    else
+      build-depends: HSH>=2.0.4 && <2.1
+    main-is: main.hs
     ghc-options: -Wall
