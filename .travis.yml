@@ -8,7 +8,7 @@ before_install:
   #LATER - travis/cabal-apt-install $mode
   - (cd paper && ../travis/cabal-apt-install $mode)
 
-  - sudo apt-get -q -y install texlive-base rubber
+  - sudo apt-get -q -y install bash texlive-base rubber
 
 install:
   #LATER - cabal configure $mode
@@ -18,7 +18,7 @@ install:
 script:
   #- $script && hlint src --cpp-define HLINT
   #- (cd paper && $script && hlint src --cpp-define HLINT)
-  - (cd paper && ./do all)
+  - (cd paper && bash ./do all)
 
 notifications:
   irc:
