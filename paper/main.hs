@@ -2455,7 +2455,7 @@ refresh_jp_bib = do
 main = do
   refresh_jp_bib
   writeAgdaTo "PaperCode.hs" $ (doc True)
-  compile [] "paper" (doc False)
+  compile ["sigplanconf"] "paper" (doc False)
 
 doc includeUglyCode = document title authors keywords abstract (body includeUglyCode) appendix
 -- }}}
