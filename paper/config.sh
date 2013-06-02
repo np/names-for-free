@@ -41,6 +41,9 @@ ghcopts=(-Wall)
 
 rubberopts=()
 
+# to be extended by hooks
+runghcprgargs=()
+
 # Hooks!
 # Example:
 #case "$TARGET" in

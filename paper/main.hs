@@ -264,6 +264,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |import Data.List (nub,elemIndex)
      |import Data.Maybe
      |-- import Data.Bifunctor 
+     |
+     |main :: IO ()
+     |main = putStrLn "It works!"
      |]
 
   notetodo «unify the terminology names/context/free variables»

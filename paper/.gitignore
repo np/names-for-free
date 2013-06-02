@@ -1,8 +1,9 @@
 /_build/
-PaperCode.hs
-paper.tex
 
 /main.tex
 /main.pdf
 /main.bin
 /main.outline
+
+/PaperCode.hs
+/PaperCode.runghc

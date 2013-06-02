@@ -6,6 +6,10 @@ case "$BASE" in
     # side productions *.hi *.o
     ghc --make "${ghcopts[@]}" "${PACKAGES[@]}" "$BASE".hs -o "$3" >>/dev/stderr
     ;;
+  (PaperCode)
+    redo-ifchange "$BASE".hs
+    ghc --make "${ghcopts[@]}" "$BASE".hs -o "$3" >>/dev/stderr
+    ;;
   (*)
     exit 1
 

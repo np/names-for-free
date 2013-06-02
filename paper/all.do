@@ -1,3 +1,4 @@
 redo-ifchange \
     main.pdf \
-    main.outline
+    main.outline \
+    PaperCode.runghc

@@ -1,6 +1,8 @@
 rm -rf _build
 rm -f \
-  paper.bin \
-  paper.pdf \
-  paper.tex \
-  paper.outline
+  main.bin \
+  main.pdf \
+  main.tex \
+  main.outline \
+  PaperCode.hs \
+  PaperCode.bin
