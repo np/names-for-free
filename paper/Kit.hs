@@ -120,7 +120,7 @@ document title authors keywords abstract body appendix = B.document docclass pre
     -- andS = BI.rawTex " \\and "
     preamble =
         usepackage [] "color" <>
-        usepackage [] "tikz" <>
+   --   usepackage [] "tikz" <>
         fonts <>
         B.title title <>
         hyphs <>
