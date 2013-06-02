@@ -1,10 +1,11 @@
 The two most used techniques to represent names (and the associated
-binders) are atoms and de Bruijn indices. We propose a novel
+binders) are atoms and de Bruijn indices. We propose a novel
 representation bindings, whose dynamic (run-time) repsentation is
-based on de Bruijn indices, but uses static (type-system) features to
+based on de Bruijn indices, but uses static (type-system) features to
 offer a nominal-style interface for construction and manipulation of
 binders. The key idea is to represent a subterm with an additional
-free variable as ∀v. v → Term (a ▹ v). Using this approach one gets the 
+free variable as $\forall v. v \rightarrow Term (a \cup v)$.
+Using this approach one gets the
 combined expressive power of both approaches, as we demonstrate on a 
 number of examples.
 
