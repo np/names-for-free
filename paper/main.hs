@@ -1051,20 +1051,23 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«Or substitution of an arbitrary variable:»
 
   [agdaP|
-  |substitute' :: (Monad tm, Eq a, v ∈ a) ⇒
+  |substitute :: (Monad tm, Eq a, v ∈ a) ⇒
   |              v → tm a → tm a → tm a
-  |substitute' x t u = u >>= λ y ->
+  |substitute x t u = u >>= λ y →
   |     if y `isOccurenceOf` x then t else return y
   |]
 
+  -- NP: I changed the names again, I agree that this often the function
+  -- we should be using, however this is not what is expected to correspond
+  -- to one substitution as in t[x≔u]
   q«One might however also want to remove the substituted
     variable from the context while performing the substitution:»
   [agdaP|
-  |substitute :: Monad tm =>
-  |              v -> tm a -> tm (a ▹ v) -> tm a
-  |substitute x t u = u >>= λ y -> case y of
-  |     Here _ -> t
-  |     There x -> return x
+  |substituteTop :: Monad tm ⇒
+  |              v → tm a → tm (a ▹ v) → tm a
+  |substituteTop x t u = u >>= λ y → case y of
+  |     Here _ → t
+  |     There x → return x
   |]
 
   p"laws"
@@ -1536,7 +1539,7 @@ s (f . g)
 
   [agdaFP|
   |app :: Tm a → Tm a → Tm a
-  |app (Lam b) u = unpack b $ \x t -> substitute x u t --TODO JP: FIXME: use hereditary subst.
+  |app (Lam b) u = unpack b $ \x t → substituteTop x u t --TODO JP: FIXME: use hereditary subst.
   |app t u = App t u
   |]
   
