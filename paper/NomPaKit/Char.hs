@@ -29,6 +29,7 @@ mnsymbol = BI.pkgName "MnSymbol"
 epsdice = BI.pkgName "epsdice"
 
 -- improve and move to hlatex
+texErr :: String -> LatexItem
 texErr | typesetErrors config = ([tex|ERROR |] <>) . fromString
        | otherwise            = error . ("texErr:" <>)
 

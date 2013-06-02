@@ -897,7 +897,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |                       Lam . pack x $ fmap (bimap f id) t
   |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
-  -- |  fmap f (Lam t)   = Lam nm (\x -> Lam (fmap (bimap f id) t)
 
   p"functor laws"
    «As usual satisfying functor laws implies that the structure is
@@ -1024,7 +1023,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒ 
-  |             (a -> tm b) → (a ▹ v) -> tm (b ▹ v)
+  |             (a → tm b) → (a ▹ v) → tm (b ▹ v)
   |liftSubst θ (There x) = fmap There (θ x) 
   |liftSubst θ (Here  x) = return (Here x)  
   |]
@@ -1239,10 +1238,10 @@ s (f . g)
   |cata :: TmAlg a r → Tm a → r
   |cata φ s = case s of
   |   Var x   → pVar φ x
-  |   Lam b   → pLam φ (λ x -> cata (extendAlg x φ) b)
+  |   Lam b   → pLam φ (λ x → cata (extendAlg x φ) b)
   |   App t u → pApp φ (cata φ t) (cata φ u)
   |
-  |extendAlg :: r -> TmAlg a r → TmAlg (Succ a) r
+  |extendAlg :: r → TmAlg a r → TmAlg (Succ a) r
   |extendAlg x φ = φ { pVar = pVarSucc }
   |  where
   |    pVarSucc (Here  _) = x
@@ -1374,7 +1373,7 @@ s (f . g)
   unpack b k = k TheBinder (b TheBinder)
 
   remove :: Binder v → [a ▹ v] → [a]
-  remove _ xs = [x | There x <- xs]
+  remove _ xs = [x | There x ← xs]
 
   ...
 
@@ -1385,7 +1384,7 @@ s (f . g)
 
   [agdaFP|
   |remove :: v → [a ▹ v] → [a]
-  |remove _ xs = [x | There x <- xs]
+  |remove _ xs = [x | There x ← xs]
   |]
 
   subsection $ «Occurence Test»
@@ -1503,7 +1502,7 @@ s (f . g)
   |]
 
   [agdaFP|
-  |type Cmp a b = a -> b -> Bool
+  |type Cmp a b = a → b → Bool
   |
   |cmpTm :: Cmp a b → Cmp (Tm a) (Tm b)
   |cmpTm cmp (Var x1)    (Var x2)    =
@@ -1546,7 +1545,7 @@ s (f . g)
   [agdaFP|
   |(=<<<) :: (a → Tm b) → Tm a → Tm b
   |θ =<<< Var x   = θ x
-  |θ =<<< Lam b   = unpack b $ \x t -> lamP x (liftSubst θ =<<< t)
+  |θ =<<< Lam b   = unpack b $ \x t → lamP x (liftSubst θ =<<< t)
   |θ =<<< App t u = app (θ =<<< t) (θ =<<< u)
   |]
 
@@ -1636,7 +1635,7 @@ s (f . g)
   |  letOpen (cc e1)
   |          (\f x → var f $$ wk (cc e2) $$ var x)
   |
-  |idxFrom :: Eq a ⇒ [a] -> v → a → LC (Zero ▹ v)
+  |idxFrom :: Eq a ⇒ [a] → v → a → LC (Zero ▹ v)
   |idxFrom yn env z = idx env $ fromJust $ elemIndex z yn
   |]
   stopComment
@@ -1731,9 +1730,9 @@ s (f . g)
   |type PolyScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
   |
   |lamPairC :: PolyScope2 TmC a → Value a
-  |lamPairC f = lamC $ \p ->
-  |              letC (fstC p) $ \x1 ->
-  |              letC (sndC p) $ \x2 ->
+  |lamPairC f = lamC $ \p →
+  |              letC (fstC p) $ \x1 →
+  |              letC (sndC p) $ \x2 →
   |              wk $ f x1 x2
   |]
 
@@ -1803,7 +1802,7 @@ s (f . g)
   -- |cps :: Tm a -> Poly TmC a -> TmC a
   [agdaFP|
   |-- same as succToPoly
-  |inst1 :: Functor f => f (Succ a) → v → f (a ▹ v)
+  |inst1 :: Functor f ⇒ f (Succ a) → v → f (a ▹ v)
   |inst1 t x = fmap (bimap id (const x)) t
   |
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
@@ -1813,7 +1812,7 @@ s (f . g)
   |  cps (wk e2) $ \x2 →
   |  AppC (varC x1)
   |       (PairC (varC x2)
-  |              (lamC (\x -> wk $ k x)))
+  |              (lamC (\x → wk $ k x)))
   |cps (Lam e')    k =
   |  letC (lamPairC $ \x1 x2 →
   |        cps (fmap There $ inst1 e' x1) $ \r →
@@ -1847,8 +1846,8 @@ s (f . g)
   quantification, the other one based on existential quantification.»
 
   commentCode [agdaFP|
-  |type PolyScope  tm a = ∀ v.  v -> tm (a ▹ v)
-  |type ExistScope tm a = ∃ v. (v ,  tm (a ▹ v))
+  |type PolyScope  tm a = ∀ v.  v → tm (a ▹ v)
+  |type ExistScope tm a = ∃ v. (v , tm (a ▹ v))
   |]
   q«The above syntax for existentials is not supported in Haskell, so we must use
     one of the lightweight encodings available. In the absence of view patterns,   
@@ -1858,7 +1857,7 @@ s (f . g)
 
   [agdaFP|
   |data ExistScope tm a where
-  |  E :: v -> tm (a ▹ v) -> ExistScope tm a
+  |  E :: v → tm (a ▹ v) → ExistScope tm a
   |] 
 
   q«As we observe in a number of examples, these representations are dual from a safety perspective: 
@@ -1876,16 +1875,16 @@ s (f . g)
    «The conversion functions witnessing the isomorphism are the following.»
 
   [agdaFP|
-  |succToPoly :: Functor tm => SuccScope tm a -> PolyScope tm a
+  |succToPoly :: Functor tm ⇒ SuccScope tm a → PolyScope tm a
   |succToPoly t = λ x → fmap (bimap id (const x)) t
   |
-  |polyToSucc :: PolyScope tm a -> SuccScope tm a 
+  |polyToSucc :: PolyScope tm a → SuccScope tm a
   |polyToSucc f = f ()
   |
-  |succToExist :: SuccScope tm a -> ExistScope tm a
+  |succToExist :: SuccScope tm a → ExistScope tm a
   |succToExist t = E () t
   |
-  |existToSucc :: Functor tm => ExistScope tm a -> SuccScope tm a
+  |existToSucc :: Functor tm ⇒ ExistScope tm a → SuccScope tm a
   |existToSucc (E _ t) = fmap (bimap id (const ())) t
   |]
 
@@ -2084,8 +2083,8 @@ s (f . g)
         »
 
   commentCode [agdaP|
-  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m)) →
-  |         fTm m
+  |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m))
+  |       → Tm m
   |var :: Fin n → Tm n
   |]
   p "" «An advantage of McBride's interface is that it does not require the “incoherent instances” extension. »
@@ -2405,7 +2404,7 @@ appendix = execWriter $ do
   |  VarLC x >>= θ = θ x
   |  Closure c env >>= θ = Closure c (env >>= θ)
   |  LetOpen t g >>= θ =
-  |    LetOpen (t >>= θ) (\f env -> g f env >>= liftSubst (liftSubst θ))
+  |    LetOpen (t >>= θ) (\f env → g f env >>= liftSubst (liftSubst θ))
   |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppLC t u >>= θ = AppLC (t >>= θ) (u >>= θ)
@@ -2415,14 +2414,14 @@ appendix = execWriter $ do
   section $ «Bind an arbitrary name»
   [agdaP|
   |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
-  |           v -> f b -> (w -> f (a ▹ w))
+  |           v → f b → (w → f (a ▹ w))
   |packGen _ t x = fmap (shuffle cx) t
-  |  where cx :: v -> w
+  |  where cx :: v → w
   |        cx _ = x
   |
   |class (v ∈ b) ⇒ Insert v a b where
   |  -- inserting 'v' in 'a' yields 'b'.
-  |  shuffle :: (v -> w) -> b -> a ▹ w
+  |  shuffle :: (v → w) → b → a ▹ w
   |
   |instance Insert v a (a ▹ v) where
   |  shuffle f (Here x) = Here (f x)
@@ -2431,8 +2430,8 @@ appendix = execWriter $ do
   |instance Insert v a b ⇒ Insert v (a ▹ v') (b ▹ v') where
   |  shuffle f (Here x) = There (Here x)
   |  shuffle f (There x) = case shuffle f x of
-  |    Here y -> Here y
-  |    There y -> There (There y)
+  |    Here y → Here y
+  |    There y → There (There y)
   |]
 
   stopComment
@@ -2448,7 +2447,7 @@ appendix = execWriter $ do
 -- JP: Nope. I'd rather not leave emacs haskell mode.
 refresh_jp_bib = do
   let jpbib = "../../gitroot/bibtex/jp.bib"
-  e <- doesFileExist jpbib
+  e ← doesFileExist jpbib
   when e $ do putStrLn "refreshing bib"
               void . system $ "cp " ++ jpbib ++ " ."
 
