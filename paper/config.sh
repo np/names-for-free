@@ -45,14 +45,12 @@ rubberopts=()
 runghcprgargs=()
 
 # Hooks!
-# Example:
-#case "$TARGET" in
-#  jfp.pdf)
-#    export BSTINPUTS=../../jfp-class
-#    rubberopts=(-I jfp-class)
-#    find jfp-class -print0 | xargs -0 redo-ifchange
-#  ;;
-#esac
+case "$TARGET" in
+  (main.pdf)
+    rubberopts=(-I sigplanconf)
+    find sigplanconf -type f -print0 | xargs -0 redo-ifchange
+  ;;
+esac
 
 copy(){
   redo-ifchange "$1"
