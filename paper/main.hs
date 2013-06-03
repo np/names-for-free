@@ -248,6 +248,33 @@ On top of Bound:
 
 -}
 
+
+  {- NP:
+  These throwaway arguments might be a bit worrisome. A more involved
+  version would use a type known as Tagged
+
+  data Tagged a b = Tagged b
+
+  Or more specific to our usage
+
+  data Binder v = TheBinder
+  -- Iso to Tagged v ()
+
+  unpack :: (∀ v. v → tm (w ▹ v)) →
+            (∀ v. Binder v → tm (w ▹ v) → a) → a
+  unpack b k = k TheBinder (b TheBinder)
+
+  remove :: Binder v → [a ▹ v] → [a]
+  remove _ xs = [x | There x ← xs]
+
+  ...
+
+  in this case we should also have:
+
+  (∀ v. Binder v → tm (w ▹ v))
+  -}
+
+
 body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   notetodo «ACM classification (JP: no clue how it's done these days!)»
 
@@ -821,8 +848,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     reference to a term into a properly tagged de Bruijn index, namely
     the function {|var|}.»
 
-  -- NP: removed dynamically
-
   subsection «Inclusion»
   p"context inclusion, ⊆"
    «Context inclusion is another useful relation, which we also
@@ -1189,12 +1214,8 @@ s (f . g)
 
 -}
 
-  subsection $ «Algebraic Structure/Catamorphism»
+  section $ «Styles»
 
-  -- NP: I prefered to start over this subsection
-
-  p"flow"
-   «TODO flow»
 
   p"size example"
    «One can take the example of a size function, counting the number of
@@ -1213,7 +1234,7 @@ s (f . g)
   |       ρ' (There  x) = ρ x
   |]
 
-  p""
+  p"Nominal aspect"
    «However one might prefer using our interface in particular in larger examples.
     Each binder is simply {|unpack|}ed.
     Using this technique, the size computation looks as follows:»
@@ -1230,6 +1251,12 @@ s (f . g)
   |extend (_, x) _ (Here _)  = x
   |extend _      f (There x) = f x
   |]
+
+
+
+{-
+
+  Catamorphism written in Nominal style
 
   p"cata"
    «This pattern can be generalized to any algebra over terms, yielding
@@ -1266,9 +1293,10 @@ s (f . g)
   |cataSize :: (a → Size) → Tm a → Size
   |cataSize = cata . sizeAlg
   |]
+-}
+
+
 {-
-  -- NP: this style (of using the variable parameter to represent intermediate
-  -- results) could be detailed more here.
 
   q«
    Our represtentation features three aspects which are usually kept separate. It
@@ -1280,7 +1308,6 @@ s (f . g)
 
   ...
 
-  startComment -- TODO
   p"higher-order"«Second, we show the higher-order aspect. It is common in higher-order representations
    to supply a concrete value to substitute for a variable at each binding site.
    Consequently we will assume that all free variables
@@ -1363,30 +1390,6 @@ s (f . g)
     name for the variable being removed --- but it is used only for
     type-checking purposes.»
 
-  {- NP:
-  These throwaway arguments might be a bit worrisome. A more involved
-  version would use a type known as Tagged
-
-  data Tagged a b = Tagged b
-
-  Or more specific to our usage
-
-  data Binder v = TheBinder
-  -- Iso to Tagged v ()
-
-  unpack :: (∀ v. v → tm (w ▹ v)) →
-            (∀ v. Binder v → tm (w ▹ v) → a) → a
-  unpack b k = k TheBinder (b TheBinder)
-
-  remove :: Binder v → [a ▹ v] → [a]
-  remove _ xs = [x | There x ← xs]
-
-  ...
-
-  in this case we should also have:
-
-  (∀ v. Binder v → tm (w ▹ v))
-  -}
 
   [agdaFP|
   |remove :: v → [a ▹ v] → [a]
@@ -2167,7 +2170,7 @@ s (f . g)
 
   p""«{citet[pouillardunified2012]} describe an interface for names and binders 
       which provides maximum safety.
-      The library is writen in _Agda, using dependent types. 
+      The library is writen in {_Agda}, using dependent types. 
       The interface makes use of a notion
       of {|World|}s (set of names), {|Binder|}s (name declaration), 
       and {|Name|}s (the occurrence of a name).
@@ -2417,7 +2420,7 @@ appendix = execWriter $ do
   |]
   stopComment
 
-  section $ «Bind an arbitrary name»
+  section $ «Bind and substitute an arbitrary name»
   [agdaP|
   |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
   |           v → f b → (w → f (a ▹ w))
@@ -2438,6 +2441,11 @@ appendix = execWriter $ do
   |  shuffle f (There x) = case shuffle f x of
   |    Here y → Here y
   |    There y → There (There y)
+  |
+  |substituteGen :: (Insert v a b, Functor tm, Monad tm) ⇒ 
+  |                 v → tm a → tm b → tm a
+  |substituteGen x t u = 
+  |   substituteTop x t (fmap (shuffle id) u)
   |]
 
   stopComment
