@@ -51,6 +51,7 @@ import NomPaKit.QQ
       shinwell_freshml_2003
       berger_normalization_1998
       mcbride_applicative_2007
+      fegaras_revisiting_1996
 
       de-bruijn-72 mcbride-mckinna-04 altenkirch-reus-99
       atkey-hoas-09 pouillard-pottier-10 pouillard-11
@@ -1396,8 +1397,10 @@ s (f . g)
   | == {- by (bi)functor laws -}
   |    t
   |]
-  q«The dual property is harder to prove. We need to use the Paterson-style free theorem for a value {|f|} of type {|PolyScope tm a|},
-    yielding the following lemma:»
+  q«The dual property is harder to prove. We need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
+    Transcoding {|PolyScope tm a|} to a relation by using the Paterson method for functors
+    {cite[fegarasrevisiting1996]}, we obtain
+    the following lemma:»
   commentCode [agdaFP|
   | ∀ v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
   | ∀ x₁:v₁. ∀x₂:*. v x₁ == v₂.
