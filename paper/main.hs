@@ -1318,7 +1318,7 @@ s (f . g)
 
 -}
 
-  section $ «Binders» 
+  section $ «Scopes» 
 
   p"flow"«
   Armed with an intuitive understanding of safe interfaces to manipulate de Bruijn indices, 
@@ -1326,7 +1326,8 @@ s (f . g)
   substitutive structure using standard type-classes, we can recapitulate and succintly describe
   the essence of our constructions.»
 
-  q«In nested abstract systax, a binder introducing one variable in scope is represented as follows:»
+  q«In nested abstract systax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
+    is represented as follows:»
   [agdaP|
   |type SuccScope tm a = tm (Succ a)
   |]
@@ -1362,7 +1363,7 @@ s (f . g)
   subsection«Isomorphisms»
 
   p"conversions"
-   «The conversion functions witnessing the isomorphism are the following.»
+   «The conversion functions witnessing the isomorphisms are the following.»
 
   [agdaFP|
   |succToPoly :: Functor tm ⇒ SuccScope tm a → PolyScope tm a
@@ -1378,18 +1379,62 @@ s (f . g)
   |existToSucc (E _ t) = fmap (bimap id (const ())) t
   |]
 
-  q«One will recognise pack and unpack as CPS versions of fromExist and toExist.
-    The {|fromUniv|} function was not named before, but was implicitly used 
-    in the definition of {|lam|}.»
-  notetodo«insert proofs here. See a sketch in Duality.hs»
+  q«One will recognise {|pack|} and {|unpack|} as CPS versions of {|existToSucc|} and {|succToExist|}.
+    The {|polyToSucc|} function has not been given a name in the previous sections, but was implicitly used 
+    in the definition of {|lam|}. This is the first occurence of the {|succToPoly|} function.»
 
+  q«The first isomorphism property is to prove that {|PolyScope|} is a proper representation of {|SuccScope|},
+    that is, {|polyToSucc . succToPoly == id|}. This can be done by simple equational reasoning:»
+  [agdaFP|
+  |    polyToSucc (succToPoly t)
+  | == {- by def -}
+  |    existToSucc (λ x → fmap (bimap id (const x)) t)
+  | == {- by def -}
+  |    fmap (bimap id (const ())) t
+  | == {- by () having just one element -}
+  |    fmap (bimap id id) t
+  | == {- by (bi)functor laws -}
+  |    t
+  |]
+  q«The dual property is harder to prove. We need to use the Paterson-style free theorem for a value {|f|} of type {|PolyScope tm a|},
+    yielding the following lemma:»
+  [agdaFP|
+  | ∀ v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
+  | ∀ x₁:v₁. ∀x₂:*. v x₁ == v₂.
+  | ∀ g:(a ▹ v₁) → (a ▹ v₂).
+  | (∀ y:v₁. Here (v y) == g (Here y)) → 
+  | (∀ n:a.  There n    == g (Here n)) → 
+  | f x₂ == fmap g (f x₁)
+  |]
+  q«We can then specialise to {|v₁ = ()|}, {|x₁ = ()|}, and {|g = bimap id (const x₂)|}, indeed {|g|} satisfies 
+    the condition of the lemma. We can then reason equationally:»
+  [agdaFP|
+  |    f 
+  | ==  {- by the above -}
+  |    \x -> fmap (bimap id (const x)) (f ())
+  | == {- by def -}
+  |    succToPoly (f ())
+  | == {- by def -}
+  |    succToPoly (polyToSucc f)
+  |]
 
-  subsection $ «Comitting to a representation»
+{- 
+  [agdaFP|
+  |    existToSucc (succToExist t)
+  | == {- by def -}
+  |    existToSucc (E () t)
+  | == {- by def -}
+  |    fmap (bimap id (const ())) t
+  | == {- by () having just one element -}
+  |    fmap (bimap id id) t
+  | == {- by (bi)functor laws -}
+  |    t
+  |]
+-}  
+  subsection $ «Committing to a representation»
   subsection $ «Dual Styles»
 
-
-  p"size example"
-   «One can take the example of a size function, counting the number of
+  q «One can take the example of a size function, counting the number of
     data constructors in a term:»
 
   [agdaFP|
