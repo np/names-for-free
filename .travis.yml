@@ -8,7 +8,8 @@ before_install:
   #LATER - travis/cabal-apt-install $mode
   - (cd paper && ../travis/cabal-apt-install $mode)
 
-  - sudo apt-get -q -y install bash texlive-base rubber
+  # TODO install less than texlive-full
+  - sudo apt-get -q -y install bash texlive-base texlive-full rubber
 
 install:
   #LATER - cabal configure $mode
