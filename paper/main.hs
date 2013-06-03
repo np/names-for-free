@@ -1695,8 +1695,6 @@ s (f . g)
   |eval (App t u) = app (eval t) (eval u)
   |]
 
-  startComment -- TODO
-
   subsection $ «Closure Conversion»
   p"" «Following {citet[guillemettetypepreserving2007]}»
   q«We first define the target language. It features variables and applications as usual.
@@ -1764,19 +1762,18 @@ s (f . g)
   [agdaFP|
   |cc :: Eq a ⇒ Tm a → LC a
   |cc (Var x) = VarLC x
-  |cc t0@(Lam b) =
+  |cc t0@(Lam b) = 
   |  let yn = nub $ freeVars t0
-  |  in closure (λ x env → cc (f x) >>=
+  |  in Closure (λ x env → cc (succToPoly b x) >>=
   |                   liftSubst (idxFrom yn env))
   |             (Tuple $ map VarLC yn)
   |cc (App e1 e2) =
-  |  letOpen (cc e1)
+  |  LetOpen (cc e1)
   |          (\f x → var f $$ wk (cc e2) $$ var x)
   |
   |idxFrom :: Eq a ⇒ [a] → v → a → LC (Zero ▹ v)
   |idxFrom yn env z = idx env $ fromJust $ elemIndex z yn
   |]
-  stopComment
 
   q«
     Notably, {citeauthor[guillemettetypepreserving2007]} modify the function to
@@ -2532,7 +2529,6 @@ appendix = execWriter $ do
 
   subsection «Closure Conversion»
 
-  startComment -- TODO: uncomment
   [agdaP|
   |instance Functor LC where
   |  fmap f t = t >>= return . f
@@ -2547,7 +2543,6 @@ appendix = execWriter $ do
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppLC t u >>= θ = AppLC (t >>= θ) (u >>= θ)
   |]
-  stopComment
 
   section $ «Bind and substitute an arbitrary name»
   [agdaP|
