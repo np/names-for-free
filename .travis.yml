@@ -25,7 +25,9 @@ notifications:
   irc:
     channels:
       - "irc.freenode.org#np"
-    skip_join: true
+    # We need to own the channel then changed its mode
+    # https://github.com/np/names-for-free/settings/hooks
+    #skip_join: true
     template:
       - "\x0313names-for-free\x03/\x0306%{branch}\x03 \x0314%{commit}\x03 %{build_url} %{message}"
 
