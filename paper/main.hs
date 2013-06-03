@@ -1361,7 +1361,6 @@ s (f . g)
   a case-by-case basis. This is possible because the representations are both isomorphic to
   a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
   »
-  subsection«Isomorphisms»
 
   p"conversions"
    «The conversion functions witnessing the isomorphisms are the following.»
@@ -1384,8 +1383,11 @@ s (f . g)
     The {|polyToSucc|} function has not been given a name in the previous sections, but was implicitly used 
     in the definition of {|lam|}. This is the first occurence of the {|succToPoly|} function.»
 
-  q«The first isomorphism property is to prove that {|PolyScope|} is a proper representation of {|SuccScope|},
-    that is, {|polyToSucc . succToPoly == id|}. This can be done by simple equational reasoning:»
+  subsection«Proofs»
+
+  subsubsection «{|PolyScope ≅ SuccScope|} »
+  q«We prove first that {|PolyScope|} is a proper representation of {|SuccScope|}, 
+    that is {|polyToSucc . succToPoly == id|}. This can be done by simple equational reasoning:»
   commentCode [agdaFP|
   |    polyToSucc (succToPoly t)
   | == {- by def -}
@@ -1397,7 +1399,8 @@ s (f . g)
   | == {- by (bi)functor laws -}
   |    t
   |]
-  q«The dual property is harder to prove. We need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
+  q«The second property {|succToPoly . polyToSucc == id|} is harder to prove.
+    We need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
     Transcoding {|PolyScope tm a|} to a relation by using the Paterson method for functors
     {cite[fegarasrevisiting1996]}, we obtain
     the following lemma:»
@@ -1409,8 +1412,11 @@ s (f . g)
   | (∀ n:a.  There n    == g (Here n)) → 
   | f x₂ == fmap g (f x₁)
   |]
-  q«We can then specialise to {|v₁ = ()|}, {|x₁ = ()|}, and {|g = bimap id (const x₂)|}, indeed {|g|} satisfies 
-    the condition of the lemma. We can then reason equationally:»
+  q«We can then specialise
+    {|v₁ = ()|}, 
+    {|x₁ = ()|}, and 
+    {|g = bimap id (const x₂)|}. Indeed it is easy to check that {|g|} satisfies, 
+    the conditions of the lemma. We can then reason equationally:»
   commentCode [agdaFP|
   |    f 
   | ==  {- by the above -}
@@ -1421,20 +1427,22 @@ s (f . g)
   |    succToPoly (polyToSucc f)
   |]
 
-{- 
+  subsubsection «{|ExistScope ≅ SuccScope|} »
+  q«The proof {|existToSucc . succToExist == id|} is nearly identical to the 
+  first proof about {|PolyScope|} and hence omitted.
+  To prove {|succToExist . existToSucc == id|}, we first remark that by definition»
   commentCode [agdaFP|
-  |    existToSucc (succToExist t)
-  | == {- by def -}
-  |    existToSucc (E () t)
-  | == {- by def -}
-  |    fmap (bimap id (const ())) t
-  | == {- by () having just one element -}
-  |    fmap (bimap id id) t
-  | == {- by (bi)functor laws -}
-  |    t
+  |succToExist (existToSucc (E y t)) == E () (fmap (mapu id (const ())) t)
   |]
--}  
+  q«It remains To show that {|E y t|} is equivalent to the rhs of the above equation.
+  To do so, we consider
+  any observation function {|o|}, and show it will return the same result if
+  applied to {|y|} and {|t|} or {|()|} and {|(fmap (mapu id (const ())) t)|}.
+  This fact is a consequence of the free theorem associated with {|o|}.»
+  notetodo «write it down»
+
   subsection $ «Committing to a representation»
+
   subsection $ «Dual Styles»
 
   q «One can take the example of a size function, counting the number of
@@ -2454,31 +2462,9 @@ s (f . g)
   we can conveniently call variables by their name.
   »
 
+  notetodo «a word on impredicativity»
 
-  p "" «impredicativity»
-
-
-  notetodo «What about:»
-  itemize $ do
---    it «PHOAS»
---    it «Functor/Monad/Categorical structure»
---    it «Traversable»
- --   it «Maybe»
- --   it «succ-less (Kmett)» -- http://www.slideshare.net/ekmett/bound-making-de-bruijn-succ-less
-    it «isomorphisms»
- --   it «safety»
- --   it «Worlds»
-    it «free theorem: world-polymorphic term functions»
- --   it «example programs (fv, eta?, nbe, CPS, closure-conv.)»
---    it «type class coercions»
---    it «performance benchmark (fv, nbe)»
---    it «functions are only substitutions»
-  --  it «our binder is closest to the "real meaning" of bindings»
- --   it «shallow interface/smart constructors»
---    it «mcbride "classy hack"»
---    it «"free" substitutions»
-
-  acknowledgements   «We thank Emil Axelsson and Koen Claessen for enlightening discussions.»
+  acknowledgements   «We thank Emil Axelsson and Koen Claessen for useful feedback.»
 
 
 appendix = execWriter $ do
