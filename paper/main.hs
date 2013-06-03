@@ -888,11 +888,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     By making the contexts fully
     polymorphic as we propose, no mistake is possible. 
     Hence the slogan: names are polymorphic indices.»
+
+  q«Transitively the derived equality instance of {|Tm|} gives α-equality, and is guaranteed 
+    safe in fully-polymorphic contexts.»
   [agdaFP|
   |deriving instance Eq a => Eq (Tm a)
   |]
-  q«Transitively the derived equality instance of {|Tm|} give α-equality, and is guaranteed safe
-    in fully-polymorphic contexts.»
 
 
   subsection «Membership»
@@ -1317,7 +1318,74 @@ s (f . g)
 
 -}
 
-  section $ «Styles»
+  section $ «Binders» 
+
+  p"flow"«
+  Armed with an intuitive understanding of safe interfaces to manipulate de Bruijn indices, 
+  and the knowlegde that one can abstract over any 
+  substitutive structure using standard type-classes, we can recapitulate and succintly describe
+  the essence of our constructions.»
+
+  q«In nested abstract systax, a binder introducing one variable in scope is represented as follows:»
+  [agdaP|
+  |type SuccScope tm a = tm (Succ a)
+  |]
+
+  q«In essence, we propose two new, dual representations of binders,
+                                             one based on universal
+  quantification, the other one based on existential quantification.»
+
+  commentCode [agdaFP|
+  |type PolyScope  tm a = ∀ v.  v → tm (a ▹ v) -- JP: TODO The dual of Exist is Univ. 
+  |type ExistScope tm a = ∃ v. (v , tm (a ▹ v))
+  |]
+  q«The above syntax for existentials is not supported in Haskell, so we must use
+    one of the lightweight encodings available. In the absence of view patterns,   
+    a CPS encoding is
+    convenient for programming (so we used this so far),
+    but in the following a datatype representation is more convenient in the following:»
+
+  [agdaFP|
+  |data ExistScope tm a where
+  |  E :: v → tm (a ▹ v) → ExistScope tm a
+  |] 
+
+  q«As we observe in a number of examples, these representations are dual from a safety perspective: 
+  the universal-based representation
+  ensures safety in the construction of terms, while the existential-based representation is
+  ensures safety in the analysis of terms.
+
+  For this reason, we do not commit to either side, and use the suitable representation on 
+  a case-by-case basis. This is possible because the representations are both isomorphic to
+  a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
+  »
+  subsection«Isomorphisms»
+
+  p"conversions"
+   «The conversion functions witnessing the isomorphism are the following.»
+
+  [agdaFP|
+  |succToPoly :: Functor tm ⇒ SuccScope tm a → PolyScope tm a
+  |succToPoly t = λ x → fmap (bimap id (const x)) t
+  |
+  |polyToSucc :: PolyScope tm a → SuccScope tm a
+  |polyToSucc f = f ()
+  |
+  |succToExist :: SuccScope tm a → ExistScope tm a
+  |succToExist t = E () t
+  |
+  |existToSucc :: Functor tm ⇒ ExistScope tm a → SuccScope tm a
+  |existToSucc (E _ t) = fmap (bimap id (const ())) t
+  |]
+
+  q«One will recognise pack and unpack as CPS versions of fromExist and toExist.
+    The {|fromUniv|} function was not named before, but was implicitly used 
+    in the definition of {|lam|}.»
+  notetodo«insert proofs here. See a sketch in Duality.hs»
+
+
+  subsection $ «Comitting to a representation»
+  subsection $ «Dual Styles»
 
 
   p"size example"
@@ -1855,66 +1923,6 @@ s (f . g)
   the CPS transform.»
 
   
-  section $ «Recap» 
-
-  q«In nested abstract systax, a binder introducing one variable in scope is represented as»
-
-  [agdaP|
-  |type SuccScope tm a = tm (Succ a)
-  |]
-
-  q«In essence, we propose two new, dual representations of binders,
-                                             one based on universal
-  quantification, the other one based on existential quantification.»
-
-  commentCode [agdaFP|
-  |type PolyScope  tm a = ∀ v.  v → tm (a ▹ v)
-  |type ExistScope tm a = ∃ v. (v , tm (a ▹ v))
-  |]
-  q«The above syntax for existentials is not supported in Haskell, so we must use
-    one of the lightweight encodings available. In the absence of view patterns,   
-    a CPS encoding is
-    convenient for programming (so we used this so far),
-    but in the following a datatype representation is more convenient in the following:»
-
-  [agdaFP|
-  |data ExistScope tm a where
-  |  E :: v → tm (a ▹ v) → ExistScope tm a
-  |] 
-
-  q«As we observe in a number of examples, these representations are dual from a safety perspective: 
-  the universal-based representation
-  ensures safety in the construction of terms, while the existential-based representation is
-  ensures safety in the analysis of terms.
-
-  For this reason, we do not commit to either side, and use the suitable representation on 
-  a case-by-case basis. This is possible because the representations are both isomorphic to
-  a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
-  »
-  subsection«Isomorphisms»
-
-  p"conversions"
-   «The conversion functions witnessing the isomorphism are the following.»
-
-  [agdaFP|
-  |succToPoly :: Functor tm ⇒ SuccScope tm a → PolyScope tm a
-  |succToPoly t = λ x → fmap (bimap id (const x)) t
-  |
-  |polyToSucc :: PolyScope tm a → SuccScope tm a
-  |polyToSucc f = f ()
-  |
-  |succToExist :: SuccScope tm a → ExistScope tm a
-  |succToExist t = E () t
-  |
-  |existToSucc :: Functor tm ⇒ ExistScope tm a → SuccScope tm a
-  |existToSucc (E _ t) = fmap (bimap id (const ())) t
-  |]
-
-  q«One will recognise pack and unpack as CPS versions of fromExist and toExist.
-    The {|fromUniv|} function was not named before, but was implicitly used 
-    in the definition of {|lam|}.»
-  notetodo«insert proofs here. See a sketch in Duality.hs»
-
   section $ «Comparisons» `labeled` comparison
 
   notetodo «Why don't we compare interfaces instead of representation?»
