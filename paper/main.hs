@@ -1385,7 +1385,7 @@ s (f . g)
 
   q«The first isomorphism property is to prove that {|PolyScope|} is a proper representation of {|SuccScope|},
     that is, {|polyToSucc . succToPoly == id|}. This can be done by simple equational reasoning:»
-  [agdaFP|
+  commentCode [agdaFP|
   |    polyToSucc (succToPoly t)
   | == {- by def -}
   |    existToSucc (λ x → fmap (bimap id (const x)) t)
@@ -1398,7 +1398,7 @@ s (f . g)
   |]
   q«The dual property is harder to prove. We need to use the Paterson-style free theorem for a value {|f|} of type {|PolyScope tm a|},
     yielding the following lemma:»
-  [agdaFP|
+  commentCode [agdaFP|
   | ∀ v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
   | ∀ x₁:v₁. ∀x₂:*. v x₁ == v₂.
   | ∀ g:(a ▹ v₁) → (a ▹ v₂).
@@ -1408,7 +1408,7 @@ s (f . g)
   |]
   q«We can then specialise to {|v₁ = ()|}, {|x₁ = ()|}, and {|g = bimap id (const x₂)|}, indeed {|g|} satisfies 
     the condition of the lemma. We can then reason equationally:»
-  [agdaFP|
+  commentCode [agdaFP|
   |    f 
   | ==  {- by the above -}
   |    \x -> fmap (bimap id (const x)) (f ())
@@ -1419,7 +1419,7 @@ s (f . g)
   |]
 
 {- 
-  [agdaFP|
+  commentCode [agdaFP|
   |    existToSucc (succToExist t)
   | == {- by def -}
   |    existToSucc (E () t)
