@@ -33,6 +33,8 @@ authorinfo (name, email', inst') =
 begin = BI.latexCmdArg "begin"
 end = BI.latexCmdArg "end"
 
+acmCategory a1 a2 a3 = tell $ B.para $ BI.latexCmdArgs "category" $ map (T.Mandatory . (:[])) [a1,a2,a3]
+
 acknowledgements x = tell $ B.para $ BI.latexCmdArg "acks" mempty <> x
 
 p = tell . B.para

@@ -4,9 +4,10 @@ representation bindings, whose dynamic (run-time) repsentation is
 based on de Bruijn indices, but uses static (type-system) features to
 offer a nominal-style interface for construction and manipulation of
 binders. The key idea is to represent a subterm with an additional
-free variable as $\forall v. v \rightarrow Term (a \cup v)$.
+free variable either as $\forall v. v \rightarrow Term (a + v)$
+or $\exists v. v \times Term (a + v)$.
 Using this approach one gets the
-combined expressive power of both approaches, as we demonstrate on a 
+combined expressive power of nominal and de Bruijn indices, as we demonstrate on a 
 number of examples.
 
 

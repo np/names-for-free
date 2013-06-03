@@ -11,7 +11,7 @@ import Control.Monad.Writer
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
-import Kit (document, itemize, it, dmath, {-pc, pcm,-} printAgdaDocument, writeAgdaTo, startComment, stopComment, citet, citeauthor, acknowledgements)
+import Kit (document, itemize, it, dmath, {-pc, pcm,-} printAgdaDocument, writeAgdaTo, startComment, stopComment, citet, citeauthor, acknowledgements, acmCategory)
 import NomPaKit
 import NomPaKit.QQ
 
@@ -82,7 +82,7 @@ fincites = [altenkirch93, mcbridemckinna04]
 nestedcites = [bellegarde94, birdpaterson99, altenkirchreus99]
 nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu]
 
-title =  «Names For Free --- A Polymorphic Interface to Names and Binders»
+title =  «Names For Free --- A Polymorphic View of Names and Binders»
   -- «Parametric Nested Abstract Syntax» -- Sounds like it's for a representation
   --
   -- «A Classy Kind of Nested Abstract Syntax»
@@ -269,16 +269,14 @@ On top of Bound:
   remove _ xs = [x | There x ← xs]
 
   ...
-
   in this case we should also have:
-
   (∀ v. Binder v → tm (w ▹ v))
   -}
 
 
 body includeUglyCode = {-slice .-} execWriter $ do -- {{{
-  notetodo «ACM classification (JP: no clue how it's done these days!)»
-
+  acmCategory «D.3.3» «Language Constructs and Features» «»
+  
   when includeUglyCode $ do 
      [agdaP|
      |{-# LANGUAGE RankNTypes, UnicodeSyntax,
@@ -1455,11 +1453,9 @@ s (f . g)
   | o x₂ t₂ == o x₁ t₁
   |] 
   q«Indeed, after specialising {|x₂ = ()|} and {|v = const ()|},
-    the last condition forces {|t₂ == fmap (bimap id (const ())) t₁|}, and
+    the last condition is equivalent to {|t₂ == fmap (bimap id (const ())) t₁|}, and
     we get the desired result.»
   
-  subsection $ «Committing to a representation»
-
   subsection $ «Dual Styles»
 
   q «One can take the example of a size function, counting the number of
