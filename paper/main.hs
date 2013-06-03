@@ -1384,8 +1384,9 @@ s (f . g)
     in the definition of {|lam|}. This is the first occurence of the {|succToPoly|} function.»
 
   subsection«Proofs»
+  q«Note that in our proofs we disregard non-termination and {|seq|}.»
 
-  subsubsection «{|PolyScope ≅ SuccScope|} »
+  subsubsection «{|PolyScope ≅ SuccScope|}» 
   q«We prove first that {|PolyScope|} is a proper representation of {|SuccScope|}, 
     that is {|polyToSucc . succToPoly == id|}. This can be done by simple equational reasoning:»
   commentCode [agdaFP|
@@ -1401,21 +1402,22 @@ s (f . g)
   |]
   q«The second property {|succToPoly . polyToSucc == id|} is harder to prove.
     We need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
-    Transcoding {|PolyScope tm a|} to a relation by using the Paterson method for functors
-    {cite[fegarasrevisiting1996]}, we obtain
-    the following lemma:»
+    Transcoding {|PolyScope tm a|} to a relation by using Paterson's method 
+    {cite[fegarasrevisiting1996]}, assuming additionally that {|tm|} is a functor.
+    We obtain the following lemma:»
   commentCode [agdaFP|
-  | ∀ v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
-  | ∀ x₁:v₁. ∀x₂:*. v x₁ == v₂.
-  | ∀ g:(a ▹ v₁) → (a ▹ v₂).
+  | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
+  | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
+  | ∀g:(a ▹ v₁) → (a ▹ v₂).
   | (∀ y:v₁. Here (v y) == g (Here y)) → 
-  | (∀ n:a.  There n    == g (Here n)) → 
+  | (∀ n:a.  There n    == g (There n)) → 
   | f x₂ == fmap g (f x₁)
   |]
   q«We can then specialise
     {|v₁ = ()|}, 
+    {|v = const x₂|}, 
     {|x₁ = ()|}, and 
-    {|g = bimap id (const x₂)|}. Indeed it is easy to check that {|g|} satisfies, 
+    {|g = bimap id v|}. By definition, {|g|} satisfies 
     the conditions of the lemma. We can then reason equationally:»
   commentCode [agdaFP|
   |    f 
@@ -1432,15 +1434,30 @@ s (f . g)
   first proof about {|PolyScope|} and hence omitted.
   To prove {|succToExist . existToSucc == id|}, we first remark that by definition»
   commentCode [agdaFP|
-  |succToExist (existToSucc (E y t)) == E () (fmap (mapu id (const ())) t)
+  |succToExist (existToSucc (E y t)) == 
+  |  E () (fmap (bimap id (const ())) t)
   |]
-  q«It remains To show that {|E y t|} is equivalent to the rhs of the above equation.
+  q«It remains To show that {|E y t|} is equivalent to the right-hand side of the above equation.
   To do so, we consider
-  any observation function {|o|}, and show it will return the same result if
-  applied to {|y|} and {|t|} or {|()|} and {|(fmap (mapu id (const ())) t)|}.
-  This fact is a consequence of the free theorem associated with {|o|}.»
-  notetodo «write it down»
-
+  any observation function {|o|} of type {|∀v. v → tm (a▹v) → K|} for 
+  some constant type {|K|}, and show 
+  that it will return the same result if
+  applied to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ())) t|}.
+  This fact is a consequence of the free theorem associated with {|o|}
+  commentCode [agdaFP|
+  | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
+  | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
+  | ∀t₁:tm (a ▹ v₁). ∀t₂:tm (a ▹ v₂).
+  | (∀g:(a ▹ v₁) → (a ▹ v₂).
+  |  (∀ y:v₁. Here (v y) == g (Here y)) → 
+  |  (∀ n:a.  There n    == g (There n)) → 
+  |  t₂ == fmap g t₁) →
+  | o x₂ t₂ == o x₁ t₁
+  |] 
+  q«Indeed, after when specialising {|x₂ = ()|} and {|v = const ()|},
+    the last condition forces {|t₂ == fmap (bimap id (const ())) t₁|}, and
+    we get the desired result.»
+  
   subsection $ «Committing to a representation»
 
   subsection $ «Dual Styles»
