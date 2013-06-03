@@ -159,7 +159,7 @@ qqP :: (a -> LatexItem) -> (a -> String) -> Bool -> Bool -> a -> ParItemW
 qqP toLatex toString leadingHardline indent x
   = put . parMarkCode . B.para
   . (if indent then id else (B.noindent ⊕))
-  . (B.comment (substNbsp (toString x)) ⊕)
+  . (B.comment (haskellify (toString x)) ⊕)
   . (if leadingHardline then (hardline ⊕) else id)
   . alignVert'
   $ toLatex x

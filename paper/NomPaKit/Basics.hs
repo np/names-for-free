@@ -35,14 +35,16 @@ infix 0 ↦
 (↦) :: a -> b -> (a, b)
 (↦) = (,)
 
-substNbsp :: String -> String
-substNbsp = filter ψ . map θ
-  where θ '☐' = ' '
-        θ ' ' = ' '
-        θ 'λ' = '\\'
-        θ  x  =  x
-        ψ '‼' = False
-        ψ  _  = True
+haskellify :: String -> String
+haskellify = concatMap θ
+  where θ '☐' = " "
+        θ ' ' = " "
+        θ 'λ' = "\\"
+        θ '∈' = ":∈"
+        θ '⊆' = ":⊆"
+        θ '▹' = ":▹"
+        θ '‼' = ""
+        θ  x  = [x]
 
 put :: ParItem -> ParItemW
 put = tell
