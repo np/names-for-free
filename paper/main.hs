@@ -248,6 +248,33 @@ On top of Bound:
 
 -}
 
+
+  {- NP:
+  These throwaway arguments might be a bit worrisome. A more involved
+  version would use a type known as Tagged
+
+  data Tagged a b = Tagged b
+
+  Or more specific to our usage
+
+  data Binder v = TheBinder
+  -- Iso to Tagged v ()
+
+  unpack :: (∀ v. v → tm (w ▹ v)) →
+            (∀ v. Binder v → tm (w ▹ v) → a) → a
+  unpack b k = k TheBinder (b TheBinder)
+
+  remove :: Binder v → [a ▹ v] → [a]
+  remove _ xs = [x | There x ← xs]
+
+  ...
+
+  in this case we should also have:
+
+  (∀ v. Binder v → tm (w ▹ v))
+  -}
+
+
 body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   notetodo «ACM classification (JP: no clue how it's done these days!)»
 
@@ -256,7 +283,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |{-# LANGUAGE RankNTypes, UnicodeSyntax,
      |    TypeOperators, GADTs, MultiParamTypeClasses,
      |    FlexibleInstances, UndecidableInstances,
-     |    IncoherentInstances, ScopedTypeVariables #-}
+     |    IncoherentInstances, ScopedTypeVariables, StandaloneDeriving #-}
      |import Prelude hiding (elem,any)
      |import Data.Foldable
      |import Data.Traversable
@@ -781,13 +808,92 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   section $ «Contexts»
 
-  p"flow, ∈, inj"
+
+  p"flow, ▹"
    «We have seen that the type of free variables essentially describes
     the context where they are meaningful. A context can either be
     empty (and we represent it by the type {|Zero|}) or not (which we
     can represent by the type {|a ▹ v|}).»
 
-  notetodo «Insert remove, freevars, etc. here»
+  p"explain remove"
+   «An important functon of the {|v|} type variable is to make sure 
+    programmers refer to the variable they intend to. For example, 
+    consider the following function, which takes a list of (free) variables
+    and removes one of them from the list. Hence it takes a list of variables
+    in the context_{|a ▹ v|} and returns a list in the context_{|a|}. For extra
+    safety, it also takes a name of the variable being removed, which is used only for
+    type-checking purposes.»
+  [agdaFP|
+  |remove :: v → [a ▹ v] → [a]
+  |remove _ xs = [x | There x ← xs]
+  |]
+
+  p"explain freeVars"
+   «The function which computes the list of occurences of free variables in a term can
+    be directly transcribed from its nominal-style definition, thanks
+    to the {|unpack|} combinator.»
+
+  [agdaFP|
+  |freeVars :: Tm a → [a]
+  |freeVars (Var x) = [x]
+  |freeVars (Lam b) = unpack b $ λ x t →
+  |   remove x (freeVars t)
+  |freeVars (App f a) = freeVars f ++ freeVars a
+  |]
+
+  subsection $ «Equality between names»
+
+
+  p"Eq Zero"
+   «Many useful functions depend on weather two names are equal.
+    To implement comparison between names, we provide the following two {|Eq|} instances.
+    First, the {|Zero|} type is vaccuously equipped with equality:»
+
+  [agdaFP|
+  |instance Eq Zero where
+  |  (==) = magic
+  |]
+
+  p""
+   «Second, if two indices refer to the first variables they are equal;
+    otherwise we recurse. We stress that this equality tests only the
+    {emph«indices»}, not the values contained in the type. For
+    example {|Here 0 == Here 1|} is {|True|}»
+
+  {-
+  instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where
+    Here  x == Here  y = x == y
+    There x == There y = x == y
+    _       == _       = False
+
+  instance Eq (Binder a) where
+    _ == _ = True
+  -}
+
+  [agdaFP|
+  |instance Eq a ⇒ Eq (a ▹ v) where
+  |  Here  _ == Here  _ = True
+  |  There x == There y = x == y
+  |  _       == _       = False
+  |]
+  q«
+    Comparing naked de Bruijn indices for equality is an error prone operation, 
+    because one index might be valid in
+    a context different from the other, and thus an arbitrary adjustment might be required.
+    With nested abstract syntax, the situation improves: by requiring equality to be 
+    performed between indices of the same type, a whole class of errors are prevented by
+    type-checking. Some mistakes are possible though: given two names of type {|a ▹ () ▹ ()|},
+    swapping the two first variables might be necessary, but one cannot decide if it is so 
+    from the types only. 
+    By making the contexts fully
+    polymorphic as we propose, no mistake is possible. 
+    Hence the slogan: names are polymorphic indices.»
+  [agdaFP|
+  |deriving instance Eq a => Eq (Tm a)
+  |]
+  q«Transitively the derived equality instance of {|Tm|} give α-equality, and is guaranteed safe
+    in fully-polymorphic contexts.»
+
 
   subsection «Membership»
   q«Given this, we can implement
@@ -811,7 +917,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     to the same type, both instances would apply equally. Fortunately,
     this incoherency will never trigger as long as one uses the
     interface provided by our combinators: the injection function will
-    always be used on maximally polymorphic contexts.»
+    always be used on maximally polymorphic contexts, and therefore {|v|} and {|v'|}
+    will be different.»
 
   -- NP: maybe mention the fact that GHC let us do that
 
@@ -821,15 +928,37 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     reference to a term into a properly tagged de Bruijn index, namely
     the function {|var|}.»
 
-  -- NP: removed dynamically
+  p"explain isOccurenceOf"
+   «Conversely, one can implement occurence-check by combining  {|inj|} with {|(==)|}:
+    one first lifts the bound variable to the context of the chosen occurence and
+    then test for equality.»
+
+  [agdaFP|
+  |isOccurenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
+  |x `isOccurenceOf` y = x == inj y
+  |]
+
+  p"occursIn"
+   «A test of occurrence of any given bound variable can then be given the following expression:»
+
+  [agdaFP|
+  |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
+  |x `occursIn` t = any (`isOccurenceOf` x) (freeVars t)
+  |]
+--- |x `occursIn` t = (`any` freeVars t) (`isOccurenceOf` x)
+  -- OR: inj x `elem` t
+  -- x `occursIn` t = inj x `elem` freeVars t
+  -- OR: Using Data.Foldable.elem
+  -- x `occursIn` t = inj x `elem` t
+
+
 
   subsection «Inclusion»
   p"context inclusion, ⊆"
-   «Context inclusion is another useful relation, which we also
+   «Context inclusion is another useful relation between contexts, which we also
     represent by a type class, namely {|⊆|}. The sole method of the
     typeclass is again an injection, from the small context to the
-    bigger one.»
-
+    bigger one. The main application of {|⊆|} is presented at the end of sec. {ref functorSec}.»
   [agdaFP|
   |class a ⊆ b where
   |  injMany :: a → b
@@ -855,7 +984,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"(▹) functoriality"
    «This last case uses the fact that {|(▹)|} is functorial in its first argument.»
 
-  q«The main application of {|⊆|} is presented at the end of sec. {ref functorSec}.»
 
   -- NP
   section $ «Term Structure» `labeled` termStructure
@@ -1189,12 +1317,8 @@ s (f . g)
 
 -}
 
-  subsection $ «Algebraic Structure/Catamorphism»
+  section $ «Styles»
 
-  -- NP: I prefered to start over this subsection
-
-  p"flow"
-   «TODO flow»
 
   p"size example"
    «One can take the example of a size function, counting the number of
@@ -1213,7 +1337,7 @@ s (f . g)
   |       ρ' (There  x) = ρ x
   |]
 
-  p""
+  p"Nominal aspect"
    «However one might prefer using our interface in particular in larger examples.
     Each binder is simply {|unpack|}ed.
     Using this technique, the size computation looks as follows:»
@@ -1230,6 +1354,12 @@ s (f . g)
   |extend (_, x) _ (Here _)  = x
   |extend _      f (There x) = f x
   |]
+
+
+
+{-
+
+  Catamorphism written in Nominal style
 
   p"cata"
    «This pattern can be generalized to any algebra over terms, yielding
@@ -1266,9 +1396,10 @@ s (f . g)
   |cataSize :: (a → Size) → Tm a → Size
   |cataSize = cata . sizeAlg
   |]
+-}
+
+
 {-
-  -- NP: this style (of using the variable parameter to represent intermediate
-  -- results) could be detailed more here.
 
   q«
    Our represtentation features three aspects which are usually kept separate. It
@@ -1280,7 +1411,6 @@ s (f . g)
 
   ...
 
-  startComment -- TODO
   p"higher-order"«Second, we show the higher-order aspect. It is common in higher-order representations
    to supply a concrete value to substitute for a variable at each binding site.
    Consequently we will assume that all free variables
@@ -1341,121 +1471,7 @@ s (f . g)
 
 
   section $ «Bigger Examples» `labeled` examples
-
-  subsection $ «Free variables»
-
-  p"explain freeVars"
-   «The function which computes the list of free variables of a term can
-    be directly transcribed from its nominal-style specification, thanks
-    to the {|unpack|} combinator.»
-
-  [agdaFP|
-  |freeVars :: Tm a → [a]
-  |freeVars (Var x) = [x]
-  |freeVars (Lam b) = unpack b $ λ x t →
-  |   remove x (freeVars t)
-  |freeVars (App f a) = freeVars f ++ freeVars a
-  |]
-
-  p"explain remove"
-   «The function which removes a free variable from a list, maps a
-    context {|a ▹ v|} to a context {|a|}. The function also takes a
-    name for the variable being removed --- but it is used only for
-    type-checking purposes.»
-
-  {- NP:
-  These throwaway arguments might be a bit worrisome. A more involved
-  version would use a type known as Tagged
-
-  data Tagged a b = Tagged b
-
-  Or more specific to our usage
-
-  data Binder v = TheBinder
-  -- Iso to Tagged v ()
-
-  unpack :: (∀ v. v → tm (w ▹ v)) →
-            (∀ v. Binder v → tm (w ▹ v) → a) → a
-  unpack b k = k TheBinder (b TheBinder)
-
-  remove :: Binder v → [a ▹ v] → [a]
-  remove _ xs = [x | There x ← xs]
-
-  ...
-
-  in this case we should also have:
-
-  (∀ v. Binder v → tm (w ▹ v))
-  -}
-
-  [agdaFP|
-  |remove :: v → [a ▹ v] → [a]
-  |remove _ xs = [x | There x ← xs]
-  |]
-
-  subsection $ «Occurence Test»
-
-  p"Eq Zero"
-   «In order to implement occurence testing, we need indices to be
-    comparable. To do so we provide the following two {|Eq|} instances.
-    First, the {|Zero|} type is vaccuously equipped with equality:»
-
-  [agdaFP|
-  |instance Eq Zero where
-  |  (==) = magic
-  |]
-
-  p""
-   «Second, if two indices refer to the first variables they are equal;
-    otherwise we recurse. We stress that this equality tests only the
-    {emph«indices»}, not the values contained in the type. For
-    example {|Here 0 == Here 1|} is {|True|}»
-
-  {-
-  instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where
-    Here  x == Here  y = x == y
-    There x == There y = x == y
-    _       == _       = False
-
-  instance Eq (Binder a) where
-    _ == _ = True
-  -}
-
-  [agdaFP|
-  |instance Eq a ⇒ Eq (a ▹ v) where
-  |  Here  _ == Here  _ = True
-  |  There x == There y = x == y
-  |  _       == _       = False
-  |]
-
-  p"explain isOccurenceOf"
-   «Because the comparisons can be performed only on indices sharing the
-    same type, it is ensured by the type system that they refer to the
-    same context. Consequently, for sufficently polymorphic contexts (for example if one always
-    uses {|unpack|} to inspect binders), the
-     comparisons between indices will always be meaningful. These tests can then
-    be combined with the injection coming from the type class {|(∈)|} to
-    test that a variable {|x|} from a context {|a|} is an occurrence of
-    a binder {|y|} with a type {|v|}: »
-
-  [agdaFP|
-  |isOccurenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
-  |x `isOccurenceOf` y = x == inj y
-  |]
-
-  p"occursIn"
-   «A test of occurrence of any given bound variable can then be given the following expression,
-    taking advantage of the {|Foldable|} structure of terms:»
-
-  [agdaFP|
-  |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
-  |x `occursIn` t = inj x `elem` t
-  |]
-  -- OR: any (`isOccurenceOf` x) (freeVars t)
-  -- x `occursIn` t = inj x `elem` freeVars t
-  -- OR: Using Data.Foldable.elem
-  -- x `occursIn` t = inj x `elem` t
-
+{-
 
   subsection $ «Test of α-equivalence»
   p""«
@@ -1466,7 +1482,7 @@ s (f . g)
    Indeed, thanks to parametricity, the functions cannot inspect their argument at all, and therefore it is
    sufficient to test for equality at the unit type, as shown below:
   »
-  [agdaFP|
+  commentCode [agdaFP|
   |instance Eq a ⇒ Eq (Tm a) where
   |  Var x == Var x' = x == x'
   |  Lam g == Lam g' = g == g'
@@ -1528,7 +1544,7 @@ s (f . g)
   |extendCmp _ _ _ (Here _)  (Here _)   = True
   |extendCmp _ _ _ _         _          = False
   |]
-
+-}
   subsection $ «Normalisation by evaluation» `labeled` nbeSec
 
   p"intro"
@@ -2409,8 +2425,7 @@ s (f . g)
 --    it «mcbride "classy hack"»
 --    it «"free" substitutions»
 
-  acknowledgements
-     «We thank Emil Axelsson and Koen Claessen for enlightening discussions.»
+  acknowledgements   «We thank Emil Axelsson and Koen Claessen for enlightening discussions.»
 
 
 appendix = execWriter $ do
@@ -2478,7 +2493,7 @@ appendix = execWriter $ do
   |]
   stopComment
 
-  section $ «Bind an arbitrary name»
+  section $ «Bind and substitute an arbitrary name»
   [agdaP|
   |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
   |           v → f b → (w → f (a ▹ w))
@@ -2499,6 +2514,11 @@ appendix = execWriter $ do
   |  shuffle f (There x) = case shuffle f x of
   |    Here y → Here y
   |    There y → There (There y)
+  |
+  |substituteGen :: (Insert v a b, Functor tm, Monad tm) ⇒ 
+  |                 v → tm a → tm b → tm a
+  |substituteGen x t u = 
+  |   substituteTop x t (fmap (shuffle id) u)
   |]
 
   section $ «NomPa details»
