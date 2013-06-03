@@ -1443,7 +1443,7 @@ s (f . g)
   some constant type {|K|}, and show 
   that it will return the same result if
   applied to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ())) t|}.
-  This fact is a consequence of the free theorem associated with {|o|}
+  This fact is a consequence of the free theorem associated with {|o|}»
   commentCode [agdaFP|
   | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
   | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
@@ -1454,7 +1454,7 @@ s (f . g)
   |  t₂ == fmap g t₁) →
   | o x₂ t₂ == o x₁ t₁
   |] 
-  q«Indeed, after when specialising {|x₂ = ()|} and {|v = const ()|},
+  q«Indeed, after specialising {|x₂ = ()|} and {|v = const ()|},
     the last condition forces {|t₂ == fmap (bimap id (const ())) t₁|}, and
     we get the desired result.»
   
