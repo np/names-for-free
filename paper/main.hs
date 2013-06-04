@@ -34,6 +34,8 @@ import NomPaKit.QQ
       cpsSec
       closureSec
       nbeSec
+      contextSec
+      scopesSec
      |]
 
 -- figures
@@ -304,7 +306,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «One of the main application area of functional programming languages
     such as Haskell is programming language technology. In particular,
     Haskell programmers often finds themselves manipulating data
-    structures which involve binders and names.»
+    structures representing some higher-order object language, 
+    featuring binders and names.»
 
   p"identifying the gap"
    «Yet, the most commonly used representation for names and binders
@@ -351,7 +354,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     involved and error-prone in nominal.»
 
   p"HOAS"
-   «TODO HOAS»
+   «Finally, the idea of HOAS is to use the binders of the host language (in our case Haskell)
+    to represent binders of the object language. This technique does not suffer
+    from name-capture problems nor involves arithmetic. However the 
+    arbitrary functions in the term representation mean that it is difficult 
+    to manipulate, and it may contain values which do not represent any term.»
 
   p"contribution"
    «We contribute a new programming interface for binders, which
@@ -368,14 +375,19 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"contribution continued"
    «All the while, the representation does not require either a
-    name supply, not is there to worry about a chance of name capture
-    and testing terms for α-equivalence remains straightforward. The cost of this
-    achievement is the use of somewhat more involved types for terms,
-    and the use type system extensions implemented only in the Glasgow
-    Haskell Compiler. This new construction is described in sec. {ref
-    overview}.»
-
-  notetodo «survey the rest of the paper.»
+    name supply, there is not chance of name capture,
+    testing terms for α-equivalence remains straightforward and representable
+    terms are exactly those intended.
+    The cost of this
+    achievement is the use of somewhat more involved types for binders,
+    and the use of Haskell type-system extensions implemented only in the Glasgow
+    Haskell Compiler. The new construction is informally described and
+    motivated in sec. {ref overview}. In sections {ref contextSec} to {ref scopesSec}
+    we present in detail the implementation of the technique as well
+    as basic applications.
+    Larger applications (normalisation by evaluation, closure conversion, 
+    CPS transformation) are presented in {ref examples}.
+    »
 
   section $ «Overview» `labeled` overview
 
@@ -386,8 +398,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   subsection $ «de Bruijn Indices»
 
   p"de Bruijn indices"
-   «{citet[debruijnlambda1972]} proposed to represent a variable {|x|}
-    by counting the number binders that one has to cross over to reach the
+   «{citet[debruijnlambda1972]} proposed to represent an occurence 
+    of some variable {|x|}
+    by counting the number binders that one has to cross beween the occurence and the
     binding site of {|x|}. A direct implementation of the idea may yield
     the following representation of untyped λ-terms:»
 
@@ -454,6 +467,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    to the freshly bound one), we give a special definition, whose the syntax reflects the
    intended semantics.»
   
+  notetodo «TODO: rename There and Here to Old and New as in {cite[altenkirchreus99]}?»
   [agdaFP|
   |type Succ a = a ▹ ()
   |
@@ -773,9 +787,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   paragraph «Pack»
 
   p"pack"
-   «As we shall shortly terms form an instance of {|Functor|}. The
-    function {|pack|} is therefore defined uniformly for all {|tm|}
-    instance of {|Functor|}. It is then easy to invert the job
+   «It is easy to invert the job
     of {|unpack|}. Indeed, given a value {|x|} of type {|v|} and a term
     of type {|Tm (a ▹ v)|} one can reconstruct a binder as follows: »
 
@@ -783,14 +795,27 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
   |pack x = fmap (bimap id (const ()))
   |]
+  q«(The {|Functor|} constraint is harmless, as we see in sec. {termStructure}.)
 
-  p"dynamically useless, statically useful"
-   «As we can see, the value {|x|} is not used by pack. However it
-    statically helps as a specification of the user intention. Therefore
-    we rely on names and not indices.»
+    As we can see, the value {|x|} is not used by pack. However it
+    statically helps as a specification of the user intention: it makes sure
+    the programmer relies on host-level variable names, and not indices.»
+
+  -- TODO
+  q«A production-quality version of {|pack|} would allow to bind any 
+    free variable. Assuming that the constraint {|Insert v a b|} means
+    that by removing the variable {|v|} 
+    from the context {|b|} one obtains {|a|}, then a generic pack would have the 
+    following type:»
+  [agdaFP|
+  |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
+  |           v → f b → (w → f (a ▹ w))
+  |]
+  q«The implementation of {|packGen|} and {|Insert|} is deferred to the appendix, 
+  as it is and involved, but straightforward extension of {|inj|} and {|(∈)|}.»
 
   p"lamP"
-   «Hence, the {|pack|} combinator makes it possible to give a nominal-style
+   «In sum, the {|pack|} combinator makes it possible to give a nominal-style
     interface to binders. For example an alternative way to build
     the {|Lam|} constructor is the following:»
 
@@ -799,14 +824,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |lamP x t = Lam (pack x t)
   |]
 
-  -- TODO
-  q«It is even possible to make {|pack|} bind any known variable in a
-    context, by using a typeclass similar to {|∈|}. This extension is
-    straightforward and the implementation is deferred to the appendix.»
-
   -- section $ «»
 
-  section $ «Contexts»
+  section $ «Contexts» `labeled` contextSec
 
 
   p"flow, ▹"
@@ -1026,7 +1046,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |instance Functor Tm where
   |  fmap f (Var x)   = Var (f x)
   |  fmap f (Lam b)   = unpack b $ λ x t →
-  |                       Lam . pack x $ fmap (bimap f id) t
+  |                       lamP x $ fmap (bimap f id) t
   |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
 
@@ -1318,7 +1338,7 @@ s (f . g)
 
 -}
 
-  section $ «Scopes» 
+  section $ «Scopes» `labeled` scopesSec
 
   p"flow"«
   Armed with an intuitive understanding of safe interfaces to manipulate de Bruijn indices, 
@@ -2592,8 +2612,6 @@ appendix = execWriter $ do
 
   section $ «Bind and substitute an arbitrary name»
   [agdaP|
-  |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
-  |           v → f b → (w → f (a ▹ w))
   |packGen _ t x = fmap (shuffle cx) t
   |  where cx :: v → w
   |        cx _ = x
