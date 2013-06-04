@@ -1720,35 +1720,41 @@ s (f . g)
 -}
   subsection $ «Normalisation by evaluation» `labeled` nbeSec
 
-  p"intro"
-   «One way to evaluate terms is to evaluate each subterm to normal
-    form. If a redex is encountered, a hereditary substitution is
-    performed. This technique is known as normalisation by evaluation
-    {cite nbecites}.»
-
-  q«We can then define (by mutual recursion) the application of normal forms to normal forms, and a substittuer which hereditarily
-  uses it.»
-
+  p"intro" «A classical test of scope respresentations is how they support 
+  normalisation by evaluation (NBE) {cite nbecites}.»
+  q«NBE takes its name from direct evaluation from terms to their normal forms. The
+    following type captures normal forms of the untyped λ-calculus: a normal form is either
+    an abstraction or an application of a variable to some normal forms. In this definition
+    we use an existential-based version of scopes, which we splice in the {|Lam'|} constructor.»
   [agdaFP|
-  |app :: Tm a → Tm a → Tm a
-  |app (Lam b) u = unpack b $ \x t → substituteTop x u t --TODO JP: FIXME: use hereditary subst.
-  |app t u = App t u
+  |data No a where
+  |  Lam' :: v -> No (a ▹ v) -> No a
+  |  App' :: a -> [No a] -> No a
   |]
-  
-  notetodo «stress the relation with >>=.»
-
+  q«The key to NBE is a
+  hereditary substitution function, which reduces redexes as it substitutes
+  variables for their value. The existence of such a function implies that normal forms are
+  stable under substitution.»
   [agdaFP|
-  |(=<<<) :: (a → Tm b) → Tm a → Tm b
-  |θ =<<< Var x   = θ x
-  |θ =<<< Lam b   = unpack b $ \x t → lamP x (liftSubst θ =<<< t)
-  |θ =<<< App t u = app (θ =<<< t) (θ =<<< u)
+  |instance Monad No where         
+  |  return x = App' x []
+  |  Lam' x t >>= θ = Lam' x (t >>= liftSubst θ)
+  |  App' f xs >>= θ = foldl app (θ f) (fmap (>>= θ) xs)
+  |]
+
+  q«The most notable feature of this substitution
+    is the use of {|app|} to evaluate redexes:»
+  [agdaFP|
+  |app :: No a → No a → No a
+  |app (Lam' x t) u = substituteTop x u t
+  |app (App' f xs) u = App' f (xs++[u])
   |]
 
   q«The evaluator can then be written as a simple recursion on the term structure:»
   [agdaFP|
-  |eval :: Tm w → Tm w
-  |eval (Var x) = Var x
-  |eval (Lam t) = Lam (eval t)
+  |eval :: Tm a → No a
+  |eval (Var x) = return x
+  |eval (Lam b) = unpack b $ \x t -> Lam' x (eval t)
   |eval (App t u) = app (eval t) (eval u)
   |]
 
@@ -2518,6 +2524,11 @@ s (f . g)
 
 appendix = execWriter $ do
   section $ «Implementation details» `labeled` implementationExtras
+  subsection «Nbe»
+  [agdaP|
+  |instance Functor No where -- TODO
+  |]
+
   subsection «CPS»
 
 {-
