@@ -1473,7 +1473,7 @@ s (f . g)
   (The {|App|} and {|Var|} cases are identical.)»
   [agdaFP|
   |fmap' f (Lam b)
-  |   = unpack b $ λ x t → LamP x (fmap (bimap f id) t)
+  |   = unpack b $ λ x t → lamP x (fmap (bimap f id) t)
   |fmap' f (Lam b) 
   |   = lam (λ x → fmap (bimap f id) (b `atVar` x))
   |atVar = succToPoly 
