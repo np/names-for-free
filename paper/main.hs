@@ -1494,9 +1494,9 @@ s (f . g)
     particular scope representation one might choose. In other words, if some interface appears
     well-suited to a given application domain, one might choose it as the scope representation
     in the implementation. Typically, this choice will be guided by performance reasons.
-    Within this paper we favour code concision instead, and therefore in sections 
-    {ref closureSec} and {ref cpsSec} we use, because
-    {|PolyScope|} is yields to shorter code.
+    Within this paper we favour code concision instead, and therefore in sec.
+    {ref nbeSec} we use {|ExistScope|}, and in sections
+    {ref closureSec} and {ref cpsSec} we use {|PolyScope|}.
     »
 
 {-
@@ -1731,10 +1731,10 @@ s (f . g)
   |  Lam' :: v -> No (a ▹ v) -> No a
   |  App' :: a -> [No a] -> No a
   |]
-  q«The key to NBE is a
-  hereditary substitution function, which reduces redexes as it substitutes
-  variables for their value. The existence of such a function implies that normal forms are
-  stable under substitution.»
+  q«The key to NBE is that normal forms are
+  stable under substitution. This is realised by an
+  hereditary substitution function, which, as it substitutes
+  variables for their value, reduces redexes on the fly.»
   [agdaFP|
   |instance Monad No where         
   |  return x = App' x []
