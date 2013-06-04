@@ -1359,33 +1359,26 @@ s (f . g)
   For this reason, we do not commit to either side, and use the suitable representation on 
   a case-by-case basis. This is possible because the representations are both isomorphic to
   a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
-  »
+  (Strictly speaking, this holds only if one disregards non-termination and {|seq|}.)»
 
+  subsection «{|PolyScope tm a ≅ SuccScope tm a|}» 
   p"conversions"
-   «The conversion functions witnessing the isomorphisms are the following.»
-
+   «The conversion functions witnessing the isomorphism are the following.»
   [agdaFP|
-  |succToPoly :: Functor tm ⇒ SuccScope tm a → PolyScope tm a
+  |succToPoly :: Functor tm ⇒ 
+  |              SuccScope tm a → PolyScope tm a
   |succToPoly t = λ x → fmap (bimap id (const x)) t
   |
   |polyToSucc :: PolyScope tm a → SuccScope tm a
   |polyToSucc f = f ()
-  |
-  |succToExist :: SuccScope tm a → ExistScope tm a
-  |succToExist t = E () t
-  |
-  |existToSucc :: Functor tm ⇒ ExistScope tm a → SuccScope tm a
-  |existToSucc (E _ t) = fmap (bimap id (const ())) t
   |]
+  q«The {|polyToSucc|} function has not been given a name in the previous sections, 
+    but was implicitly used 
+    in the definition of {|lam|}. 
+    This is the first occurence of the {|succToPoly|} function.»
 
-  q«One will recognise {|pack|} and {|unpack|} as CPS versions of {|existToSucc|} and {|succToExist|}.
-    The {|polyToSucc|} function has not been given a name in the previous sections, but was implicitly used 
-    in the definition of {|lam|}. This is the first occurence of the {|succToPoly|} function.»
 
-  subsection«Proofs»
-  q«Note that in our proofs we disregard non-termination and {|seq|}.»
-
-  subsubsection «{|PolyScope ≅ SuccScope|}» 
+  
   q«We prove first that {|PolyScope|} is a proper representation of {|SuccScope|}, 
     that is {|polyToSucc . succToPoly == id|}. This can be done by simple equational reasoning:»
   commentCode [agdaFP|
@@ -1399,8 +1392,10 @@ s (f . g)
   | == {- by (bi)functor laws -}
   |    t
   |]
-  q«The second property {|succToPoly . polyToSucc == id|} is harder to prove.
-    We need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
+  q«The second property {|succToPoly . polyToSucc == id|} more difficult to prove:
+    this corresponds to the fact that one cannot represent more terms in {|PolyScope|}
+    than in {|SuccScope|}, and relies on parametricity.
+    Hence we need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
     Transcoding {|PolyScope tm a|} to a relation by using Paterson's method 
     {cite[fegarasrevisiting1996]}, assuming additionally that {|tm|} is a functor.
     We obtain the following lemma:»
@@ -1428,7 +1423,19 @@ s (f . g)
   |    succToPoly (polyToSucc f)
   |]
 
-  subsubsection «{|ExistScope ≅ SuccScope|} »
+  subsection «{|ExistScope tm a ≅ SuccScope tm a|} »
+  p"conversions"
+   «The conversion functions witnessing the isomorphism are the following.»
+  [agdaFP|
+  |succToExist :: SuccScope tm a → ExistScope tm a
+  |succToExist t = E () t
+  |
+  |existToSucc :: Functor tm ⇒ 
+  |               ExistScope tm a → SuccScope tm a
+  |existToSucc (E _ t) = fmap (bimap id (const ())) t
+  |]
+  q«One will recognise {|pack|} and {|unpack|} as CPS versions of {|existToSucc|} and {|succToExist|}.»
+
   q«The proof {|existToSucc . succToExist == id|} is nearly identical to the 
   first proof about {|PolyScope|} and hence omitted.
   To prove {|succToExist . existToSucc == id|}, we first remark that by definition»
@@ -1468,11 +1475,16 @@ s (f . g)
   |fmap' f (Lam b)
   |   = unpack b $ λ x t → LamP x (fmap (bimap f id) t)
   |fmap' f (Lam b) 
-  |   = lam (λ x → fmap (bimap f id) (toUniv b x))
+  |   = lam (λ x → fmap (bimap f id) (b `atVar` x))
+  |atVar = succToPoly 
   |]
-  q«In both cases, the type of x is a type variable, and hence in both cases contexts are
-  maximally polymorphic. Because the second version is more concise, we prefer it
-  in the upcoming examples, but the other choice is equally valid.»
+  q«In the case where the second argument of {|succToPoly|} is a witness of a bound variable,
+    it acts as a mere assignment of a witness to a scope. Hence we give it the special name {|`atVar`|}
+    for this situation.
+ 
+    For both alternatives, the type of {|x|} is a type variable, and hence in both cases contexts are
+    maximally polymorphic. Because the second version is more concise, we prefer it
+    in the upcoming examples, but the other choice is equally valid.»
    
   subsection $ «{|Scope|} representations and {|Term|} representations»
   
@@ -1805,7 +1817,7 @@ s (f . g)
   |cc (Var x) = VarLC x
   |cc t0@(Lam b) = 
   |  let yn = nub $ freeVars t0
-  |  in Closure (λ x env → cc (succToPoly b x) >>=
+  |  in Closure (λ x env → cc (b `atVar` x) >>=
   |                   liftSubst (idxFrom yn env))
   |             (Tuple $ map VarLC yn)
   |cc (App e1 e2) =
@@ -2457,6 +2469,9 @@ s (f . g)
      »
 
   subsection «Performance»
+  p""«
+   Choosing {|ExistScope|} is a better choice from a performance perspective.
+  »
 
   subsection «Future work: both aspects in one»
 
