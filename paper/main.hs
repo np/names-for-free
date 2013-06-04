@@ -55,6 +55,7 @@ import NomPaKit.QQ
       berger_normalization_1998
       mcbride_applicative_2007
       fegaras_revisiting_1996
+      bernardy_proofs_2012
 
       de-bruijn-72 mcbride-mckinna-04 altenkirch-reus-99
       atkey-hoas-09 pouillard-pottier-10 pouillard-11
@@ -122,7 +123,8 @@ commentWhen False x = x
 commentCode = doComment
 
 unpackCode =  [agdaFP|
-  |unpack :: f (Succ a) → (∀ v. v → f (a ▹ v) → r) → r
+  |unpack :: f (Succ a) → 
+  |          (∀ v. v → f (a ▹ v) → r) → r
   |unpack e k = k () e
   |]
 
@@ -310,7 +312,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     featuring binders and names.»
 
   p"identifying the gap"
-   «Yet, the most commonly used representation for names and binders
+   «Yet, the most commonly used representations for names and binders
     yield code which is difficult to read, and error-prone to write
     and maintain. The techniques in question are often referred as
     “nominal”, “de Bruijn indices” and “HOAS: Higher-Order Abstract
@@ -351,7 +353,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"DB make α-eq easy"
    «For instance deciding if two terms are α-equivalent is
     straightforward and efficient with de Bruijn indices and is more
-    involved and error-prone in nominal.»
+    involved and error-prone with nominal approaches.»
 
   p"HOAS"
    «Finally, the idea of HOAS is to use the binders of the host language (in our case Haskell)
@@ -460,14 +462,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     its cardinality by one, since the body can refer to one more
     variable.»
 
-  p"flash-forward"«Anticipating on the amendements we propose, we define {|Succ a|} type as 
+  p"flash-forward"«Anticipating on the amendements we propose, we define the {|Succ a|} type as 
    a proper sum of {|a|} and the unit type {|()|} instead of {|Maybe a|} as customary. 
    Because the sum is used in an
    assymetric fashinon (the left-hand-side corresponds to variables bound earlier and the right-hand-side
-   to the freshly bound one), we give a special definition, whose the syntax reflects the
+   to the freshly bound one), we give a special definition of sum written {|▹|},
+   whose the syntax reflects the
    intended semantics.»
   
-  notetodo «TODO: rename There and Here to Old and New as in {cite[altenkirchreus99]}?»
+  notetodo «MAYBE: rename There and Here to Old and New as in {cite[altenkirchreus99]}?»
   [agdaFP|
   |type Succ a = a ▹ ()
   |
@@ -578,8 +581,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     purely part of the {emph«implementation»}.»
 
   p"type-checking the number of There..."
-   «The type-checker will make sure that the implementation matches the specification:
-    for example if one now makes a mistake and forgets one {|There|} when typing the
+   «The type-checker then makes sure that the implementation matches the specification:
+    for example if one now makes a mistake and forgets one {|There|} when entering the
     term, the Haskell type system rejects the definition.»
 
   commentCode [agdaFP|
@@ -599,7 +602,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     type is to use the variable bound by {|lam|}.»
 
   p"unicity of injections"
-   «Conversely, in a closed context, if one considers the
+   «In general, in a closed context, if one considers the
     expression {|Var (Thereⁿ (Here x))|}, only one possible value
     of {|n|} is admissible. Indeed, anywhere in the formation of a
     term using {|lam|}, the type of variables is {|a = a0 ▹ v0 ▹
@@ -614,7 +617,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Knowing that the injection functions are uniquely determined by
     their type, one may wish to infer them mechanically. Thanks the
     the powerful instance search mechanism implemented in GHC, this
-    is feasible. We can define a class {|v ∈ a|} capturing that {|v|}
+    is feasible. To the effect, we define a class {|v ∈ a|} capturing that {|v|}
     occurs as part of a context {|a|}:»
 
   [agdaFP|
@@ -640,9 +643,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «In a nutshell, our de Bruijn indices are typed with the context
     where they are valid. If that context is sufficiently polymorphic,
     they can not be mistakenly used in a wrong context. Another
-    intuition is that these {|Here|} and {|There|} are building proofs
-    of “context membership”. Thus, a de Bruijn index in a given context
-    is similar to a well-scoped name.»
+    intuition is that {|Here|} and {|There|} are building proofs
+    of “context membership”. Thus, when a de Bruijn index is given a maximally polymorphic context,
+    it is similar to a well-scoped name.»
 
   p"flow to next section"
    «So far, we have seen that by taking advantage of polymorphism, 
@@ -655,7 +658,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   subsection «Pack/Unpack: Referring to free variables by name»
 
   p"unpack"
-   «A common use case is that one wants to be able to check if an
+   «Often, one wants to be able to check if an
     occurrence of a variable is a reference to some previously bound
     variable. With de Bruijn indices, one must (yet again) count the
     number of binders traversed between the variable bindings and
@@ -667,10 +670,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     structure (of type {|Tm (Succ a)|}) and gives a pair of
     a value {|x|} of type {|v|} and a
     sub-term of type {|Tm (a ▹ v)|}. Here we write the combinator in
-    continuation-passing style as it seems the most convenient to use
-    this way. (See section TODO FORWARD REFERENCE for another solution
-    based on view patterns.) Because this combinator is not specific to our
+    continuation-passing style as it appears the most convenient to use
+    this way. 
+    Because this combinator is not specific to our
     type {|Tm|} we generalize it to any type constructor {|f|}:»
+
+  --    (See section TODO FORWARD REFERENCE for another solution
+  --  based on view patterns.) 
 
   unpackCode
 
@@ -692,6 +698,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |canEta :: Tm Zero → Bool
   |]
+  -- Can we remove the space here?
   canEta
 
   {-
@@ -828,6 +835,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   section $ «Contexts» `labeled` contextSec
 
+  p"flow" «Having indtroduced our interface informally, we now debing a
+           systematic description of is realisation and the concepts it builds upon.»
+  
 
   p"flow, ▹"
    «We have seen that the type of free variables essentially describes
@@ -840,9 +850,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     programmers refer to the variable they intend to. For example, 
     consider the following function, which takes a list of (free) variables
     and removes one of them from the list. Hence it takes a list of variables
-    in the context_{|a ▹ v|} and returns a list in the context_{|a|}. For extra
+    in the context {|a ▹ v|} and returns a list in the context {|a|}. For extra
     safety, it also takes a name of the variable being removed, which is used only for
     type-checking purposes.»
+  -- (As for {|pack|}, {|remove|} can be generalised to use the {|Insert|})... However we have not siien ∈ yet, so this makes little sense.
   [agdaFP|
   |remove :: v → [a ▹ v] → [a]
   |remove _ xs = [x | There x ← xs]
@@ -875,8 +886,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   p""
-   «Second, if two indices refer to the first variables they are equal;
-    otherwise we recurse. We stress that this equality tests only the
+   «Second, if two indices refer to the first variable they are equal;
+    otherwise we recurse. We stress that this equality inspects only the
     {emph«indices»}, not the values contained in the type. For
     example {|Here 0 == Here 1|} is {|True|}»
 
@@ -909,7 +920,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     polymorphic as we propose, no mistake is possible. 
     Hence the slogan: names are polymorphic indices.»
 
-  q«Transitively the derived equality instance of {|Tm|} gives α-equality, and is guaranteed 
+  q«Transitively, the derived equality instance of {|Tm|} gives α-equality, and is guaranteed 
     safe in fully-polymorphic contexts.»
   [agdaFP|
   |deriving instance Eq a => Eq (Tm a)
@@ -952,7 +963,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"explain isOccurenceOf"
    «Conversely, one can implement occurence-check by combining  {|inj|} with {|(==)|}:
     one first lifts the bound variable to the context of the chosen occurence and
-    then test for equality.»
+    then tests for equality.»
 
   [agdaFP|
   |isOccurenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
@@ -977,7 +988,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   subsection «Inclusion»
   p"context inclusion, ⊆"
    «Context inclusion is another useful relation between contexts, which we also
-    represent by a type class, namely {|⊆|}. The sole method of the
+    represent by a type class, named {|⊆|}. The sole method of the
     typeclass is again an injection, from the small context to the
     bigger one. The main application of {|⊆|} is presented at the end of sec. {ref functorSec}.»
   [agdaFP|
@@ -1010,17 +1021,17 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   section $ «Term Structure» `labeled` termStructure
 
   p"motivation"
-   «It is well-known that every term representations parameterised
+   «It is well-known that every term representation parameterised
     on the type of free variables should exhibit monadic structure,
     with substitution corresponding to the binding operator {cite
-    nestedcites{-TODO-}}. This implies that the representation is stable
+    nestedcites{-TODO-}}. This means that the representation is stable
     under substitution. In this section we review this structure,
-    as well as other standard related structures on terms. Theses
+    as well as other standard related structures on terms. These
     structures are perhaps easier to implement directly on a concrete
     term representation, rather than our interface. However, we give an
-    implementation solely based on our interface, to demonstrate that
-    our interface is complete with respect to these structures. By doing
-    so, we also demonstrate how to work with our interface in practice.»
+    implementation solely based on it, to demonstrate that
+    it is complete with respect to these structures. By doing
+    so, we also illustrate how to work with our interface in practice.»
 
   subsection $ «Renaming and Functors» `labeled` functorSec
 
@@ -1070,7 +1081,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     renaming operations.»
 
   q«Assuming only a functor structure, it is possible to write useful
-    function on terms which involve only renaming. A couple examples
+    functions on terms which involve only renaming. A couple examples
     follow.»
 
   q«First, let us assume an equality test on “names” (the argument
@@ -1129,7 +1140,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"auto-weakening"
    «Second, let us assume two arguments {|a|} and {|b|} related by the
-    type class {|⊆|}. Hence we have {|injMany|} of type {|a → b|}, which
+    type class {|⊆|}. Thus we have {|injMany|} of type {|a → b|}, which
     can be seen as a renaming of free variables via the functorial
     structure of terms. By applying it to {|fmap|}, one obtains
     an arbitrary weakening from the context {|a|} to the bigger
@@ -1140,9 +1151,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |wk = fmap injMany
   |]
 
-  q«Again, this arbitrary weakening function relieves programmer from
-    tediously counting indices when doing a program transformation. We
-    demonstrate this feature in section {ref cpsSec}.»
+  q«Again, this arbitrary weakening function relieves the programmer from
+    tediously counting indices and constructing an appropriate renaming function. We
+    demonstrate this feature in sec. {ref cpsSec}.»
 
   subsection $ «Substitution and Monads»
 
@@ -1151,7 +1162,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     that terms form a {|Monad|}, where the {|return|} is the variable
     constructor and {|>>=|} acts as parallel substitution. Indeed, one
     can see a substitution from a context {|a|} to a context {|b|} as
-    mapping {|a|} to {|Tm b|}, (Technically, substitutions are Kleisli
+    mapping from {|a|} to {|Tm b|}, (Technically, substitutions are Kleisli
     arrows.) and {|(>>=)|} applies a substitution everywhere in a term.»
 
   q«The definition of the {|Monad|} instance is straightforward for
@@ -1170,7 +1181,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     act on the newly bound variables. As for the {|Functor|} instance,
     the type system will guarantee that no mistake is made. Perhaps
     noteworthy is that this operation is independent of the concrete
-    term structure. We only “rename” with {|fmap|} and inject variables
+    term structure: we only “rename” with {|fmap|} and inject variables
     with {|return|}.»
 
   [agdaFP|
@@ -1215,9 +1226,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«One might however also want to remove the substituted
     variable from the context while performing the substitution:»
   [agdaP|
-  |substituteTop :: Monad tm ⇒
+  |substituteOut :: Monad tm ⇒
   |              v → tm a → tm (a ▹ v) → tm a
-  |substituteTop x t u = u >>= λ y → case y of
+  |substituteOut x t u = u >>= λ y → case y of
   |     Here _ → t
   |     There x → return x
   |]
@@ -1249,7 +1260,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     functor. An {|Applicative|} functor is strictly more powerful
     than a {|Functor|} and strictly less powerful than a {|Monad|}.
     Any {|Monad|} is an {|Applicative|} and any {|Applicative|}
-    is a {|Functor|}. To be traversed a structure only need
+    is a {|Functor|}. To be traversed a structure only needs
     an applicative and therefore will support monadic actions
     directly {cite[mcbrideapplicative2007]}.»
 
@@ -1285,14 +1296,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |close :: Traversable tm ⇒ tm a → Maybe (tm Zero)
   |close = traverse (const Nothing)
-  |]
-
-  p"explain foldMap"
-   «Any traversable structure is also foldable.»
-
-  [agdaFP|
-  |instance Foldable Tm where
-  |  foldMap = foldMapDefault
   |]
 
   p"freeVars is toList"
@@ -1343,7 +1346,7 @@ s (f . g)
   p"flow"«
   Armed with an intuitive understanding of safe interfaces to manipulate de Bruijn indices, 
   and the knowlegde that one can abstract over any 
-  substitutive structure using standard type-classes, we can recapitulate and succintly describe
+  substitutive structure by using standard type-classes, we can recapitulate and succintly describe
   the essence of our constructions.»
 
   q«In nested abstract systax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
@@ -1364,7 +1367,7 @@ s (f . g)
     one of the lightweight encodings available. In the absence of view patterns,   
     a CPS encoding is
     convenient for programming (so we used this so far),
-    but in the following a datatype representation is more convenient in the following:»
+    but in the following a datatype representation is more convenient when dealing with scopes only:»
 
   [agdaFP|
   |data ExistScope tm a where
@@ -1416,8 +1419,9 @@ s (f . g)
     this corresponds to the fact that one cannot represent more terms in {|PolyScope|}
     than in {|SuccScope|}, and relies on parametricity.
     Hence we need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
-    Transcoding {|PolyScope tm a|} to a relation by using Paterson's method 
-    {cite[fegarasrevisiting1996]}, assuming additionally that {|tm|} is a functor.
+    Transcoding {|PolyScope tm a|} to a relation by using Paterson's version
+    {cite[fegarasrevisiting1996]} of the abstraction theorem {cite[reynolds83,bernardyproofs2012]}, 
+    assuming additionally that {|tm|} is a functor.
     We obtain the following lemma:»
   commentCode [agdaFP|
   | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
@@ -1469,7 +1473,7 @@ s (f . g)
   some constant type {|K|}, and show 
   that it will return the same result if
   applied to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ())) t|}.
-  This fact is a consequence of the free theorem associated with {|o|}»
+  This fact is a consequence of the free theorem associated with {|o|}:»
   commentCode [agdaFP|
   | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
   | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
@@ -1766,7 +1770,7 @@ s (f . g)
     is the use of {|app|} to evaluate redexes:»
   [agdaFP|
   |app :: No a → No a → No a
-  |app (Lam' x t) u = substituteTop x u t
+  |app (Lam' x t) u = substituteOut x u t
   |app (App' f xs) u = App' f (xs++[u])
   |]
 
@@ -2552,6 +2556,13 @@ s (f . g)
 
 appendix = execWriter $ do
   section $ «Implementation details» `labeled` implementationExtras
+  subsection «Traversable»
+  [agdaFP|
+  |instance Foldable Tm where
+  |  foldMap = foldMapDefault
+  |]
+
+
   subsection «Nbe»
   [agdaP|
   |instance Functor No where -- TODO
@@ -2641,7 +2652,7 @@ appendix = execWriter $ do
   |substituteGen :: (Insert v a b, Functor tm, Monad tm) ⇒ 
   |                 v → tm a → tm b → tm a
   |substituteGen x t u = 
-  |   substituteTop x t (fmap (shuffle id) u)
+  |   substituteOut x t (fmap (shuffle id) u)
   |]
 
   section $ «NomPa details»
