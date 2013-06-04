@@ -795,7 +795,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
   |pack x = fmap (bimap id (const ()))
   |]
-  q«(The {|Functor|} constraint is harmless, as we see in sec. {termStructure}.)
+  q«(The {|Functor|} constraint is harmless, as we see in sec. {ref termStructure}.)
 
     As we can see, the value {|x|} is not used by pack. However it
     statically helps as a specification of the user intention: it makes sure
@@ -1866,7 +1866,6 @@ s (f . g)
     to elements of the environment, we bind them all at once, 
     using a substitution which maps variables to their
     position in the list {|yn|}.»
-  »
   q«
     Notably, in order to implement closure conversion, 
     {citeauthor[guillemettetypepreserving2007]} first modify the function to
