@@ -1779,8 +1779,29 @@ s (f . g)
   |]
 
   subsection $ «Closure Conversion» `labeled` closureSec
-  p"" «Following {citet[guillemettetypepreserving2007]}»
-  q«We first define the target language. It features variables and applications as usual.
+  q«A common phase in the compilation of functional lanuages is closure conversion. 
+    The goal of closure conversion is make explicit the creation and opening of closures, 
+    essentially implementing lexical scope. The 
+    what follows is a definition of closure conversion, 
+    slightly adapted from {citet[guillemettetypepreserving2007]}.
+  »
+  dmath
+   [texm|
+   |\begin{array}{r@{\,}l}
+   |  \llbracket x \rrbracket &= x \\
+   |  \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure} (\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body}) e_\mathnormal{env} \\
+   |                                         &\quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
+   |                                                                  y_1,\ldots,y_n & = FV(e) \\
+   |                                                                  e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
+   |                                                                  e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle
+   |                                                               \end{array}\\
+   |  \llbracket e_1@e_2 \rrbracket &= \mathsf{let} (x_f,x_\mathnormal{env}) = \mathsf{open} \llbracket e_1 \rrbracket \\
+   |                                &\quad \mathsf{in} x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
+   |\end{array}
+   |]
+
+  q«The first step in implementing the above function is to define the target language.
+    It features variables and applications as usual.
     Most importantly, it has a constructor for {|Closure|}s, composed of a body and an
     environment. The body of closures have exactly
     two free variables: {|vx|} for the parameter of the closure and {|venv|} for its environment.
@@ -1815,32 +1836,12 @@ s (f . g)
   |idx :: (v ∈ a) ⇒ v → Int → LC a
   |idx env = Index (var env)
   |]
-  q«Closure conversion can then be implemented as a function from {|Tm|} to {|LC|}.
+  q«Closure conversion can then be implemented as a function from {|Tm a|} to {|LC a|}.
     The case of variables is trivial. For an abstraction, one must construct a closure,
     whose environment contains each of the free variables in the body. The application must
     open the closure, explicitly applying the argument and the environment.
   »
-
-  dmath
-   [texm|
-   |\begin{array}{r@{\,}l}
-   |  \llbracket x \rrbracket &= x \\
-   |  \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure} (\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body}) e_\mathnormal{env} \\
-   |                                         &\quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
-   |                                                                  y_1,\ldots,y_n & = FV(e) \\
-   |                                                                  e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
-   |                                                                  e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle
-   |                                                               \end{array}\\
-   |  \llbracket e_1@e_2 \rrbracket &= \mathsf{let} (x_f,x_\mathnormal{env}) = \mathsf{open} \llbracket e_1 \rrbracket \\
-   |                                &\quad \mathsf{in} x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
-   |\end{array}
-   |]
-
-  notetodo «Include fig. 2 from {cite[guillemettetypepreserving2007]}»
-  q«The implementation follows the pattern given by {citet[guillemettetypepreserving2007]}.
-    We make one modification: in closure creation, instead of binding one by one the free variables {|yn|} in the body
-    to elements of the environment, we bind them all at once, using a substitution which maps variables to their
-    position in the list {|yn|}.»
+  q«The implementation closely follows the mathematical definition given above.»
 
   [agdaFP|
   |cc :: Eq a ⇒ Tm a → LC a
@@ -1859,11 +1860,19 @@ s (f . g)
   |]
 
   q«
-    Notably, {citeauthor[guillemettetypepreserving2007]} modify the function to
+    The definition of closure conversion we use has a single difference 
+    compared to {cite[guillemettetypepreserving2007]}: in closure creation, instead of binding one 
+    by one the free variables {|yn|} in the body
+    to elements of the environment, we bind them all at once, 
+    using a substitution which maps variables to their
+    position in the list {|yn|}.»
+  »
+  q«
+    Notably, in order to implement closure conversion, 
+    {citeauthor[guillemettetypepreserving2007]} first modify the function to
     take an additional substitution argument, citing the difficulty to support
-    a direct implementation with de Bruijn indices. We need not do any such thing:
-    modulo our slight modification,
-    our representation is natural enough to support a direct implementation of the
+    a direct implementation with de Bruijn indices. We need not do any such modification:
+    our interface is natural enough to support a direct implementation of the
     algorithm.»
 
   subsection $ «CPS Transform» `labeled` cpsSec
