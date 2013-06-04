@@ -284,7 +284,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |    TypeOperators, GADTs, MultiParamTypeClasses,
      |    FlexibleInstances, UndecidableInstances,
      |    IncoherentInstances, ScopedTypeVariables, StandaloneDeriving #-}
-     |import Prelude hiding (elem,any)
+     |import Prelude hiding (elem,any,foldl)
      |import Data.Foldable
      |import Data.Traversable
      |import Control.Applicative
@@ -1485,16 +1485,20 @@ s (f . g)
     For both alternatives, the type of {|x|} is a type variable, and hence in both cases contexts are
     maximally polymorphic. Because the second version is more concise, we prefer it
     in the upcoming examples, but the other choice is equally valid.»
-   
+
+      
+
   subsection $ «{|Scope|} representations and {|Term|} representations»
   
   q«By using an interface such as ours, term representations can be made agnostic to the
     particular scope representation one might choose. In other words, if some interface appears
     well-suited to a given application domain, one might choose it as the scope representation
-    in the implementation. We do this in sections {ref closureSec} and {ref cpsSec}: because the
-    universal-based interface is more convenient to write the code, we pick it to implement 
-    scopes in the target languages of the transformations we present.
+    in the implementation. Typically, this choice will be guided by performance reasons.
+    Within this paper we favour code concision instead, and therefore in sections 
+    {ref closureSec} and {ref cpsSec} we use, because
+    {|PolyScope|} is yields to shorter code.
     »
+
 {-
   subsection «Catamorphisms in style»
   q «One can take the example of a size function, counting the number of
@@ -2467,11 +2471,6 @@ s (f . g)
      CPS transform, while de Bruijn indices are more suitable for closure conversion.
      Our reprensentation supports a natural implementation of both transformations.
      »
-
-  subsection «Performance»
-  p""«
-   Choosing {|ExistScope|} is a better choice from a performance perspective.
-  »
 
   subsection «Future work: both aspects in one»
 
