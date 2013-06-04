@@ -89,12 +89,6 @@ fromExist (N _ t) = fmap (mapu id (const ())) t
   id
 
 
-4. toExist (fromExist t)
-
--> an abstraction over the type followed by a specialisation to the original type.
--> easy to show identity.
-
-
 
 lam :: Univ Tm a -> Tm a
 lam t = Lam (fromUniv t)

@@ -94,7 +94,7 @@ testfv = Var "x1" `App` Lam "x2" (\x2->
 instance Show x => Show (Term x) where
   show = disp
 
--- half broken since names are never freshen
+-- half broken since names are never freshened
 disp :: Show x => Term x → String
 disp (Var x)    = show x
 disp (App a b)  = "(" ++ disp a ++ ")" ++ disp b
@@ -283,11 +283,6 @@ sizeFO :: Term a -> Int
 sizeFO (Var _) = 1
 sizeFO (Lam _ g) = 1 + sizeFO (g ())
 sizeFO (App t u) = 1 + sizeFO t + sizeFO u
- 
-sizeSafe :: Term a -> Int
-sizeSafe (Var _) = 1
-sizeSafe (Lam _ g) = unpack g $ \ _ t -> 1 + sizeSafe t
-sizeSafe (App t u) = 1 + sizeSafe t + sizeSafe u
 -}
 
 
