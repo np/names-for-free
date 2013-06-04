@@ -280,9 +280,10 @@ On top of Bound:
 
 
 body includeUglyCode = {-slice .-} execWriter $ do -- {{{
+  let onlyInCode = when includeUglyCode
   acmCategory «D.3.3» «Language Constructs and Features» «»
   
-  when includeUglyCode $ do 
+  onlyInCode $ do 
      [agdaP|
      |{-# LANGUAGE RankNTypes, UnicodeSyntax,
      |    TypeOperators, GADTs, MultiParamTypeClasses,
@@ -1359,6 +1360,9 @@ s (f . g)
                                              one based on universal
   quantification, the other one based on existential quantification.»
 
+  onlyInCode [agdaP|
+  |type PolyScope f a = ∀ v. v → f (a ▹ v)
+  |]
   commentCode [agdaFP|
   |type PolyScope  tm a = ∀ v.  v → tm (a ▹ v) -- JP: TODO The dual of Exist is Univ. 
   |type ExistScope tm a = ∃ v. (v , tm (a ▹ v))
@@ -1940,8 +1944,6 @@ s (f . g)
   -}
 
   [agdaFP|
-  |type PolyScope f a = ∀ v. v → f (a ▹ v)
-  |
   |varC :: (v ∈ a) ⇒ v → Value a
   |letC :: Value a → PolyScope TmC a → TmC a
   |lamC :: PolyScope TmC a → Value a
@@ -1956,20 +1958,10 @@ s (f . g)
   --        let x2 = snd p in
   --        f x1 x2
 
-  [agdaFP|
-  |type PolyScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
-  |
-  |lamPairC :: PolyScope2 TmC a → Value a
-  |lamPairC f = lamC $ \p →
-  |              letC (fstC p) $ \x1 →
-  |              letC (sndC p) $ \x2 →
-  |              wk $ f x1 x2
-  |]
-
   p"Functor TmC"
-   «As {|Tm|}, {|TmC|} enjoys a functor structure, with a
+   «Free variables in {|TmC|} can be renamed, thus it enjoys a functor structure, with a
     straightforward implementation found in appendix. However, this
-    new syntax is not stable under substitution. Building a monadic
+    new syntax {|TmC|} is not stable under substitution. Building a monadic
     structure would be more involved, and is directly tied to the
     transformation we perform and the operational semantics of the
     language, so we omit it.»
@@ -2031,10 +2023,6 @@ s (f . g)
 
   -- |cps :: Tm a -> Poly TmC a -> TmC a
   [agdaFP|
-  |-- same as succToPoly
-  |inst1 :: Functor f ⇒ f (Succ a) → v → f (a ▹ v)
-  |inst1 t x = fmap (bimap id (const x)) t
-  |
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
   |cps (App e1 e2) k =
@@ -2045,12 +2033,25 @@ s (f . g)
   |              (lamC (\x → wk $ k x)))
   |cps (Lam e')    k =
   |  letC (lamPairC $ \x1 x2 →
-  |        cps (fmap There $ inst1 e' x1) $ \r →
+  |        cps (fmap There $ e' `atVar` x1) $ \r →
   |        AppC (varC x2) (varC r)) k
   |
   |cps0 :: Tm a → TmC a
   |cps0 t = cps t $ HaltC . varC
   |]
+  notetodo «Why is this version better? 
+            It departs from the mathematical notation and requires an explicit weakening.»
+  -- I suggest inlining this so meaningful names can be used.
+  -- |type PolyScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
+  [agdaFP|
+  |lamPairC :: (forall v1 v2. v1 → 
+  |             v2 → TmC (a ▹ v1 ▹ v2)) → Value a
+  |lamPairC f = lamC $ \p →
+  |              letC (fstC p) $ \x1 →
+  |              letC (sndC p) $ \x2 →
+  |              wk $ f x1 x2
+  |]
+
 
   -- |cpsMain :: Tm a → TmC a
   -- |cpsMain x = cps x haltC
