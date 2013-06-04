@@ -32,6 +32,7 @@ import NomPaKit.QQ
       implementationExtras
       functorSec
       cpsSec
+      closureSec
       nbeSec
      |]
 
@@ -82,7 +83,7 @@ fincites = [altenkirch93, mcbridemckinna04]
 nestedcites = [bellegarde94, birdpaterson99, altenkirchreus99]
 nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu]
 
-title =  «Names For Free --- A Polymorphic View of Names and Binders»
+title =  «Names For Free --- Polymorphic Views of Names and Binders»
   -- «Parametric Nested Abstract Syntax» -- Sounds like it's for a representation
   --
   -- «A Classy Kind of Nested Abstract Syntax»
@@ -1456,8 +1457,34 @@ s (f . g)
     the last condition is equivalent to {|t₂ == fmap (bimap id (const ())) t₁|}, and
     we get the desired result.»
   
-  subsection $ «Dual Styles»
+  subsection $ «A matter of style»
 
+  q«We have seen that {|ExistScope|} is well-suited for term analysis, while 
+  {|PolyScope|} is well-suited for term construction. What about term {emph«transformations»},
+  which combine both aspects? In this case, one is free to choose either interface. This 
+  can be illustrated by showing both alternatives for the {|Lam|} case of the {|fmap|} function.
+  (The {|App|} and {|Var|} cases are identical.)»
+  [agdaFP|
+  |fmap' f (Lam b)
+  |   = unpack b $ λ x t → LamP x (fmap (bimap f id) t)
+  |fmap' f (Lam b) 
+  |   = lam (λ x → fmap (bimap f id) (toUniv b x))
+  |]
+  q«In both cases, the type of x is a type variable, and hence in both cases contexts are
+  maximally polymorphic. Because the second version is more concise, we prefer it
+  in the upcoming examples, but the other choice is equally valid.»
+   
+  subsection $ «{|Scope|} representations and {|Term|} representations»
+  
+  q«By using an interface such as ours, term representations can be made agnostic to the
+    particular scope representation one might choose. In other words, if some interface appears
+    well-suited to a given application domain, one might choose it as the scope representation
+    in the implementation. We do this in sections {ref closureSec} and {ref cpsSec}: because the
+    universal-based interface is more convenient to write the code, we pick it to implement 
+    scopes in the target languages of the transformations we present.
+    »
+{-
+  subsection «Catamorphisms in style»
   q «One can take the example of a size function, counting the number of
     data constructors in a term:»
 
@@ -1475,28 +1502,21 @@ s (f . g)
   |]
 
   p"Nominal aspect"
-   «However one might prefer using our interface in particular in larger examples.
+   «However one might prefer to use our interface in particular in larger examples.
     Each binder is simply {|unpack|}ed.
     Using this technique, the size computation looks as follows:»
 
   [agdaP|
-  |-- sizeU is using 'unpack'
-  |sizeU :: (a → Size) → Tm a → Size
-  |sizeU ρ (Var x)   = ρ x
-  |sizeU ρ (App t u) = 1 + sizeU ρ t + sizeU ρ u
-  |sizeU ρ (Lam b)   = unpack b $ λ x t →
-  |                      1 + sizeU (extend (x,1) ρ) t
+  |sizeEx :: (a → Size) → Tm a → Size
+  |sizeEx ρ (Var x)   = ρ x
+  |sizeEx ρ (App t u) = 1 + sizeEx ρ t + sizeEx ρ u
+  |sizeEx ρ (Lam b)   = unpack b $ λ x t →
+  |                      1 + sizeEx (extend (x,1) ρ) t
   |
   |extend :: (v, r) → (a → r) → (a ▹ v → r)
   |extend (_, x) _ (Here _)  = x
   |extend _      f (There x) = f x
   |]
-
-
-
-{-
-
-  Catamorphism written in Nominal style
 
   p"cata"
    «This pattern can be generalized to any algebra over terms, yielding
@@ -1716,7 +1736,7 @@ s (f . g)
   |eval (App t u) = app (eval t) (eval u)
   |]
 
-  subsection $ «Closure Conversion»
+  subsection $ «Closure Conversion» `labeled` closureSec
   p"" «Following {citet[guillemettetypepreserving2007]}»
   q«We first define the target language. It features variables and applications as usual.
     Most importantly, it has a constructor for {|Closure|}s, composed of a body and an
@@ -2435,6 +2455,8 @@ s (f . g)
      CPS transform, while de Bruijn indices are more suitable for closure conversion.
      Our reprensentation supports a natural implementation of both transformations.
      »
+
+  subsection «Performance»
 
   subsection «Future work: both aspects in one»
 
