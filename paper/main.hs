@@ -1223,7 +1223,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     of {|liftSubst|} between {|unpack|} and {|pack|}. It is uniform as
     well, and thus can be reused for every structure with binders.»
 
-  [agdaP|
+  [agdaFP|
   |(>>>=) :: (Functor tm, Monad tm) ⇒
   |          tm (Succ a) → (a → tm b) → tm (Succ b)
   |s >>>= θ = unpack s $ λ x t →
@@ -1234,14 +1234,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     type class to get useful polymorphic code, such as a generic
     reference to a variable:»
 
-  [agdaP|
+  [agdaFP|
   |var :: (Monad tm, v ∈ a) ⇒ v → tm a
   |var = return . inj
   |]
 
   q«Or substitution of an arbitrary variable:»
 
-  [agdaP|
+  [agdaFP|
   |substitute :: (Monad tm, Eq a, v ∈ a) ⇒
   |              v → tm a → tm a → tm a
   |substitute x t u = u >>= λ y →
@@ -1253,7 +1253,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- to one substitution as in t[x≔u]
   q«One might however also want to remove the substituted
     variable from the context while performing the substitution:»
-  [agdaP|
+  [agdaFP|
   |substituteOut :: Monad tm ⇒
   |              v → tm a → tm (a ▹ v) → tm a
   |substituteOut x t u = u >>= λ y → case y of
@@ -1379,7 +1379,7 @@ s (f . g)
 
   q«In nested abstract systax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
     is represented as follows:»
-  [agdaP|
+  [agdaFP|
   |type SuccScope tm a = tm (Succ a)
   |]
 
@@ -1387,7 +1387,7 @@ s (f . g)
                                              one based on universal
   quantification, the other one based on existential quantification.»
 
-  onlyInCode [agdaP|
+  onlyInCode [agdaFP|
   |type UnivScope f a = ∀ v. v → f (a ▹ v)
   |]
   commentCode [agdaFP|
@@ -1576,7 +1576,7 @@ s (f . g)
     Each binder is simply {|unpack|}ed.
     Using this technique, the size computation looks as follows:»
 
-  [agdaP|
+  [agdaFP|
   |sizeEx :: (a → Size) → Tm a → Size
   |sizeEx ρ (Var x)   = ρ x
   |sizeEx ρ (App t u) = 1 + sizeEx ρ t + sizeEx ρ u
@@ -1672,7 +1672,7 @@ s (f . g)
       then we convert the structure of free variables {|Nat :> ()|} into {|Nat|}, using the {|toNat|} function.
       Additionally the environment is extended with the expected value for the new variable.»
 
-  [agdaP|
+  [agdaFP|
   |size3 :: (Nat → Size) → Tm Nat → Size
   |size3 f (Var x) = f x
   |size3 f (Lam g) = 1 + size3 f' (fmap toNat (g ()))
@@ -2183,7 +2183,7 @@ s (f . g)
     bindings of the host language. One naive translation of this idea
     yields the following term representation:»
 
-  [agdaP|
+  [agdaFP|
   |data TmH = LamH (TmH → TmH) | AppH TmH TmH
   |]
 
@@ -2229,7 +2229,7 @@ s (f . g)
     handle fresh variables specially. The corresponding implementation
     of the monadic {|join|} is as follows:»
 
-  [agdaP|
+  [agdaFP|
   |joinP (VarP x)   = x
   |joinP (LamP f)   = LamP (λ x → joinP (f (VarP x)))
   |joinP (AppP t u) = AppP (joinP t) (joinP u)
@@ -2315,7 +2315,7 @@ s (f . g)
         simpler, at the expense of {|lam|}:
         »
 
-  commentCode [agdaP|
+  commentCode [agdaFP|
   |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m))
   |       → Tm m
   |var :: Fin n → Tm n
@@ -2399,7 +2399,7 @@ s (f . g)
     is indexed by {|World|}s: this ties occurrences to the context where
     they make sense.»
 
-  commentCode [agdaP|
+  commentCode [agdaFP|
   |World :: *
   |Binder :: *
   |Empty :: World
@@ -2412,7 +2412,7 @@ s (f . g)
   a Haskell-like syntax for dependent types, similar to that of {_Idris}):
   »
 
-  commentCode [agdaP|
+  commentCode [agdaFP|
   |data Tm α where
   |  Var :: Name α → Tm α
   |  App :: Tm α → Tm α → Tm α
@@ -2637,7 +2637,7 @@ s (f . g)
 appendix = execWriter $ do
   section $ «Implementation details» `labeled` implementationExtras
   subsection «Traversable»
-  [agdaFP|
+  [agdaP|
   |instance Foldable Tm where
   |  foldMap = foldMapDefault
   |]
