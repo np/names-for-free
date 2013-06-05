@@ -1386,10 +1386,10 @@ s (f . g)
   quantification, the other one based on existential quantification.»
 
   onlyInCode [agdaP|
-  |type PolyScope f a = ∀ v. v → f (a ▹ v)
+  |type UnivScope f a = ∀ v. v → f (a ▹ v)
   |]
   commentCode [agdaFP|
-  |type PolyScope  tm a = ∀ v.  v → tm (a ▹ v) -- JP: TODO The dual of Exist is Univ. 
+  |type UnivScope  tm a = ∀ v.  v → tm (a ▹ v)
   |type ExistScope tm a = ∃ v. (v , tm (a ▹ v))
   |]
   q«The above syntax for existentials is not supported in Haskell, so we must use
@@ -1413,28 +1413,28 @@ s (f . g)
   a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
   (Strictly speaking, this holds only if one disregards non-termination and {|seq|}.)»
 
-  subsection «{|PolyScope tm a ≅ SuccScope tm a|}» 
+  subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
   p"conversions"
    «The conversion functions witnessing the isomorphism are the following.»
   [agdaFP|
-  |succToPoly :: Functor tm ⇒ 
-  |              SuccScope tm a → PolyScope tm a
-  |succToPoly t = λ x → fmap (bimap id (const x)) t
+  |succToUniv :: Functor tm ⇒
+  |              SuccScope tm a → UnivScope tm a
+  |succToUniv t = λ x → fmap (bimap id (const x)) t
   |
-  |polyToSucc :: PolyScope tm a → SuccScope tm a
+  |polyToSucc :: UnivScope tm a → SuccScope tm a
   |polyToSucc f = f ()
   |]
   q«The {|polyToSucc|} function has not been given a name in the previous sections, 
     but was implicitly used 
     in the definition of {|lam|}. 
-    This is the first occurence of the {|succToPoly|} function.»
+    This is the first occurence of the {|succToUniv|} function.»
 
 
   
-  q«We prove first that {|PolyScope|} is a proper representation of {|SuccScope|}, 
-    that is {|polyToSucc . succToPoly == id|}. This can be done by simple equational reasoning:»
+  q«We prove first that {|UnivScope|} is a proper representation of {|SuccScope|},
+    that is {|polyToSucc . succToUniv == id|}. This can be done by simple equational reasoning:»
   commentCode [agdaFP|
-  |    polyToSucc (succToPoly t)
+  |    polyToSucc (succToUniv t)
   | == {- by def -}
   |    existToSucc (λ x → fmap (bimap id (const x)) t)
   | == {- by def -}
@@ -1444,11 +1444,11 @@ s (f . g)
   | == {- by (bi)functor laws -}
   |    t
   |]
-  q«The second property {|succToPoly . polyToSucc == id|} more difficult to prove:
-    this corresponds to the fact that one cannot represent more terms in {|PolyScope|}
+  q«The second property {|succToUniv . polyToSucc == id|} more difficult to prove:
+    this corresponds to the fact that one cannot represent more terms in {|UnivScope|}
     than in {|SuccScope|}, and relies on parametricity.
-    Hence we need to use the free theorem for a value {|f|} of type {|PolyScope tm a|}.
-    Transcoding {|PolyScope tm a|} to a relation by using Paterson's version
+    Hence we need to use the free theorem for a value {|f|} of type {|UnivScope tm a|}.
+    Transcoding {|UnivScope tm a|} to a relation by using Paterson's version
     {cite[fegarasrevisiting1996]} of the abstraction theorem {cite[reynolds83,bernardyproofs2012]}, 
     assuming additionally that {|tm|} is a functor.
     We obtain the following lemma:»
@@ -1471,9 +1471,9 @@ s (f . g)
   | ==  {- by the above -}
   |    \x -> fmap (bimap id (const x)) (f ())
   | == {- by def -}
-  |    succToPoly (f ())
+  |    succToUniv (f ())
   | == {- by def -}
-  |    succToPoly (polyToSucc f)
+  |    succToUniv (polyToSucc f)
   |]
 
   subsection «{|ExistScope tm a ≅ SuccScope tm a|} »
@@ -1490,7 +1490,7 @@ s (f . g)
   q«One will recognise {|pack|} and {|unpack|} as CPS versions of {|existToSucc|} and {|succToExist|}.»
 
   q«The proof {|existToSucc . succToExist == id|} is nearly identical to the 
-  first proof about {|PolyScope|} and hence omitted.
+  first proof about {|UnivScope|} and hence omitted.
   To prove {|succToExist . existToSucc == id|}, we first remark that by definition»
   commentCode [agdaFP|
   |succToExist (existToSucc (E y t)) == 
@@ -1520,7 +1520,7 @@ s (f . g)
   subsection $ «A matter of style»
 
   q«We have seen that {|ExistScope|} is well-suited for term analysis, while 
-  {|PolyScope|} is well-suited for term construction. What about term {emph«transformations»},
+  {|UnivScope|} is well-suited for term construction. What about term {emph«transformations»},
   which combine both aspects? In this case, one is free to choose either interface. This 
   can be illustrated by showing both alternatives for the {|Lam|} case of the {|fmap|} function.
   (The {|App|} and {|Var|} cases are identical.) Because the second version is more concise, we prefer it
@@ -1531,13 +1531,13 @@ s (f . g)
   |fmap' f (Lam b) 
   |   = lam (λ x → fmap (bimap f id) (b `atVar` x))
   |]
-  q«When using {|succToPoly|}, the type of the second argument of {|succToPoly|} 
+  q«When using {|succToUniv|}, the type of the second argument of {|succToUniv|}
     should always be a type variable in order to have maximally polymorphic contexts.
-    To reming us of this requirement when writing code, we give the alias {|atVar|} for {|succToPoly|}.
+    To reming us of this requirement when writing code, we give the alias {|atVar|} for {|succToUniv|}.
     (Similarly, to guarantee safetly, the first argument of {|pack|} (encapsulated here in {|lamP|}) must be maximally polymorphic.)»
 
   onlyInCode [agdaFP| 
-  |atVar = succToPoly
+  |atVar = succToUniv
   |]
 
   subsection $ «{|Scope|} representations and {|Term|} representations»
@@ -1548,7 +1548,7 @@ s (f . g)
     in the implementation. Typically, this choice will be guided by performance reasons.
     Within this paper we favour code concision instead, and therefore in sec.
     {ref nbeSec} we use {|ExistScope|}, and in sections
-    {ref closureSec} and {ref cpsSec} we use {|PolyScope|}.
+    {ref closureSec} and {ref cpsSec} we use {|UnivScope|}.
     »
 
 {-
@@ -1954,13 +1954,13 @@ s (f . g)
 
   {-
   [agdaFP|
-  |type PolyScope f a = ∀ v. v → f (a ▹ v)
+  |type UnivScope f a = ∀ v. v → f (a ▹ v)
   |
   |haltC :: (v ∈ a) ⇒ v → TmC a
   |appC  :: (v ∈ a, v' ∈ a) ⇒ v → v' → TmC a
-  |letC  :: Value a → PolyScope TmC a → TmC a
+  |letC  :: Value a → UnivScope TmC a → TmC a
   |
-  |lamC  :: PolyScope TmC a → Value a
+  |lamC  :: UnivScope TmC a → Value a
   |pairC :: (v ∈ a, v' ∈ a) ⇒ v → v' → Value a
   |fstC  :: (v ∈ a) ⇒ v → Value a
   |sndC  :: (v ∈ a) ⇒ v → Value a
@@ -1969,8 +1969,8 @@ s (f . g)
 
   [agdaFP|
   |varC :: (v ∈ a) ⇒ v → Value a
-  |letC :: Value a → PolyScope TmC a → TmC a
-  |lamC :: PolyScope TmC a → Value a
+  |letC :: Value a → UnivScope TmC a → TmC a
+  |lamC :: UnivScope TmC a → Value a
   |fstC :: (v ∈ a) ⇒ v → Value a
   |sndC :: (v ∈ a) ⇒ v → Value a
   |]
@@ -2045,7 +2045,7 @@ s (f . g)
   |]
   -}
 
-  -- |cps :: Tm a -> Poly TmC a -> TmC a
+  -- |cps :: Tm a -> Univ TmC a -> TmC a
   [agdaFP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
@@ -2066,7 +2066,7 @@ s (f . g)
   notetodo «Why is this version better? 
             It departs from the mathematical notation and requires an explicit weakening.»
   -- I suggest inlining this so meaningful names can be used.
-  -- |type PolyScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
+  -- |type UnivScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
   [agdaFP|
   |lamPairC :: (forall v1 v2. v1 → 
   |             v2 → TmC (a ▹ v1 ▹ v2)) → Value a
@@ -2161,7 +2161,7 @@ s (f . g)
 
   q«It has been observed before that one can implement this restriction
     by using polymorphism. This observation also underlies the safety of
-    our {|PolyScope|} representation.»
+    our {|UnivScope|} representation.»
 
   q«Another disadvantage of HOAS is the negative occurrence
     of the recursive type, which makes it tricky to analyse
@@ -2188,7 +2188,7 @@ s (f . g)
   |]
 
   q«The reprensentation of binders used by Chlipala can be seen as a
-    special version of {|PolyScope|}, where all variables are assigned
+    special version of {|UnivScope|}, where all variables are assigned
     the same type. This specialisation has pros and cons. On the plus
     side, substitution is easier to implement with PHOAS: one needs not
     handle fresh variables specially. The corresponding implementation
@@ -2396,7 +2396,7 @@ s (f . g)
     In contrast, our is interfaces are concrete (code using it
     will always evaluate), but it requires the user to chose the
     representation appropriate to the current use ({|SuccScope|},
-    {|PolyScope|} or {|ExistScope|}).»
+    {|UnivScope|} or {|ExistScope|}).»
 
   {- NP
 
@@ -2550,7 +2550,7 @@ s (f . g)
     compromised. »
 
   commentCode [agdaFP|
-   |type PolyScope  tm a = ∇ v.  v → tm (a ▹ v) 
+   |type UnivScope  tm a = ∇ v.  v → tm (a ▹ v)
    |type ExistScope tm a = ∇ v. (v , tm (a ▹ v))
    |]
   q«
@@ -2563,7 +2563,7 @@ s (f . g)
 
   subsection «Future work: improve performance»
   q«An apparent issue with our conversion functions between
-    {|ExistScope|} or {|PolyScope|} on one side and {|SuccScope|} on the
+    {|ExistScope|} or {|UnivScope|} on one side and {|SuccScope|} on the
     other side is that all but {|succToExist|} cost a time 
     proportional to the term converted. In the current state of affairs, we 
     might be able to use a system of rewrite rules, such as that implemented in GHC to 
