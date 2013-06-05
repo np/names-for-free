@@ -1,14 +1,11 @@
-The two most used techniques to represent names (and the associated
-binders) are atoms and de Bruijn indices. Atoms are expressive, but impure,
-while de Bruijn indices are pure, but inconvenient to use.  We propose a novel
-representation bindings, whose dynamic (run-time) repsentation is
-based on de Bruijn indices, but uses static (type-system) features to
-offer a nominal-style interface for construction and manipulation of
-binders. The key idea is to represent a subterm with an additional
-free variable as either $\forall v. v \rightarrow \mathsf{Term} (a +
-v)$ or $\exists v. v \times \mathsf{Term} (a + v)$.  Using this
-approach one gets the combined expressive power of nominal (atoms) and
-nameless (de Bruijn) techniques, as we demonstrate on a number of
-examples.
-
-
+There is no shortage of techniques to help programming terms, names and
+binders each with their benefits and shortcomings. We propose a novel
+technique, whose dynamic (run-time) representation is based on de Bruijn
+indices and nested data types, but uses static (type-system) features
+to offer a convenient interface for construction and manipulation of
+binders. The key idea is to view a subterm with an additional free
+variable either as $\forall v. v \rightarrow \mathsf{Term} (a + v)$ or
+$\exists v. v \times \mathsf{Term} (a + v)$. We demonstrate on a number
+of examples how by using this approach one gets the combined expressive
+power of nominal or HOAS and the rich structure of the nested data
+types.
