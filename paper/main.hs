@@ -1392,7 +1392,7 @@ s (f . g)
   |]
   commentCode [agdaFP|
   |type UnivScope  tm a = ∀ v.  v → tm (a ▹ v)
-  |type ExistScope tm a = ∃ v. (v , tm (a ▹ v))
+  |type ExistScope tm a = ∃ v. (v ,  tm (a ▹ v))
   |]
   q«The above syntax for existentials is not supported in Haskell, so we must use
     one of the lightweight encodings available. In the absence of view patterns,   
@@ -1776,7 +1776,7 @@ s (f . g)
 
   p"intro"
    «A classical test of scope respresentations is how they support
-    normalisation by evaluation (NbE) {cite nbecites}.»
+    normalisation by evaluation (NbE) {cite nbecites}.»
 
   q«NbE takes its name from direct evaluation from terms to their
     normal forms. The following type captures normal forms of the
@@ -1845,79 +1845,101 @@ s (f . g)
    |\end{array}
    |]
 
-  q«The first step in implementing the above function is to define the target language.
-    It features variables and applications as usual.
-    Most importantly, it has a constructor for {|Closure|}s, composed of a body and an
-    environment. The body of closures have exactly
-    two free variables: {|vx|} for the parameter of the closure and {|venv|} for its environment.
-    An environment will be realised by a {|Tuple|}. Inside the closure, elements of the environment
-    will be accessed via their {|Index|} in the tuple. Finally, the {|LetOpen|} construction
-    allows to access the components  of a closure (its first argument) in an arbitrary expression
-    (its second argument). This arbitrary expression has two extra free variables:
-    {|vf|} for the code of the closure and {|venv|} for its environment.
-    »
+  q«The first step in implementing the above function is to define the
+    target language. It features variables and applications as usual.
+    Most importantly, it has a constructor for {|Closure|}s, composed
+    of a body and an environment. The body of closures have exactly two
+    free variables: {|vx|} for the parameter of the closure and {|venv|}
+    for its environment. An environment will be realised by a {|Tuple|}.
+    Inside the closure, elements of the environment will be accessed via
+    their {|Index|} in the tuple. Finally, the {|LetOpen|} construction
+    allows to access the components of a closure (its first argument)
+    in an arbitrary expression (its second argument). This arbitrary
+    expression has two extra free variables: {|vf|} for the code of the
+    closure and {|venv|} for its environment.»
+
+  -- NP: we should either change to SuccScope or mention that we illustrate
+  -- here the UnivScope representation.
+
   [agdaFP|
-  |data LC w where
-  |  VarLC :: w → LC w
-  |  AppLC :: LC w → LC w → LC w
+  |data LC a where
+  |  VarLC :: a → LC a
+  |  AppLC :: LC a → LC a → LC a
   |  Closure :: (∀ vx venv. vx → venv →
   |           LC (Zero ▹ venv ▹ vx)) →
-  |           LC w →
-  |           LC w
-  |  Tuple :: [LC w] → LC w
-  |  Index :: LC w → Int → LC w
+  |           LC a →
+  |           LC a
+  |  Tuple :: [LC a] → LC a
+  |  Index :: LC a → Int → LC a
   |  LetOpen :: LC a →
   |             (∀ vf venv. vf → venv →
   |              LC (a ▹ vf ▹ venv)) → LC a
   |]
-  q«This representation is an instance of {|Functor|} and {|Monad|}, and the corresponding code
-    offers no surprise.»
 
-  q«We give a couple helper functions to construct applications and indexwise access in a tuple:»
+  q«This representation is an instance of {|Functor|} and {|Monad|}, and
+    the corresponding code offers no surprise.»
+
+  q«We give an infix alias for {|AppLC|}:»
+
   [agdaFP|
   |($$) = AppLC
   |infixl $$
-  |
-  |idx :: (v ∈ a) ⇒ v → Int → LC a
-  |idx env = Index (var env)
   |]
-  q«Closure conversion can then be implemented as a function from {|Tm a|} to {|LC a|}.
-    The case of variables is trivial. For an abstraction, one must construct a closure,
-    whose environment contains each of the free variables in the body. The application must
-    open the closure, explicitly applying the argument and the environment.
-  »
-  q«The implementation closely follows the mathematical definition given above.»
+
+  {-
+  [agdaFP|
+  |closure :: (∀ vx venv. vx → venv →
+  |              LC (Zero ▹ venv ▹ vx)) →
+  |           LC a →
+  |           LC a
+  |closure f t = Closure (f () ()) t
+  |
+  |letOpen :: LC a →
+  |           (∀ vf venv. vf → venv →
+  |               LC (a ▹ vf ▹ venv)) → LC a
+  |letOpen t f = LetOpen t (f () ())
+  |]
+  -}
+
+  q«Closure conversion can then be implemented as a function
+    from {|Tm a|} to {|LC a|}. The case of variables is trivial. For
+    an abstraction, one must construct a closure, whose environment
+    contains each of the free variables in the body. The application
+    must open the closure, explicitly applying the argument and the
+    environment.»
+
+  q«The implementation closely follows the mathematical definition given
+    above.»
 
   [agdaFP|
   |cc :: Eq a ⇒ Tm a → LC a
   |cc (Var x) = VarLC x
-  |cc t0@(Lam b) = 
+  |cc t0@(Lam b) =
   |  let yn = nub $ freeVars t0
   |  in Closure (λ x env → cc (b `atVar` x) >>=
   |                   liftSubst (idxFrom yn env))
   |             (Tuple $ map VarLC yn)
   |cc (App e1 e2) =
   |  LetOpen (cc e1)
-  |          (\f x → var f $$ wk (cc e2) $$ var x)
+  |          (λ f x → var f $$ wk (cc e2) $$ var x)
   |
   |idxFrom :: Eq a ⇒ [a] → v → a → LC (Zero ▹ v)
-  |idxFrom yn env z = idx env $ fromJust $ elemIndex z yn
+  |idxFrom yn env z = Index (var env) . fromJust $ elemIndex z yn
   |]
 
-  q«
-    The definition of closure conversion we use has a single difference 
-    compared to {cite[guillemettetypepreserving2007]}: in closure creation, instead of binding one 
-    by one the free variables {|yn|} in the body
-    to elements of the environment, we bind them all at once, 
-    using a substitution which maps variables to their
-    position in the list {|yn|}.»
-  q«
-    Notably, in order to implement closure conversion, 
-    {citeauthor[guillemettetypepreserving2007]} first modify the function to
-    take an additional substitution argument, citing the difficulty to support
-    a direct implementation with de Bruijn indices. We need not do any such modification:
-    our interface is natural enough to support a direct implementation of the
-    algorithm.»
+  q«The definition of closure conversion we use has a single difference
+    compared to {cite[guillemettetypepreserving2007]}: in closure
+    creation, instead of binding one by one the free variables {|yn|} in
+    the body to elements of the environment, we bind them all at once,
+    using a substitution which maps variables to their position in the
+    list {|yn|}.»
+
+  q«Notably, in order to implement closure conversion,
+    {citeauthor[guillemettetypepreserving2007]} first modify the
+    function to take an additional substitution argument, citing the
+    difficulty to support a direct implementation with de Bruijn
+    indices. We need not do any such modification: our interface is
+    natural enough to support a direct implementation of the algorithm.»
 
   subsection $ «CPS Transform» `labeled` cpsSec
 
@@ -1996,12 +2018,12 @@ s (f . g)
   --        f x1 x2
 
   p"Functor TmC"
-   «Free variables in {|TmC|} can be renamed, thus it enjoys a functor structure, with a
-    straightforward implementation found in appendix. However, this
-    new syntax {|TmC|} is not stable under substitution. Building a monadic
-    structure would be more involved, and is directly tied to the
-    transformation we perform and the operational semantics of the
-    language, so we omit it.»
+   «Free variables in {|TmC|} can be renamed, thus it enjoys a functor
+    structure, with a straightforward implementation found in appendix.
+    However, this new syntax {|TmC|} is not stable under substitution.
+    Building a monadic structure would be more involved, and is directly
+    tied to the transformation we perform and the operational semantics
+    of the language, so we omit it.»
 
   p"the transformation"
    «We implement a one-pass CPS transform (administrative redexes are
@@ -2029,21 +2051,23 @@ s (f . g)
 
   p"latex vs. haskell"
    «The implementation follows the above definition, except for the
-    following minor differences. For the {|Lam|} case, the only
-    deviation are is an occurrence of {|wk|}. In the {|App|} case, we
+    following minor differences. For the {|Lam|} case, the only
+    deviation are is an occurrence of {|wk|}. In the {|App|} case, we
     have an additional reification of the host-level continuation as a
-    proper {|Value|}, {|LamC|} constructor.
+    proper {|Value|} using the {|lamC|} function.
 
-    In the variable case, we must pass the variable {|v|} to the continuation. Doing so
-    yields a value of type {|TmC (a ▹ a)|}. To obtain a result of the right type it suffices to remove
-    the extra tagging introduced by {|a ▹ a|} everywhere in the term, using {|fmap untag|}.»
+    In the variable case, we must pass the variable {|v|} to the
+    continuation. Doing so yields a value of type {|TmC (a ▹ a)|}.
+    To obtain a result of the right type it suffices to remove the
+    extra tagging introduced by {|a ▹ a|} everywhere in the term,
+    using {|(untag <$> )|}.»
 
   {-
   [agdaFP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = fmap untag (k x)
   |cps (App e1 e2) k =
-  |  cps e1 $ \f →
+  |  cps e1 $ λ f →
   |  cps (wk e2) $ λ x →
   |  LetC (LamC (λ x → wk (k x))) $ \k' →
   |  LetC (pairC x k') $ \p →
@@ -2096,7 +2120,6 @@ s (f . g)
   |cps0 :: Tm a → TmC a
   |cps0 t = cps t $ HaltC . varC
   |]
--}
 
   notetodo «Why is this version better? 
             It departs from the mathematical notation and requires an explicit weakening.»
@@ -2110,19 +2133,16 @@ s (f . g)
   |              letC (sndC p) $ λ x2 →
   |              wk $ f x1 x2
   |]
+-}
 
+  q«It is folklore that a CPS transformation is easier
+    to implement with higher-order abstract syntax
+    {cite[guillemettetypepreserving2008,washburnboxes2003]}. Our
+    interface for name abstractions features a form of higher-order
+    representation. (Namely, a quantification, over a universally
+    quantified type.) However limited, this higher-order aspect is
+    enough to allow an easy implementation of the CPS transform.»
 
-  -- |cpsMain :: Tm a → TmC a
-  -- |cpsMain x = cps x haltC
-
-  q«It is folklore that a CPS transformation is easier to implement with higher-order abstract
-  syntax {cite[guillemettetypepreserving2008,washburnboxes2003]}. Our representation of
-  abstraction features a very limited form of higher-order representation.
-  (Namely, a quantification, over a universally quantified type.)
-  However limited, this higher-order aspect is enough to allow an easy implementation of
-  the CPS transform.»
-
-  
   section $ «Comparisons» `labeled` comparison
 
   notetodo «Why don't we compare interfaces instead of representation?»
@@ -2149,10 +2169,11 @@ s (f . g)
    «We can draw a link with the Nested Abstract Syntax. Indeed,
     as with the type {|Succ|} ({|(▹ ())|} or {|Maybe|}), the
     type {|Fin (suc n)|} has exactly one more element than the
-    type {|Fin n|}. However, these approaches are not equivalent for at
-    least two reasons. The Nested Abstract Syntax can accept any type to
-    represent variables. This makes the structure more like a container
-    and this can be particularly helpful to define the monadic structure {todo «so why don't we do this? is a natural question»}
+    type {|Fin n|}. However, these approaches are not equivalent for
+    at least two reasons. The Nested Abstract Syntax can accept any
+    type to represent variables. This makes the structure more like a
+    container and this can be particularly helpful to define the monadic
+    structure {todo «so why don't we do this? is a natural question»}
     (substitution). The {|Fin|} approach has advantages as well: the
     representation is concrete and simpler since closer to the original
     approach for de Brujin indices. In particular the representation of
