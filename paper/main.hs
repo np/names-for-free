@@ -319,27 +319,29 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"identifying the gap"
    «Yet, the most commonly used representations for names and binders
-    yield code which is difficult to read, and error-prone to write
+    yield code which is difficult to read, or error-prone to write
     and maintain. The techniques in question are often referred as
     “nominal”, “de Bruijn indices” and “HOAS: Higher-Order Abstract
     Syntax”.»
 
   -- NP: We can make this better.
   p"Nominal pros&cons"
-   «In the nominal approach, one typically use some atomic type to
+   «In the nominal approach, one typically uses some atomic type to
     represent names. Because a name is referred to by any variable
     which contains the atom representing it, the nominal style is
-    natural. The main issue with this techniques are that variables
+    natural. The main issues with this technique are that variables
     must sometimes be renamed in order to avoid name capture (that is,
     if a binder refers to an already used name, variables might end up
-    referring to the wrong binder). The need for renaming means a way
+    referring to the wrong binder). The need for renaming demands a way
     to generate fresh atoms. This side effect can be resolved with a
     supply for unique atoms or using an abstraction such as a monad
-    but is finally disturbing if one wishes to write functional code.
-    Then nominal name abstraction being non-canonical it should be
-    prevented from violations. For instance, if one has two α-equivalent
-    representations of the same term, no program should be able to
-    distinguish them (such as {|λx.x|} and {|λy.y|}). »
+    but is eventually disturbing if one wishes to write functional code.
+    Because nominal name abstractions are not canonical, special
+    care has to be taken against violations.
+    For instance, two α-equivalent 
+    representations of the same term (such as {|λx.x|} and {|λy.y|}) 
+    should be undistiguishable,
+    this is not true in nominal representations, at least by default.»
 
   -- NP: Note that in a safe interface for binders the supply does not
   -- have to be threaded, only passed downward and can be represented
@@ -353,7 +355,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     however, this representation makes it hard to manipulate terms:
     instead of calling things by name, programmers have to rely on their
     arithmetic abilities, which turn out to be error-prone. As soon as
-    one has to deal with more than just a few open bindings, it becomes
+    one has to deal with more than just a couple open bindings, it becomes
     easy to make mistakes.»
 
   p"DB make α-eq easy"
@@ -369,7 +371,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     to manipulate, and it may contain values which do not represent any term.»
 
   p"contribution"
-   «We contribute a new programming interface for binders, which
+   «The contribution of this paper is a new programming interface for binders, which
     provides the ability to write terms in a natural style close to
     concrete syntax. We can for example build the application function
     of the untyped λ-calculus as follows.»
@@ -441,7 +443,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"nested data types"
    «In functional programming languages such as Haskell, it is possible
     to remedy to this situation by using “nested recursion”. That is, one
-    parameterises the type of terms by a type that can represent
+    parameterizes the type of terms by a type that can represent
     {emph«free»} variables. If the parameter is the empty type, terms
     are closed. If the parameter is the unit type, there is at most one
     free variable, etc.»
@@ -1028,7 +1030,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   section $ «Term Structure» `labeled` termStructure
 
   p"motivation"
-   «It is well-known that every term representation parameterised
+   «It is well-known that every term representation parameterized
     on the type of free variables should exhibit monadic structure,
     with substitution corresponding to the binding operator {cite
     nestedcites{-TODO-}}. This means that the representation is stable
@@ -1195,7 +1197,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |liftSubst :: (Functor tm, Monad tm) ⇒ 
   |             (a → tm b) → (a ▹ v) → tm (b ▹ v)
   |liftSubst θ (Old x) = fmap Old (θ x) 
-  |liftSubst θ (New  x) = return (New x)  
+  |liftSubst θ (New x) = return (New x)  
   |]
 
   q«Substitution under a binder {|(>>>=)|} is then the wrapping
@@ -1292,7 +1294,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |bitraverse :: Functor f ⇒ (a → f a') → (b → f b') →
   |                              a ▹ b → f (a' ▹ b')
   |bitraverse f _ (Old x) = Old <$> f x
-  |bitraverse _ g (New x)  = New  <$> g x
+  |bitraverse _ g (New x) = New  <$> g x
   |]
 
   q«If a term has no free variable, then it can be converted from the
