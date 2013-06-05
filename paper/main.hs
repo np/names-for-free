@@ -145,7 +145,21 @@ canEta =
   [agdaFP|
   |canEta (Lam e) = unpack e $ λ x t → case t of
   |  App e1 (Var y) → y `isOccurenceOf` x &&
-  |                   not (x `occursIn` e1)
+  |          ☐         x `freshFor` e1
+  |  _ → False
+  |canEta _ = False
+  |]
+
+-- NP: Trying to factor canEta and canEtaWithSig result
+-- in big space between the signature and the code.
+-- This is due to the fact agdaP/agdaFP are building
+-- paragraphs.
+canEtaWithSig =
+  [agdaFP|
+  |canEta :: Tm Zero → Bool
+  |canEta (Lam e) = unpack e $ λ x t → case t of
+  |  App e1 (Var y) → y `isOccurenceOf` x &&
+  |          ☐         x `freshFor` e1
   |  _ → False
   |canEta _ = False
   |]
@@ -702,11 +716,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     term has the form {|λ x → e x|}, where {|x|} does not occur free
     in {|e|}.)»
 
-  [agdaFP|
-  |canEta :: Tm Zero → Bool
-  |]
-  -- Can we remove the space here?
-  canEta
+  canEtaWithSig
 
   {-
    NP: Issue with unpack: it becomes hard to tell if a recursive function is
@@ -723,7 +733,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"canEta"
    «In the above example, the functions {|isOccurenceOf|}
-    and {|occursIn|} use the {|inj|} function to lift {|x|} to
+    and {|freshFor|} use the {|inj|} function to lift {|x|} to
     a reference in the right context before comparing it to the
     occurrences. The calls to these functions do not get more
     complicated in the presence of multiple binders. For example, the
@@ -735,7 +745,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |    Lam f → unpack f $ λ x t1 → case t1 of
   |      Lam g → unpack g $ λ y t2 → case t2 of
   |        App e1 (Var y) → y `isOccurenceOf` x &&
-  |                         not (x `occursIn` e1)
+  |                ☐         x `freshFor` e1
   |        _ → False
   |      _ → False
   |    _ → False
@@ -982,14 +992,23 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
-  |x `occursIn` t = any (`isOccurenceOf` x) (freeVars t)
+  |x `occursIn` t = inj x `elem` t
   |]
---- |x `occursIn` t = (`any` freeVars t) (`isOccurenceOf` x)
+  -- this is using Data.Foldable.elem
+  --
   -- OR: inj x `elem` t
   -- x `occursIn` t = inj x `elem` freeVars t
-  -- OR: Using Data.Foldable.elem
-  -- x `occursIn` t = inj x `elem` t
+  -- OR: using freeVars
+  -- x `occursIn` t = any (`isOccurenceOf` x) (freeVars t)
 
+
+  p"freshFor"
+   «Sometimes we need the negation of {|occursIn|}, here is {|freshFor|}:»
+
+  [agdaFP|
+  |freshFor :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
+  |x `freshFor` t = not (x `occursIn` t)
+  |]
 
 
   subsection «Inclusion»
