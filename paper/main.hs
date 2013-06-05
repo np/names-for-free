@@ -2005,8 +2005,7 @@ s (f . g)
    | \llbracket x \rrbracket\,\kappa &= \kappa\,x \\
    | \llbracket e_1 \,@\, e_2 \rrbracket\,\kappa &= \llbracket e_1 \rrbracket (\lambda f. \\
    |                                       &\quad \llbracket e_2 \rrbracket (\lambda x. \\
-   |                                       &\quad \mathsf{let}\, p = \langle x, \kappa \rangle \\
-   |                                       &\quad \mathsf{in}\,\quad f \, @ \, p ) ) \\
+   |                                       &\quad f \, @ \, \langle x, \kappa \rangle ) ) \\
    | \llbracket \hat\lambda x. e \rrbracket \kappa &= \mathsf{let}\, f = \hat\lambda p. \begin{array}[t]{l}
    |                                       \mathsf{let}\, x_1 = \mathsf{fst}\, p \,\mathsf{in}\\
    |                                       \mathsf{let}\, x_2  = \mathsf{snd}\, p \,\mathsf{in} \\
@@ -2055,14 +2054,37 @@ s (f . g)
   |  AppC (varC x1)
   |       (PairC (varC x2)
   |              (lamC (\x → wk $ k x)))
-  |cps (Lam e')    k =
+  |cps (Lam e)    k =
+  |  letC
+  |    (lamC $ \p →
+  |       letC (fstC p) $ \x1 →
+  |       letC (sndC p) $ \x2 →
+  |       cps (wk $ e `atVar` x1) $ \r →
+  |       AppC (varC x2) (varC r)) k
+  |
+  |cps0 :: Tm a → TmC a
+  |cps0 t = cps t $ HaltC . varC
+  |]
+{-
+  [agdaFP|
+  |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
+  |cps (Var x)     k = untag <$> k x
+  |cps (App e1 e2) k =
+  |  cps e1 $ \x1 →
+  |  cps (wk e2) $ \x2 →
+  |  AppC (varC x1)
+  |       (PairC (varC x2)
+  |              (lamC (\x → wk $ k x)))
+  |cps (Lam e)     k =
   |  letC (lamPairC $ \x1 x2 →
-  |        cps (fmap Old $ e' `atVar` x1) $ \r →
+  |        cps (fmap Old $ e `atVar` x1) $ \r →
   |        AppC (varC x2) (varC r)) k
   |
   |cps0 :: Tm a → TmC a
   |cps0 t = cps t $ HaltC . varC
   |]
+-}
+
   notetodo «Why is this version better? 
             It departs from the mathematical notation and requires an explicit weakening.»
   -- I suggest inlining this so meaningful names can be used.
