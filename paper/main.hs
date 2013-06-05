@@ -1471,7 +1471,7 @@ s (f . g)
   commentCode [agdaFP|
   |    f 
   | ==  {- by the above -}
-  |    \x -> fmap (bimap id (const x)) (f ())
+  |    λ x -> fmap (bimap id (const x)) (f ())
   | == {- by def -}
   |    succToUniv (f ())
   | == {- by def -}
@@ -2033,12 +2033,12 @@ s (f . g)
   |cps (Var x)     k = fmap untag (k x)
   |cps (App e1 e2) k =
   |  cps e1 $ \f →
-  |  cps (wk e2) $ \x →
-  |  LetC (LamC (\x → wk (k x))) $ \k' →
+  |  cps (wk e2) $ λ x →
+  |  LetC (LamC (λ x → wk (k x))) $ \k' →
   |  LetC (pairC x k') $ \p →
   |  appC f p
   |cps (Lam e')    k =
-  |  LetC (LamC $ \p → LetC (fstC p) $ \x →
+  |  LetC (LamC $ \p → LetC (fstC p) $ λ x →
   |                   LetC (π2 p) $ \k' →
   |                   cps (wk (e' x)) $ \r →
   |                   appC k' r)
@@ -2051,16 +2051,16 @@ s (f . g)
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
   |cps (App e1 e2) k =
-  |  cps e1 $ \x1 →
-  |  cps (wk e2) $ \x2 →
+  |  cps e1 $ λ x1 →
+  |  cps (wk e2) $ λ x2 →
   |  AppC (varC x1)
   |       (PairC (varC x2)
-  |              (lamC (\x → wk $ k x)))
+  |              (lamC (λ x → wk $ k x)))
   |cps (Lam e)    k =
   |  letC
   |    (lamC $ \p →
-  |       letC (fstC p) $ \x1 →
-  |       letC (sndC p) $ \x2 →
+  |       letC (fstC p) $ λ x1 →
+  |       letC (sndC p) $ λ x2 →
   |       cps (wk $ e `atVar` x1) $ \r →
   |       AppC (varC x2) (varC r)) k
   |
@@ -2072,13 +2072,13 @@ s (f . g)
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
   |cps (App e1 e2) k =
-  |  cps e1 $ \x1 →
-  |  cps (wk e2) $ \x2 →
+  |  cps e1 $ λ x1 →
+  |  cps (wk e2) $ λ x2 →
   |  AppC (varC x1)
   |       (PairC (varC x2)
-  |              (lamC (\x → wk $ k x)))
+  |              (lamC (λ x → wk $ k x)))
   |cps (Lam e)     k =
-  |  letC (lamPairC $ \x1 x2 →
+  |  letC (lamPairC $ λ x1 x2 →
   |        cps (fmap Old $ e `atVar` x1) $ \r →
   |        AppC (varC x2) (varC r)) k
   |
@@ -2095,8 +2095,8 @@ s (f . g)
   |lamPairC :: (forall v1 v2. v1 → 
   |             v2 → TmC (a ▹ v1 ▹ v2)) → Value a
   |lamPairC f = lamC $ \p →
-  |              letC (fstC p) $ \x1 →
-  |              letC (sndC p) $ \x2 →
+  |              letC (fstC p) $ λ x1 →
+  |              letC (sndC p) $ λ x2 →
   |              wk $ f x1 x2
   |]
 
