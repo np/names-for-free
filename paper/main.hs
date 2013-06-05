@@ -932,23 +932,23 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     a context different from the other, and thus an arbitrary adjustment might be required.
     With nested abstract syntax, the situation improves: by requiring equality to be 
     performed between indices of the same type, a whole class of errors are prevented by
-    type-checking. Some mistakes are possible though: given two names of type {|a ▹ () ▹ ()|},
+    type-checking. Some mistakes are possible though: given two names of type {|a ▹ () ▹ ()|},
     swapping the two first variables might be necessary, but one cannot decide if it is so 
-    from the types only. 
+    from the types only.
     By making the contexts fully
     polymorphic as we propose, no mistake is possible. 
     Hence the slogan: names are polymorphic indices.»
 
-  q«Transitively, the derived equality instance of {|Tm|} gives α-equality, and is guaranteed 
-    safe in fully-polymorphic contexts.»
-  [agdaFP|
-  |deriving instance Eq a => Eq (Tm a)
-  |]
+  q«Consequently, the derived equality instance of {|Tm|} gives
+    α-equality, and is guaranteed safe in fully-polymorphic contexts.»
 
+  [agdaFP|
+  |deriving instance Eq a ⇒ Eq (Tm a)
+  |]
 
   subsection «Membership»
   q«Given this, we can implement
-    the relation of context membership by a type class {|∈|}, whose
+    the relation of context membership by a type class {|∈|}, whose
     sole method performs the injection from a member of the context to
     the full context. The relation is defined by two inference rules,
     corresponding to finding the variable in the first position of the
@@ -964,11 +964,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"incoherent instances"
    «The cognoscenti will recognize the two above instances as
-    {emph«incoherent»}, that is, if {|v|} and {|v'|} were instanciated
+    {emph«incoherent»}, that is, if {|v|} and {|v'|} were instantiated
     to the same type, both instances would apply equally. Fortunately,
     this incoherency will never trigger as long as one uses the
     interface provided by our combinators: the injection function will
-    always be used on maximally polymorphic contexts, and therefore {|v|} and {|v'|}
+    always be used on maximally polymorphic contexts, and therefore {|v|} and {|v'|}
     will be different.»
 
   -- NP: maybe mention the fact that GHC let us do that
