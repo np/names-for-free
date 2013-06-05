@@ -1413,7 +1413,7 @@ s (f . g)
   a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
   (Strictly speaking, this holds only if one disregards non-termination and {|seq|}.)»
 
-  subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
+  subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
   p"conversions"
    «The conversion functions witnessing the isomorphism are the following.»
   [agdaFP|
