@@ -276,7 +276,7 @@ On top of Bound:
   unpack b k = k TheBinder (b TheBinder)
 
   remove :: Binder v → [a ▹ v] → [a]
-  remove _ xs = [x | There x ← xs]
+  remove _ xs = [x | Old x ← xs]
 
   ...
   in this case we should also have:
@@ -455,7 +455,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     Syntax {cite nestedcites}»
 
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
-  -- NP: explain the meaning of Here and There
+  -- NP: explain the meaning of New and Old
   [agdaFP|
   |data Tm a where
   |  Var :: a → Tm a
@@ -476,19 +476,18 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    whose the syntax reflects the
    intended semantics.»
   
-  notetodo «MAYBE: rename There and Here to Old and New as in {cite[altenkirchreus99]}?»
   [agdaFP|
   |type Succ a = a ▹ ()
   |
-  |data a ▹ v = There a | Here v
+  |data a ▹ v = Old a | New v
   |
   |bimap :: (a → a') → (v → v') → (a ▹ v) → (a' ▹ v')
-  |bimap f _ (There x) = There (f x)
-  |bimap _ g (Here x)  = Here (g x)
+  |bimap f _ (Old x) = Old (f x)
+  |bimap _ g (New x) = New (g x)
   |
   |untag :: a ▹ a → a
-  |untag (There x) = x
-  |untag (Here  x) = x
+  |untag (Old x) = x
+  |untag (New x) = x
   |]
 --  |instance Bifunctor (▹) where
 
@@ -498,9 +497,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |apNested :: Tm Zero
-  |apNested = Lam $ Lam $ Var (There $ Here ())
+  |apNested = Lam $ Lam $ Var (Old $ New ())
   |                       `App`
-  |                       Var (Here ())
+  |                       Var (New ())
   |]
 
   p"the type of apNested"
@@ -568,8 +567,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |apTm_ :: Tm Zero
   |apTm_ = lam $ λ f → lam $ λ x →
-  |              Var (There (Here f))
-  |        `App` Var (Here x)
+  |              Var (Old (New f))
+  |        `App` Var (New x)
   |]
 
   p"still the same elephant"
@@ -583,18 +582,18 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     the {emph«specification»}, is written using the host language binders.
 
     However at variable occurrences, de Bruijn indices are still present
-    in the form of the constructors {|Here|} and {|There|}, and are
+    in the form of the constructors {|New|} and {|Old|}, and are
     purely part of the {emph«implementation»}.»
 
-  p"type-checking the number of There..."
+  p"type-checking the number of Old..."
    «The type-checker then makes sure that the implementation matches the specification:
-    for example if one now makes a mistake and forgets one {|There|} when entering the
+    for example if one now makes a mistake and forgets one {|Old|} when entering the
     term, the Haskell type system rejects the definition.»
 
   commentCode [agdaFP|
   |oops_ = lam $ λ f → lam $ λ x →
-  |              Var (Here f)
-  |        `App` Var (Here x)
+  |              Var (New f)
+  |        `App` Var (New x)
   |-- Couldn't match expected type `v1'
   |--             with actual type `v'
   |]
@@ -611,7 +610,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"unicity of injections"
    «In general, in a closed context, if one considers the
-    expression {|Var (Thereⁿ (Here x))|}, only one possible value
+    expression {|Var (Oldⁿ (New x))|}, only one possible value
     of {|n|} is admissible. Indeed, anywhere in the formation of a
     term using {|lam|}, the type of variables is {|a = a0 ▹ v0 ▹
     v1 ▹ ⋯ ▹ vn|} where {|v0|}, {|v1|}, … , {|vn|} are all distinct and
@@ -651,7 +650,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «In a nutshell, our de Bruijn indices are typed with the context
     where they are valid. If that context is sufficiently polymorphic,
     they can not be mistakenly used in a wrong context. Another
-    intuition is that {|Here|} and {|There|} are building proofs
+    intuition is that {|New|} and {|Old|} are building proofs
     of “context membership”. Thus, when a de Bruijn index is given a maximally polymorphic context,
     it is similar to a well-scoped name.»
 
@@ -670,7 +669,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     occurrence of a variable is a reference to some previously bound
     variable. With de Bruijn indices, one must (yet again) count the
     number of binders traversed between the variable bindings and
-    its potential occurrences --- an error prone task. Here as well,
+    its potential occurrences --- an error prone task. New as well,
     we can take advantage of polymorphism to ensure that no mistake
     happens. We provide a combinator {|unpack|}, which hides the 
     type of the newly bound variables (the type {|()|}) as an existentially
@@ -864,7 +863,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- (As for {|pack|}, {|remove|} can be generalised to use the {|Insert|})... However we have not siien ∈ yet, so this makes little sense.
   [agdaFP|
   |remove :: v → [a ▹ v] → [a]
-  |remove _ xs = [x | There x ← xs]
+  |remove _ xs = [x | Old x ← xs]
   |]
 
   p"explain freeVars"
@@ -897,12 +896,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Second, if two indices refer to the first variable they are equal;
     otherwise we recurse. We stress that this equality inspects only the
     {emph«indices»}, not the values contained in the type. For
-    example {|Here 0 == Here 1|} is {|True|}»
+    example {|New 0 == New 1|} is {|True|}»
 
   {-
   instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where
-    Here  x == Here  y = x == y
-    There x == There y = x == y
+    New  x == New  y = x == y
+    Old x == Old y = x == y
     _       == _       = False
 
   instance Eq (Binder a) where
@@ -911,8 +910,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |instance Eq a ⇒ Eq (a ▹ v) where
-  |  Here  _ == Here  _ = True
-  |  There x == There y = x == y
+  |  New  _ == New  _ = True
+  |  Old x == Old y = x == y
   |  _       == _       = False
   |]
   q«
@@ -945,10 +944,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |instance v ∈ (a ▹ v) where
-  |  inj = Here
+  |  inj = New
   |
   |instance (v ∈ a) ⇒ v ∈ (a ▹ v') where
-  |  inj = There . inj
+  |  inj = Old . inj
   |]
 
   p"incoherent instances"
@@ -1015,7 +1014,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |instance Zero ⊆ a where injMany = magic
   |
   |instance (a ⊆ b) ⇒ a ⊆ (b ▹ v) where
-  |  injMany = There . injMany
+  |  injMany = Old . injMany
   |
   |instance (a ⊆ b) ⇒ (a ▹ v) ⊆ (b ▹ v) where
   |  injMany = bimap injMany id
@@ -1195,8 +1194,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒ 
   |             (a → tm b) → (a ▹ v) → tm (b ▹ v)
-  |liftSubst θ (There x) = fmap There (θ x) 
-  |liftSubst θ (Here  x) = return (Here x)  
+  |liftSubst θ (Old x) = fmap Old (θ x) 
+  |liftSubst θ (New  x) = return (New x)  
   |]
 
   q«Substitution under a binder {|(>>>=)|} is then the wrapping
@@ -1237,8 +1236,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |substituteOut :: Monad tm ⇒
   |              v → tm a → tm (a ▹ v) → tm a
   |substituteOut x t u = u >>= λ y → case y of
-  |     Here _ → t
-  |     There x → return x
+  |     New _ → t
+  |     Old x → return x
   |]
 
   p"laws"
@@ -1248,14 +1247,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   {-
   lift Var x = Var x
-  lift Var (There x) = wk (Var x) = fmap injMany (Var x) = Var (injMany x) =?= Var (There x)
-  lift Var (Here  x) = var x = Var (inj x) =?= Var (Here x)
+  lift Var (Old x) = wk (Var x) = fmap injMany (Var x) = Var (injMany x) =?= Var (Old x)
+  lift Var (New  x) = var x = Var (inj x) =?= Var (New x)
   -}
 
   {-
   lift return x = return x
-  lift return (There x) = fmap There (return x) = return (There x)
-  lift return (Here  x) = return (Here x)
+  lift return (Old x) = fmap Old (return x) = return (Old x)
+  lift return (New  x) = return (New x)
   -}
 
   subsection «Traversable»
@@ -1292,8 +1291,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |bitraverse :: Functor f ⇒ (a → f a') → (b → f b') →
   |                              a ▹ b → f (a' ▹ b')
-  |bitraverse f _ (There x) = There <$> f x
-  |bitraverse _ g (Here x)  = Here  <$> g x
+  |bitraverse f _ (Old x) = Old <$> f x
+  |bitraverse _ g (New x)  = New  <$> g x
   |]
 
   q«If a term has no free variable, then it can be converted from the
@@ -1322,7 +1321,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 {- NP: cut off-topic?
   -- TODO flow
   p""
-   «Here the function {|size|} takes as an argument how to assign
+   «New the function {|size|} takes as an argument how to assign
     a size to each free variable (the type {|a|}). An alternative
     presentation would instead require a term whose variables are
     directly of type {|Size|}. One can recover this alternative by
@@ -1438,8 +1437,8 @@ s (f . g)
   | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
   | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
   | ∀g:(a ▹ v₁) → (a ▹ v₂).
-  | (∀ y:v₁. Here (v y) == g (Here y)) → 
-  | (∀ n:a.  There n    == g (There n)) → 
+  | (∀ y:v₁. New (v y) == g (New y)) → 
+  | (∀ n:a.  Old n    == g (Old n)) → 
   | f x₂ == fmap g (f x₁)
   |]
   q«We can then specialise
@@ -1490,8 +1489,8 @@ s (f . g)
   | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
   | ∀t₁:tm (a ▹ v₁). ∀t₂:tm (a ▹ v₂).
   | (∀g:(a ▹ v₁) → (a ▹ v₂).
-  |  (∀ y:v₁. Here (v y) == g (Here y)) → 
-  |  (∀ n:a.  There n    == g (There n)) → 
+  |  (∀ y:v₁. New (v y) == g (New y)) → 
+  |  (∀ n:a.  Old n    == g (Old n)) → 
   |  t₂ == fmap g t₁) →
   | o x₂ t₂ == o x₁ t₁
   |] 
@@ -1547,8 +1546,8 @@ s (f . g)
   |size ρ (Var x)   = ρ x
   |size ρ (App t u) = 1 + size ρ t + size ρ u
   |size ρ (Lam b)   = 1 + size ρ' b
-  | where ρ' (Here  ()) = 1
-  |       ρ' (There  x) = ρ x
+  | where ρ' (New  ()) = 1
+  |       ρ' (Old  x) = ρ x
   |]
 
   p"Nominal aspect"
@@ -1564,8 +1563,8 @@ s (f . g)
   |                      1 + sizeEx (extend (x,1) ρ) t
   |
   |extend :: (v, r) → (a → r) → (a ▹ v → r)
-  |extend (_, x) _ (Here _)  = x
-  |extend _      f (There x) = f x
+  |extend (_, x) _ (New _)  = x
+  |extend _      f (Old x) = f x
   |]
 
   p"cata"
@@ -1587,8 +1586,8 @@ s (f . g)
   |extendAlg :: r → TmAlg a r → TmAlg (Succ a) r
   |extendAlg x φ = φ { pVar = pVarSucc }
   |  where
-  |    pVarSucc (Here  _) = x
-  |    pVarSucc (There y) = pVar φ y
+  |    pVarSucc (New  _) = x
+  |    pVarSucc (Old y) = pVar φ y
   |]
 
   p"cataSize"
@@ -1660,8 +1659,8 @@ s (f . g)
   |        f' (Succ n) = f n
   |size3 f (App t u) = 1 + size3 f t + size f u
   |
-  |toNat (Here ()) = Zero
-  |toNat (There x) = Succ x
+  |toNat (New ()) = Zero
+  |toNat (Old x) = Succ x
   |]
 
   p"mixed style"«
@@ -1747,8 +1746,8 @@ s (f . g)
   |-- The two first arguments are ignored and thus only there
   |-- to help the user not make a mistake about a' and b'.
   |extendCmp :: a' → b' → Cmp a b → Cmp (a ▹ a') (b ▹ b')
-  |extendCmp _ _ f (There x) (There y)  = f x y
-  |extendCmp _ _ _ (Here _)  (Here _)   = True
+  |extendCmp _ _ f (Old x) (Old y)  = f x y
+  |extendCmp _ _ _ (New _)  (New _)   = True
   |extendCmp _ _ _ _         _          = False
   |]
 -}
@@ -2039,7 +2038,7 @@ s (f . g)
   |              (lamC (\x → wk $ k x)))
   |cps (Lam e')    k =
   |  letC (lamPairC $ \x1 x2 →
-  |        cps (fmap There $ e' `atVar` x1) $ \r →
+  |        cps (fmap Old $ e' `atVar` x1) $ \r →
   |        AppC (varC x2) (varC r)) k
   |
   |cps0 :: Tm a → TmC a
@@ -2321,7 +2320,7 @@ s (f . g)
     ⊆-#     : ∀ {α b} → b # α → α ⊆ (b ◅ α)
 
     In Haskell respectively (->), id, id, (.), magic, \f -> bimap f id,
-      const There.
+      const Old.
 
   zeroᴮ : Binder
   zeroᴮ = Zero
@@ -2669,14 +2668,14 @@ appendix = execWriter $ do
   |  shuffle :: (v → w) → b → a ▹ w
   |
   |instance Insert v a (a ▹ v) where
-  |  shuffle f (Here x) = Here (f x)
-  |  shuffle f (There x) = There x
+  |  shuffle f (New x) = New (f x)
+  |  shuffle f (Old x) = Old x
   |
   |instance Insert v a b ⇒ Insert v (a ▹ v') (b ▹ v') where
-  |  shuffle f (Here x) = There (Here x)
-  |  shuffle f (There x) = case shuffle f x of
-  |    Here y → Here y
-  |    There y → There (There y)
+  |  shuffle f (New x) = Old (New x)
+  |  shuffle f (Old x) = case shuffle f x of
+  |    New y → New y
+  |    Old y → Old (Old y)
   |
   |substituteGen :: (Insert v a b, Functor tm, Monad tm) ⇒ 
   |                 v → tm a → tm b → tm a
@@ -2692,17 +2691,17 @@ appendix = execWriter $ do
   |
   |-- nameᴮ : ∀ {α} b → Name (b ◅ α)
   |name :: b → a ▹ b
-  |name = Here
+  |name = New
   |
   |-- In Agda: exportᴺ? : ∀ {b α} → Name (b ◅ α) → Maybe (Name α)
   |exportM :: a ▹ b → Maybe a
-  |exportM (Here _)  = Nothing
-  |exportM (There x) = Just x
+  |exportM (New _)  = Nothing
+  |exportM (Old x) = Just x
   |
   |-- In Agda: exportᴺ : ∀ {α b} → Name (b ◅ α) → Name (b ◅ ø) ⊎ Name α
   |export :: a ▹ b → Either (Zero ▹ b) a
-  |export (Here x)  = Left (Here x)
-  |export (There x) = Right x
+  |export (New x)  = Left (New x)
+  |export (Old x) = Right x
   |]
 
   stopComment
