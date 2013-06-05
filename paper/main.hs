@@ -1471,7 +1471,7 @@ s (f . g)
   commentCode [agdaFP|
   |    f 
   | ==  {- by the above -}
-  |    λ x -> fmap (bimap id (const x)) (f ())
+  |    λ x → fmap (bimap id (const x)) (f ())
   | == {- by def -}
   |    succToUniv (f ())
   | == {- by def -}
@@ -1774,41 +1774,52 @@ s (f . g)
 -}
   subsection $ «Normalisation by evaluation» `labeled` nbeSec
 
-  p"intro" «A classical test of scope respresentations is how they support 
-  normalisation by evaluation (NBE) {cite nbecites}.»
-  q«NBE takes its name from direct evaluation from terms to their normal forms. The
-    following type captures normal forms of the untyped λ-calculus: a normal form is either
-    an abstraction or an application of a variable to some normal forms. In this definition
-    we use an existential-based version of scopes, which we splice in the {|Lam'|} constructor.»
+  p"intro"
+   «A classical test of scope respresentations is how they support
+    normalisation by evaluation (NbE) {cite nbecites}.»
+
+  q«NbE takes its name from direct evaluation from terms to their
+    normal forms. The following type captures normal forms of the
+    untyped λ-calculus: a normal form is either an abstraction or
+    a variable applied to some normal forms. In this definition we
+    use an existential-based version of scopes, which we splice in
+    the {|LamNo|} constructor.»
+
   [agdaFP|
   |data No a where
-  |  Lam' :: v -> No (a ▹ v) -> No a
-  |  App' :: a -> [No a] -> No a
-  |]
-  q«The key to NBE is that normal forms are
-  stable under substitution. This is realised by an
-  hereditary substitution function, which, as it substitutes
-  variables for their value, reduces redexes on the fly.»
-  [agdaFP|
-  |instance Monad No where         
-  |  return x = App' x []
-  |  Lam' x t >>= θ = Lam' x (t >>= liftSubst θ)
-  |  App' f xs >>= θ = foldl app (θ f) (fmap (>>= θ) xs)
+  |  LamNo :: v → No (a ▹ v) → No a
+  |  VarNo :: a → [No a] → No a
   |]
 
-  q«The most notable feature of this substitution
-    is the use of {|app|} to evaluate redexes:»
+  q«The key to NbE is that normal forms are stable under substitution.
+    This is realised by an hereditary substitution function, which, as
+    it substitutes variables for their value, reduces redexes on the
+    fly.»
+
+  [agdaFP|
+  |instance Monad No where
+  |  return x = VarNo x []
+  |
+  |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst θ)
+  |  VarNo f xs >>= θ = foldl app (θ f) (fmap (>>= θ) xs)
+  |]
+
+  q«The most notable feature of this substitution is the use of {|app|}
+    to evaluate redexes:»
+
   [agdaFP|
   |app :: No a → No a → No a
-  |app (Lam' x t) u = substituteOut x u t
-  |app (App' f xs) u = App' f (xs++[u])
+  |app (LamNo x t)  u = substituteOut x u t
+  |app (VarNo f xs) u = VarNo f (xs++[u])
   |]
 
-  q«The evaluator can then be written as a simple recursion on the term structure:»
+  q«The evaluator can then be written as a simple recursion on the term
+    structure:»
+
   [agdaFP|
   |eval :: Tm a → No a
-  |eval (Var x) = return x
-  |eval (Lam b) = unpack b $ \x t -> Lam' x (eval t)
+  |eval (Var x)   = return x
+  |eval (Lam b)   = unpack b $ λ x t → LamNo x (eval t)
   |eval (App t u) = app (eval t) (eval u)
   |]
 
@@ -2046,7 +2057,7 @@ s (f . g)
   |]
   -}
 
-  -- |cps :: Tm a -> Univ TmC a -> TmC a
+  -- |cps :: Tm a → Univ TmC a → TmC a
   [agdaFP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
@@ -2632,11 +2643,11 @@ appendix = execWriter $ do
   |]
 
 
-  subsection «Nbe»
+  subsection «NbE»
   [agdaP|
   |instance Functor No where 
-  |  fmap f (Lam' x t) = Lam' x (fmap (bimap f id) t)
-  |  fmap f (App' x xs) = App' (f x) (fmap (fmap f) xs)
+  |  fmap f (LamNo x t)  = LamNo x (fmap (bimap f id) t)
+  |  fmap f (VarNo x xs) = VarNo (f x) (fmap (fmap f) xs)
   |]
 
   subsection «CPS»
