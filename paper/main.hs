@@ -2531,7 +2531,7 @@ s (f . g)
     of {citet[millerproof2003]}), we would have the following definitions, and safety would never be   
     compromised. »
 
-  [agdaFP|
+  commentCode [agdaFP|
    |type PolyScope  tm a = ∇ v.  v → tm (a ▹ v) 
    |type ExistScope tm a = ∇ v. (v , tm (a ▹ v))
    |]
@@ -2594,7 +2594,7 @@ appendix = execWriter $ do
   [agdaP|
   |instance Functor No where 
   |  fmap f (Lam' x t) = Lam' x (fmap (bimap f id) t)
-  |  fmap f (App' x xs) = Lam' (f x) (fmap (fmap f) xs)
+  |  fmap f (App' x xs) = App' (f x) (fmap (fmap f) xs)
   |]
 
   subsection «CPS»
