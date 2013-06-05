@@ -56,6 +56,9 @@ import NomPaKit.QQ
       mcbride_applicative_2007
       fegaras_revisiting_1996
       bernardy_proofs_2012
+      keller_parametricity_2012
+      bernardy_type-theory_2013
+      bernardy_computational_2012
 
       de-bruijn-72 mcbride-mckinna-04 altenkirch-reus-99
       atkey-hoas-09 pouillard-pottier-10 pouillard-11
@@ -85,6 +88,8 @@ belugamu = cave12
 fincites = [altenkirch93, mcbridemckinna04]
 nestedcites = [bellegarde94, birdpaterson99, altenkirchreus99]
 nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu]
+parametricityIntegrationCites = [kellerparametricity2012, bernardytypetheory2013, bernardycomputational2012]
+
 
 title =  «Names For Free --- Polymorphic Views of Names and Binders»
   -- «Parametric Nested Abstract Syntax» -- Sounds like it's for a representation
@@ -600,7 +605,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     {emph«implementation»} is inexistent (if we ignore diverging terms).
     Indeed, because the type {|v|} corresponding to a bound variable is
     universally quantified, the only way to construct a value of its
-    type is to use the variable bound by {|lam|}.»
+    type is to use the variable bound by {|lam|}. (In Haskell 
+    one can always use a diverging program; however one has to make a concious decision 
+    to produce a value of such an obviously empty type.)»
 
   p"unicity of injections"
    «In general, in a closed context, if one considers the
@@ -1378,12 +1385,12 @@ s (f . g)
   |  E :: v → tm (a ▹ v) → ExistScope tm a
   |] 
 
-  q«As we observe in a number of examples, these representations are dual from a safety perspective: 
-  the universal-based representation
-  ensures safety in the construction of terms, while the existential-based representation is
-  ensures safety in the analysis of terms.
+  q«As we observe in a number of examples, these representations
+    are dual from a usage perspective: the universal-based representation
+    allows safe the construction of terms, while the existential-based representation is
+    allows safe the analysis of terms.»
 
-  For this reason, we do not commit to either side, and use the suitable representation on 
+  q«For the above reason, we do not commit to either side, and use the suitable representation on 
   a case-by-case basis. This is possible because the representations are both isomorphic to
   a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
   (Strictly speaking, this holds only if one disregards non-termination and {|seq|}.)»
@@ -1498,23 +1505,22 @@ s (f . g)
   {|PolyScope|} is well-suited for term construction. What about term {emph«transformations»},
   which combine both aspects? In this case, one is free to choose either interface. This 
   can be illustrated by showing both alternatives for the {|Lam|} case of the {|fmap|} function.
-  (The {|App|} and {|Var|} cases are identical.)»
+  (The {|App|} and {|Var|} cases are identical.) Because the second version is more concise, we prefer it
+    in the upcoming examples, but the other choice is equally valid.»
   [agdaFP|
   |fmap' f (Lam b)
   |   = unpack b $ λ x t → lamP x (fmap (bimap f id) t)
   |fmap' f (Lam b) 
   |   = lam (λ x → fmap (bimap f id) (b `atVar` x))
-  |atVar = succToPoly 
   |]
-  q«In the case where the second argument of {|succToPoly|} is a witness of a bound variable,
-    it acts as a mere assignment of a witness to a scope. Hence we give it the special name {|`atVar`|}
-    for this situation.
- 
-    For both alternatives, the type of {|x|} is a type variable, and hence in both cases contexts are
-    maximally polymorphic. Because the second version is more concise, we prefer it
-    in the upcoming examples, but the other choice is equally valid.»
+  q«When using {|succToPoly|}, the type of the second argument of {|succToPoly|} 
+    should always be a type variable in order to have maximally polymorphic contexts.
+    To reming us of this requirement when writing code, we give the alias {|atVar|} for {|succToPoly|}.
+    (Similarly, to guarantee safetly, the first argument of {|pack|} (encapsulated here in {|lamP|}) must be maximally polymorphic.)»
 
-      
+  onlyInCode [agdaFP| 
+  |atVar = succToPoly
+  |]
 
   subsection $ «{|Scope|} representations and {|Term|} representations»
   
@@ -2093,7 +2099,7 @@ s (f . g)
     type {|Fin n|}. However, these approaches are not equivalent for at
     least two reasons. The Nested Abstract Syntax can accept any type to
     represent variables. This makes the structure more like a container
-    and this can be particularly helpful to define the monadic structure
+    and this can be particularly helpful to define the monadic structure {todo «so why don't we do this? is a natural question»}
     (substitution). The {|Fin|} approach has advantages as well: the
     representation is concrete and simpler since closer to the original
     approach for de Brujin indices. In particular the representation of
@@ -2108,13 +2114,15 @@ s (f . g)
   -- TODO flow
   q«The main performance issue with de Brujin indices from the cost
     of importing terms into scopes without capture, this requires to
-    increment the free-variables which incures not only a cost but a
-    lost of sharing.»
+    increment the free-variables which incurs not only a cost but a
+    loss of sharing.»
 
   -- TODO off-topic
-  q«On top of that Nested Abstract Syntax misses a controlled and
+  q«Besides, Nested Abstract Syntax misses a controlled and
     uniform way to represent variables which prevents from using machine
     integers to represent all the variables.»
+
+  notetodo «JP: can we say that ``Bound'' is like having explicit substitutions?»
 
   subsection $ «HOAS: Higher-Order Abstract Syntax»
 
@@ -2179,11 +2187,11 @@ s (f . g)
     within a term of type {|∀a. TmP a|}. Additionally, once the type
     variable {|a|} is instantiated to a closed type, one cannot recover
     the polymorphic version. Furthermore while {|Tm Zero|} denotes a
-    close term, {|TmP Zero|} denotes a term without variables, hence no
+    closed term, {|TmP Zero|} denotes a term {emph«without»} variables, hence no
     term at all. Therefore, whenever a user of PHOAS needs to perform
     some manipulation on terms, they must make an upfront choice of a
     particular instantiation for the parameter of {|TmP|} that supports
-    all the operations required on free variables. This limitation is
+    all the required operations on free variables. This limitation is
     not good for modularity and code clarity in general. Another issue
     arises from the negative occurence of the variable type. Indeed this
     makes the type {|TmP|} invariant: it cannot be made a {|Functor|}
@@ -2199,10 +2207,10 @@ s (f . g)
 
   subsection «Syntax for free»
 
-  q«Robert Atkey {cite[atkeyhoas09]} revisited the polymorphic encoding
+  q«{citet[atkeyhoas09]} revisited the polymorphic encoding
     of the HOAS representation of the untyped lambda calculus. By
     constructing a model of System F's parametricity in {_Coq} he could
-    formally prove that polymorphism indeed rules out the exotic terms.
+    formally prove that polymorphism rules out the exotic terms.
     Name abstractions, while represented by computational functions,
     these functions cannot react to the shape of their argument and thus
     behave as substitutions. Here is this representation in Haskell:»
@@ -2226,7 +2234,9 @@ s (f . g)
     there seems to be no safe way to convert a term of this polymorphic
     encoding to another safe representation of names. Indeed, as Atkey
     shows it, this conversion relies on the Kripke version of the
-    parametricity result of this type.»
+    parametricity result of this type. (At the moment, the attempts to
+    integrate parametricity in a programming language only support 
+    non-Kripke versions {cite parametricityIntegrationCites}.)»
 
 {- NP: what about putting this in the catamorphism section with a forward ref
   - to here?
@@ -2247,8 +2257,7 @@ s (f . g)
         textually identical to terms constructed using ours. Another point of
         similiarity is the use of instance search to recover the indices from a
         host-language variable name.
-
-        Another difference is that McBride integrates the injection in the abstraction
+        A difference is that McBride integrates the injection in the abstraction
         constructor rather than the variable constructor. The type of the {|var|} combinator becomes then
         simpler, at the expense of {|lam|}:
         »
@@ -2260,7 +2269,8 @@ s (f . g)
   |]
   p "" «An advantage of McBride's interface is that it does not require the “incoherent instances” extension. »
   -- 'Ordered overlapping type family instances' will improve the situation for us.
-  p "" «However the above interface reveals somewhat less precise types than what we use.
+  p "" «However, because McBride represents variables as {|Fin|}, 
+        the types of his combinators are less precise ours.
         Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|⊆|}
         in our development),
         namely that one context should be smaller than another.
@@ -2504,30 +2514,46 @@ s (f . g)
   -- JP
   section $ «Discussion» `labeled` discussion
 
+{-
   subsection «Power of the representation»
   p"" «{citet[guillemettetypepreserving2008]}
      change representation from HOAS to de Bruijn indices, arguing that HOAS is more suitable for
      CPS transform, while de Bruijn indices are more suitable for closure conversion.
      Our reprensentation supports a natural implementation of both transformations.
      »
+-}
+  subsection «Future work: Improving safety»
+  q«As it stands, a user can potentially instantiate {|v|} a monotype either in 
+    {|∀ v. v → tm (a ▹ v)|} or {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
+    by providing a quantifier which allows only substitution for type variables. This
+    quantifier can be understood as being both existential and universal, and hence is self dual.
+    Choosing the notation {|∇|} for it (due to the similarity of the nabla quantifier of quantifier
+    of {citet[millerproof2003]}), we would have the following definitions, and safety would never be   
+    compromised. »
 
-  subsection «Future work: both aspects in one»
+  commentCode [agdaFP|
+   |type PolyScope  tm a = ∇ v.  v → tm (a ▹ v) 
+   |type ExistScope tm a = ∇ v. (v , tm (a ▹ v))
+   |]
+  q«
+   These definitions would preclude using {|SuccScope|} as an implementation, 
+   however this should not cause any issue as either of the above could be used directly
+   in an implementation.
+   Supporting our version of {|∇|} in a type-checker seem a rather modest extension,
+   therefore we wish to investigate how some future version of GHC could support it.
+   »
 
-  p "even more safety by no instanciation" «
-  Each of the dual representation of bindings ensure one aspect of safety. One may
-  wonder if it is possible to combine the safety of both. This suggest a type-system feature
-  to represent the intersection of {|PolyScope tm|} and {|ExistScope tm|}.
-  This is reminiscent of the ∇ quantifier of {citet[millerproof2003]}.
-  »
-
-  p "performance!" «
-  One could also wish to obtain performance aspects of both representations.
-  A moment's thought  reveals that it might be possible not to pay the cost
-  of the application to {|()|} in the definition of {|unpack|}. Indeed, because
-  of parametricity, the continuation can never inspect the values which have
-  been substituted for the variables. This means that a clever compiler may
-  implement the application specially, omitting to perform any substitution.
-  »
+  subsection «Future work: improve performance»
+  q«An apparent issue with our conversion functions between
+    {|ExistScope|} or {|PolyScope|} on one side and {|SuccScope|} on the
+    other side is that all but {|succToExist|} cost a time 
+    proportional to the term converted. In the current state of affairs, we 
+    might be able to use a system of rewrite rules, such as that implemented in GHC to 
+    eliminate the conversions to and from the safe interfaces. However, within
+    a system which supports ∇-quantification, a better option offers itself:
+    the machine-representation of the type {|v|} where {|v|} is ∇-bound should be
+    nil (nothing at all); therefore the machine-implementation of the conversions
+    can be the identity.»
 
   subsection «Future work: no injections»
 
@@ -2537,20 +2563,20 @@ s (f . g)
     could be built to take care of those injections automatically.
     An obvious benefit would be some additional shortening of programs manipulating terms.
     A more subtle one is that, since injections would not be present at all, the performance
-    would be increased. Additionally, this simplification of programs would imply an
+    could be increased. Additionally, this simplification of programs would imply an
     even greater simplification of the proofs about them; indeed, a variation in complexity in
     an object usually yields a greater variation in complexity in proofs about it.
   »
 
-  subsection «Misc.»
+  subsection «Conclusion»
 
 
-  p "more remarks about safety" «
+  q «
   We do not suffer from name-capture and complicated α-equivalence problems; but
   we can conveniently call variables by their name.
   »
 
-  notetodo «a word on impredicativity»
+  notetodo «a word on impredicativity?»
 
   acknowledgements   «We thank Emil Axelsson and Koen Claessen for useful feedback.»
 
@@ -2566,7 +2592,9 @@ appendix = execWriter $ do
 
   subsection «Nbe»
   [agdaP|
-  |instance Functor No where -- TODO
+  |instance Functor No where 
+  |  fmap f (Lam' x t) = Lam' x (fmap (bimap f id) t)
+  |  fmap f (App' x xs) = App' (f x) (fmap (fmap f) xs)
   |]
 
   subsection «CPS»
