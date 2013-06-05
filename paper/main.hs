@@ -1525,7 +1525,7 @@ s (f . g)
   can be illustrated by showing both alternatives for the {|Lam|} case of the {|fmap|} function.
   (The {|App|} and {|Var|} cases are identical.) Because the second version is more concise, we prefer it
     in the upcoming examples, but the other choice is equally valid.»
-  [agdaFP|
+  commentCode [agdaFP|
   |fmap' f (Lam b)
   |   = unpack b $ λ x t → lamP x (fmap (bimap f id) t)
   |fmap' f (Lam b) 
