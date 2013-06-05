@@ -11,7 +11,7 @@ import Control.Monad.Writer
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
-import Kit (document, itemize, it, dmath, {-pc, pcm,-} printAgdaDocument, writeAgdaTo, startComment, stopComment, citet, citeauthor, acknowledgements, acmCategory)
+import Kit (document, dmath, {-pc, pcm,-} printAgdaDocument, writeAgdaTo, startComment, stopComment, citet, citeauthor, acknowledgements, acmCategory)
 import NomPaKit
 import NomPaKit.QQ
 
@@ -372,7 +372,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     one has to deal with more than just a couple open bindings, it becomes
     easy to make mistakes.»
 
-  p"DB make α-eq easy"
+  p"de Bruijn make α-eq easy"
    «For instance deciding if two terms are α-equivalent is
     straightforward and efficient with de Bruijn indices and is more
     involved and error-prone with nominal approaches.»
@@ -429,22 +429,20 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     the following representation of untyped λ-terms:»
 
   [agdaFP|
-  |data Nat = Zero | Succ Nat
-  |data TmDB where
-  |  VarDB :: Nat → TmDB
-  |  AppDB :: TmDB → TmDB → TmDB
-  |  LamDB :: TmDB → TmDB
+  |data Nat = O | S Nat
+  |data TmB where
+  |  VarB :: Nat → TmB
+  |  AppB :: TmB → TmB → TmB
+  |  LamB :: TmB → TmB
   |]
 
-  p"apDB"
+  p"apB"
    «Using this representation, the implementation of the application
     function {|λ f x → f x|} is the following:»
 
   [agdaFP|
-  |apDB :: TmDB
-  |apDB = LamDB $ LamDB $ VarDB (Succ Zero)
-  |                       `AppDB`
-  |                       VarDB Zero
+  |apB :: TmB
+  |apB = LamB $ LamB $ VarB (S O) `AppB` VarB O
   |]
 
   p"no static scoping"
@@ -538,7 +536,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     free variable. In particular one can instantiate {|a|} to be the
     type {|Zero|}.»
 
-  p"DB drawback"
+  p"de Bruijn drawback"
    «However the main drawback of using de Bruijn indices remains: one must still
     count the number of binders between the declaration of a variable and its occurrences.»
 
@@ -582,13 +580,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |apTm_ :: Tm Zero
-  |apTm_ = lam $ λ f → lam $ λ x →
-  |              Var (Old (New f))
-  |        `App` Var (New x)
+  |apTm_ = lam $ λ f → lam $ λ x → Var (Old (New f))
+  |                  ☐        `App` Var (New x)
   |]
 
   p"still the same elephant"
-   «By unfolding the definition of {|lam|} in {|apTm|} one recovers
+   «By unfolding the definition of {|lam|} in {|apTm_|} one recovers
     the definition of {|apNested|}.»
 
   paragraph «Safety»
@@ -607,9 +604,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     term, the Haskell type system rejects the definition.»
 
   commentCode [agdaFP|
-  |oops_ = lam $ λ f → lam $ λ x →
-  |              Var (New f)
-  |        `App` Var (New x)
+  |oops_ = lam $ λ f → lam $ λ x → Var (New f)
+  |                  ☐        `App` Var (New x)
   |-- Couldn't match expected type `v1'
   |--             with actual type `v'
   |]
@@ -912,9 +908,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   {-
   instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where
-    New  x == New  y = x == y
+    New x == New y = x == y
     Old x == Old y = x == y
-    _       == _       = False
+    _     == _     = False
 
   instance Eq (Binder a) where
     _ == _ = True
@@ -922,9 +918,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |instance Eq a ⇒ Eq (a ▹ v) where
-  |  New  _ == New  _ = True
+  |  New _ == New _ = True
   |  Old x == Old y = x == y
-  |  _       == _       = False
+  |  _     == _     = False
   |]
   q«
     Comparing naked de Bruijn indices for equality is an error prone operation, 
@@ -1212,11 +1208,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     term structure: we only “rename” with {|fmap|} and inject variables
     with {|return|}.»
 
+  -- TODO we under use the monadic structure of tm∘(▹v)
   [agdaFP|
-  |liftSubst :: (Functor tm, Monad tm) ⇒ 
+  |liftSubst :: (Functor tm, Monad tm) ⇒
   |             (a → tm b) → (a ▹ v) → tm (b ▹ v)
-  |liftSubst θ (Old x) = fmap Old (θ x) 
-  |liftSubst θ (New x) = return (New x)  
+  |liftSubst θ (Old x) = fmap Old (θ x)
+  |liftSubst θ (New x) = return (New x)
   |]
 
   q«Substitution under a binder {|(>>>=)|} is then the wrapping
@@ -1310,10 +1307,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     each case:»
 
   [agdaFP|
-  |bitraverse :: Functor f ⇒ (a → f a') → (b → f b') →
-  |                              a ▹ b → f (a' ▹ b')
+  |bitraverse :: Functor f ⇒ (a     → f a')
+  |                        → (b     → f b')
+  |                        → (a ▹ b → f (a' ▹ b'))
   |bitraverse f _ (Old x) = Old <$> f x
-  |bitraverse _ g (New x) = New  <$> g x
+  |bitraverse _ g (New x) = New <$> g x
   |]
 
   q«If a term has no free variable, then it can be converted from the
@@ -1415,7 +1413,7 @@ s (f . g)
   a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
   (Strictly speaking, this holds only if one disregards non-termination and {|seq|}.)»
 
-  subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
+  subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
   p"conversions"
    «The conversion functions witnessing the isomorphism are the following.»
   [agdaFP|
@@ -1446,31 +1444,34 @@ s (f . g)
   | == {- by (bi)functor laws -}
   |    t
   |]
-  q«The second property {|succToUniv . polyToSucc == id|} more difficult to prove:
-    this corresponds to the fact that one cannot represent more terms in {|UnivScope|}
-    than in {|SuccScope|}, and relies on parametricity.
-    Hence we need to use the free theorem for a value {|f|} of type {|UnivScope tm a|}.
-    Transcoding {|UnivScope tm a|} to a relation by using Paterson's version
-    {cite[fegarasrevisiting1996]} of the abstraction theorem {cite[reynolds83,bernardyproofs2012]}, 
-    assuming additionally that {|tm|} is a functor.
-    We obtain the following lemma:»
+
+  q«The second property {|succToUniv . polyToSucc == id|} more
+    difficult to prove: this corresponds to the fact that one cannot
+    represent more terms in {|UnivScope|} than in {|SuccScope|},
+    and relies on parametricity. Hence we need to use the free
+    theorem for a value {|f|} of type {|UnivScope tm a|}.
+    Transcoding {|UnivScope tm a|} to a relation by using Paterson's
+    version {cite[fegarasrevisiting1996]} of the abstraction
+    theorem {cite[reynolds83,bernardyproofs2012]}, assuming additionally
+    that {|tm|} is a functor. We obtain the following lemma:»
+
   commentCode [agdaFP|
   | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
   | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
   | ∀g:(a ▹ v₁) → (a ▹ v₂).
-  | (∀ y:v₁. New (v y) == g (New y)) → 
-  | (∀ n:a.  Old n    == g (Old n)) → 
+  | (∀ y:v₁. New (v y) == g (New y)) →
+  | (∀ n:a.  Old n     == g (Old n)) →
   | f x₂ == fmap g (f x₁)
   |]
-  q«We can then specialise
-    {|v₁ = ()|}, 
-    {|v = const x₂|}, 
-    {|x₁ = ()|}, and 
-    {|g = bimap id v|}. By definition, {|g|} satisfies 
-    the conditions of the lemma. We can then reason equationally:»
+
+  q«We can then specialise {|v₁|} and {|x₁|} to {|()|}, {|v|}
+    to {|const x₂|}, and {|g|} to {|bimap id v|}. By definition,
+    {|g|} satisfies the conditions of the lemma. We can then reason
+    equationally:»
+
   commentCode [agdaFP|
-  |    f 
-  | ==  {- by the above -}
+  |    f
+  | == {- by the above -}
   |    λ x → fmap (bimap id (const x)) (f ())
   | == {- by def -}
   |    succToUniv (f ())
@@ -1510,15 +1511,16 @@ s (f . g)
   | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
   | ∀t₁:tm (a ▹ v₁). ∀t₂:tm (a ▹ v₂).
   | (∀g:(a ▹ v₁) → (a ▹ v₂).
-  |  (∀ y:v₁. New (v y) == g (New y)) → 
-  |  (∀ n:a.  Old n    == g (Old n)) → 
+  |  (∀ y:v₁. New (v y) == g (New y)) →
+  |  (∀ n:a.  Old n     == g (Old n)) →
   |  t₂ == fmap g t₁) →
   | o x₂ t₂ == o x₁ t₁
   |] 
-  q«Indeed, after specialising {|x₂ = ()|} and {|v = const ()|},
-    the last condition is equivalent to {|t₂ == fmap (bimap id (const ())) t₁|}, and
-    we get the desired result.»
-  
+  q«Indeed, after specialising {|x₂|} to {|()|} and {|v|}
+    to {|const ()|}, the last condition is equivalent
+    to {|t₂ == fmap (bimap id (const ())) t₁|}, and we get the desired
+    result.»
+
   subsection $ «A matter of style»
 
   q«We have seen that {|ExistScope|} is well-suited for term analysis, while 
@@ -1567,7 +1569,7 @@ s (f . g)
   |size ρ (Var x)   = ρ x
   |size ρ (App t u) = 1 + size ρ t + size ρ u
   |size ρ (Lam b)   = 1 + size ρ' b
-  | where ρ' (New  ()) = 1
+  | where ρ' (New ()) = 1
   |       ρ' (Old  x) = ρ x
   |]
 
@@ -1584,7 +1586,7 @@ s (f . g)
   |                      1 + sizeEx (extend (x,1) ρ) t
   |
   |extend :: (v, r) → (a → r) → (a ▹ v → r)
-  |extend (_, x) _ (New _)  = x
+  |extend (_, x) _ (New _) = x
   |extend _      f (Old x) = f x
   |]
 
@@ -1607,7 +1609,7 @@ s (f . g)
   |extendAlg :: r → TmAlg a r → TmAlg (Succ a) r
   |extendAlg x φ = φ { pVar = pVarSucc }
   |  where
-  |    pVarSucc (New  _) = x
+  |    pVarSucc (New _) = x
   |    pVarSucc (Old y) = pVar φ y
   |]
 
@@ -1767,9 +1769,9 @@ s (f . g)
   |-- The two first arguments are ignored and thus only there
   |-- to help the user not make a mistake about a' and b'.
   |extendCmp :: a' → b' → Cmp a b → Cmp (a ▹ a') (b ▹ b')
-  |extendCmp _ _ f (Old x) (Old y)  = f x y
-  |extendCmp _ _ _ (New _)  (New _)   = True
-  |extendCmp _ _ _ _         _          = False
+  |extendCmp _ _ f (Old x) (Old y) = f x y
+  |extendCmp _ _ _ (New _) (New _) = True
+  |extendCmp _ _ _ _       _       = False
   |]
 -}
   subsection $ «Normalisation by evaluation» `labeled` nbeSec
@@ -1801,7 +1803,7 @@ s (f . g)
   |  return x = VarNo x []
   |
   |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst θ)
-  |  VarNo f xs >>= θ = foldl app (θ f) (fmap (>>= θ) xs)
+  |  VarNo f xs >>= θ = foldl app (θ f)((>>= θ)<$>xs)
   |]
 
   q«The most notable feature of this substitution is the use of {|app|}
@@ -2770,12 +2772,12 @@ appendix = execWriter $ do
   |
   |-- In Agda: exportᴺ? : ∀ {b α} → Name (b ◅ α) → Maybe (Name α)
   |exportM :: a ▹ b → Maybe a
-  |exportM (New _)  = Nothing
+  |exportM (New _) = Nothing
   |exportM (Old x) = Just x
   |
   |-- In Agda: exportᴺ : ∀ {α b} → Name (b ◅ α) → Name (b ◅ ø) ⊎ Name α
   |export :: a ▹ b → Either (Zero ▹ b) a
-  |export (New x)  = Left (New x)
+  |export (New x) = Left (New x)
   |export (Old x) = Right x
   |]
 
