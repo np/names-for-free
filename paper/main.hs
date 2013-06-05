@@ -2095,10 +2095,10 @@ s (f . g)
   |              (lamC (λ x → wk $ k x)))
   |cps (Lam e)    k =
   |  letC
-  |    (lamC $ \p →
+  |    (lamC $ λp →
   |       letC (fstC p) $ λ x1 →
   |       letC (sndC p) $ λ x2 →
-  |       cps (wk $ e `atVar` x1) $ \r →
+  |       cps (wk $ e `atVar` x1) $ λr →
   |       AppC (varC x2) (varC r)) k
   |
   |cps0 :: Tm a → TmC a
@@ -2116,7 +2116,7 @@ s (f . g)
   |              (lamC (λ x → wk $ k x)))
   |cps (Lam e)     k =
   |  letC (lamPairC $ λ x1 x2 →
-  |        cps (fmap Old $ e `atVar` x1) $ \r →
+  |        cps (fmap Old $ e `atVar` x1) $ λr →
   |        AppC (varC x2) (varC r)) k
   |
   |cps0 :: Tm a → TmC a
@@ -2130,7 +2130,7 @@ s (f . g)
   [agdaFP|
   |lamPairC :: (forall v1 v2. v1 → 
   |             v2 → TmC (a ▹ v1 ▹ v2)) → Value a
-  |lamPairC f = lamC $ \p →
+  |lamPairC f = lamC $ λp →
   |              letC (fstC p) $ λ x1 →
   |              letC (sndC p) $ λ x2 →
   |              wk $ f x1 x2
@@ -2225,6 +2225,48 @@ s (f . g)
     of the recursive type, which makes it tricky to analyse
     terms {citet[washburnboxes2003]}.»
 
+
+  subsection «Syntax for free»
+
+  q«{citet[atkeyhoas09]} revisited the polymorphic encoding
+    of the HOAS representation of the untyped lambda calculus. By
+    constructing a model of System F's parametricity in {_Coq} he could
+    formally prove that polymorphism rules out the exotic terms.
+    Name abstractions, while represented by computational functions,
+    these functions cannot react to the shape of their argument and thus
+    behave as substitutions. Here is this representation in Haskell:»
+
+  [agdaFP|
+  |type TmF = ∀ a. ((a → a) → a)  -- lam
+  |              → (a → a → a)    -- app
+  |              → a
+  |]
+
+  q«And our familiar application function:»
+
+  [agdaFP|
+  |apTmF :: TmF
+  |apTmF lam app = lam $ λ f → lam $ λ x → f `app` x
+  |]
+
+  p"catamorphism only & can't go back"
+   «Being a polymorphic encoding, this technique is locked away in the
+    use of fold-based/catamorphism-based elimination of terms. Moreover
+    there seems to be no safe way to convert a term of this polymorphic
+    encoding to another safe representation of names. Indeed, as Atkey
+    shows it, this conversion relies on the Kripke version of the
+    parametricity result of this type. (At the moment, the attempts to
+    integrate parametricity in a programming language only support 
+    non-Kripke versions {cite parametricityIntegrationCites}.)»
+
+{- NP: what about putting this in the catamorphism section with a forward ref
+  - to here?
+  [agdaFP|
+  |tmToTmF :: Tm Zero → TmF
+  |tmToTmF t lam app = cata (TmAlg magic lam app)
+  |]
+  -}
+
   subsection «PHOAS: Parametric Higher-Order Abstract Syntax» 
 
   q«{citet[chlipalaparametric2008]} describes a way to represent binders
@@ -2280,47 +2322,6 @@ s (f . g)
     our technique cannot support this, beyond the lack of proper for
     type-level computation in Haskell --- Chlipala uses {_Coq} for his
     development.»
-
-  subsection «Syntax for free»
-
-  q«{citet[atkeyhoas09]} revisited the polymorphic encoding
-    of the HOAS representation of the untyped lambda calculus. By
-    constructing a model of System F's parametricity in {_Coq} he could
-    formally prove that polymorphism rules out the exotic terms.
-    Name abstractions, while represented by computational functions,
-    these functions cannot react to the shape of their argument and thus
-    behave as substitutions. Here is this representation in Haskell:»
-
-  [agdaFP|
-  |type TmF = ∀ a. ((a → a) → a)  -- lam
-  |              → (a → a → a)    -- app
-  |              → a
-  |]
-
-  q«And our familiar application function:»
-
-  [agdaFP|
-  |apTmF :: TmF
-  |apTmF lam app = lam $ λ f → lam $ λ x → f `app` x
-  |]
-
-  p"catamorphism only & can't go back"
-   «Being a polymorphic encoding, this technique is locked away in the
-    use of fold-based/catamorphism-based elimination of terms. Moreover
-    there seems to be no safe way to convert a term of this polymorphic
-    encoding to another safe representation of names. Indeed, as Atkey
-    shows it, this conversion relies on the Kripke version of the
-    parametricity result of this type. (At the moment, the attempts to
-    integrate parametricity in a programming language only support 
-    non-Kripke versions {cite parametricityIntegrationCites}.)»
-
-{- NP: what about putting this in the catamorphism section with a forward ref
-  - to here?
-  [agdaFP|
-  |tmToTmF :: Tm Zero → TmF
-  |tmToTmF t lam app = cata (TmAlg magic lam app)
-  |]
-  -}
 
   subsection $ «McBride's “Classy Hack”»
 
@@ -2396,7 +2397,7 @@ s (f . g)
     ⊆-◅     : ∀ {α β} b → α ⊆ β → (b ◅ α) ⊆ (b ◅ β)
     ⊆-#     : ∀ {α b} → b # α → α ⊆ (b ◅ α)
 
-    In Haskell respectively (->), id, id, (.), magic, \f -> bimap f id,
+    In Haskell respectively (->), id, id, (.), magic, λf -> bimap f id,
       const Old.
 
   zeroᴮ : Binder
