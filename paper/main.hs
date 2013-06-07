@@ -520,8 +520,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |data Zero -- no constructor
-  |magic :: Zero → a
-  |magic _ = error "magic!"
   |]
 
   p"polymorphic terms are closed"
@@ -847,7 +845,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   section $ «Contexts» `labeled` contextSec
 
-  p"flow" «Having indtroduced our interface informally, we now debing a
+  p"flow" «Having introduced our interface informally, we now begin a
            systematic description of is realisation and the concepts it builds upon.»
   
 
@@ -861,9 +859,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «An important functon of the {|v|} type variable is to make sure 
     programmers refer to the variable they intend to. For example, 
     consider the following function, which takes a list of (free) variables
-    and removes one of them from the list. Hence it takes a list of variables
+    and removes one of them from the list. It takes a list of variables
     in the context {|a ▹ v|} and returns a list in the context {|a|}. For extra
-    safety, it also takes a name of the variable being removed, which is used only for
+    safety, it also takes the name of the variable being removed, which is used only for
     type-checking purposes.»
   -- (As for {|pack|}, {|remove|} can be generalised to use the {|Insert|})... However we have not siien ∈ yet, so this makes little sense.
   [agdaFP|
@@ -895,6 +893,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |instance Eq Zero where
   |  (==) = magic
+  |
+  |magic :: Zero → a
+  |magic _ = error "impossible"
   |]
 
   p""
@@ -923,7 +924,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     Comparing naked de Bruijn indices for equality is an error prone operation, 
     because one index might be valid in
     a context different from the other, and thus an arbitrary adjustment might be required.
-    With nested abstract syntax, the situation improves: by requiring equality to be 
+    With Nested Abstract Syntax, the situation improves: by requiring equality to be 
     performed between indices of the same type, a whole class of errors are prevented by
     type-checking. Some mistakes are possible though: given two names of type {|a ▹ () ▹ ()|},
     swapping the two first variables might be necessary, but one cannot decide if it is so 
@@ -935,12 +936,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«Consequently, the derived equality instance of {|Tm|} gives
     α-equality, and is guaranteed safe in fully-polymorphic contexts.»
 
-  [agdaFP|
+  onlyInCode [agdaFP|
   |deriving instance Eq a ⇒ Eq (Tm a)
   |]
 
   subsection «Membership»
-  q«Given this, we can implement
+  q«Given the above representation of contexts, we can implement
     the relation of context membership by a type class {|∈|}, whose
     sole method performs the injection from a member of the context to
     the full context. The relation is defined by two inference rules,
@@ -959,10 +960,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «The cognoscenti will recognize the two above instances as
     {emph«incoherent»}, that is, if {|v|} and {|v'|} were instantiated
     to the same type, both instances would apply equally. Fortunately,
-    this incoherency will never trigger as long as one uses the
-    interface provided by our combinators: the injection function will
-    always be used on maximally polymorphic contexts, and therefore {|v|} and {|v'|}
-    will be different.»
+    this incoherency will never trigger as long as one keeps the contexts
+    maximally polymorphic contexts: {|v|} and {|v'|}
+    will always be different.»
 
   -- NP: maybe mention the fact that GHC let us do that
 
@@ -983,13 +983,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"occursIn"
-   «A test of occurrence of any given bound variable can then be given the following expression:»
+   «One can test if a variable is fresh for a given term as follows:»
 
-  [agdaFP|
-  |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
-  |x `occursIn` t = inj x `elem` t
-  |]
-  -- this is using Data.Foldable.elem
+--   [agdaFP|
+--   |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
+--   |x `occursIn` t = inj x `elem` freeVars t
+--   |]
+  -- one should not use Data.Foldable.elem; we have not seen the Foldable instance yet.
   --
   -- OR: inj x `elem` t
   -- x `occursIn` t = inj x `elem` freeVars t
@@ -997,12 +997,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- x `occursIn` t = any (`isOccurenceOf` x) (freeVars t)
 
 
-  p"freshFor"
-   «Sometimes we need the negation of {|occursIn|}, here is {|freshFor|}:»
-
+--  p"freshFor"
+--   «Sometimes we need the negation of {|occursIn|}, here is {|freshFor|}:»
+--
   [agdaFP|
   |freshFor :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
-  |x `freshFor` t = not (x `occursIn` t)
+  |x `freshFor` t = not (inj x `elem` freeVars t)
   |]
 
 
