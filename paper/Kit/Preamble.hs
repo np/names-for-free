@@ -39,7 +39,7 @@ fonts = usepackage [] "amssymb"
       ⊕ usepackage [] "bbm"
       -- ⊕ usepackage [] "bbding"   -- to get Ellipse => BROKEN
       ⊕ usepackage [] "dsfont"   -- to get mathds => not enough symbols
-      -- ⊕ usepackage [] "stmaryrd" -- To get {ll,rr}bracket
+      ⊕ usepackage [] "stmaryrd" -- To get {ll,rr}bracket
       -- ⊕ usepackage ["T3","OT1"] "fontenc"
 
       -- These two declarations are from the tipa package.
