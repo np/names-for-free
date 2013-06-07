@@ -109,7 +109,13 @@ abstract = [texFile|abstract|]
 keywords = [texFile|keywords|]
 _Agda's = «{_Agda}'s»
 
+
+intodo x = red «(TODO: {x})»
+{-# DEPRECATED intodo "You have something to do here" #-}
+
 notetodo x = p"" $ red «TODO {x}»
+{-# DEPRECATED notetodo "You have something to do here" #-}
+
 --notecomm x = p"" $ red «COMMENT {x}»
 -- notetodo _ = return ()
 --notecomm _ = return ()
@@ -2180,7 +2186,7 @@ s (f . g)
   subsection $ «Fin»
 
   p"Fin approach description"
-   «Another approach already used and described in {cite fincites} is
+   «Another approach already used and described by {citet fincites} is
     to index terms, names, etc. by a number, a bound. This bound is the
     maximum number of distinct free variables allowed in the value. This
     rule is enforced in two parts: variables have to be strictly lower
@@ -2193,18 +2199,19 @@ s (f . g)
     fact that it defines finite sets of size {|n|}.»
 
   p"Fin/Maybe connection"
-   «We can draw a link with the Nested Abstract Syntax. Indeed,
+   «We can draw a link with Nested Abstract Syntax. Indeed,
     as with the type {|Succ|} ({|(▹ ())|} or {|Maybe|}), the
     type {|Fin (suc n)|} has exactly one more element than the
     type {|Fin n|}. However, these approaches are not equivalent for
-    at least two reasons. The Nested Abstract Syntax can accept any
+    at least two reasons. Nested Abstract Syntax can accept any
     type to represent variables. This makes the structure more like a
     container and this can be particularly helpful to define the monadic
-    structure {todo «so why don't we do this? is a natural question»}
+    structure {intodo «so why don't we take advantage of this container
+    structure to implement substitution?»}
     (substitution). The {|Fin|} approach has advantages as well: the
     representation is concrete and simpler since closer to the original
     approach for de Brujin indices. In particular the representation of
-    variables free and bound is more regular and could be more amenable
+    variables free and bound is more regular, and it could be more amenable
     to optimize variables as machine integers.»
 
   {- There might even be ways to get a similar interface for Fin,
@@ -2671,14 +2678,22 @@ s (f . g)
   »
 
   subsection «Conclusion»
-
+  q«
+  We have shown how to make de Bruijn indices safe, by typing them with the exact context
+  where they make sense. Obtaining such polymorphic contexts is done by using (appropriately)
+  either of the interfaces {|UnivScope|} or {|ExistScope|}. These two interfaces can 
+  be seen as the both sides of the nabla quantifier of {citet [millerproof2003]}. 
+  Essentially, we have deconstructed that flavour of quantification over names, 
+  and implemented it in Haskell. The result is a safe method to manipulated names
+  and binders, which is supported by today's Glasgow Haskell Compiler.»
+   
 
   q «
   We do not suffer from name-capture and complicated α-equivalence problems; but
   we can conveniently call variables by their name.
   »
 
-  notetodo «a word on impredicativity?»
+  -- notetodo «a word on impredicativity?»
 
   acknowledgements   «We thank Emil Axelsson and Koen Claessen for useful feedback.»
 
