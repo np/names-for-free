@@ -1836,9 +1836,15 @@ s (f . g)
   subsection $ «Closure Conversion» `labeled` closureSec
   q«A common phase in the compilation of functional lanuages is closure conversion. 
     The goal of closure conversion is make explicit the creation and opening of closures, 
-    essentially implementing lexical scope. The 
-    what follows is a definition of closure conversion, 
-    slightly adapted from {citet[guillemettetypepreserving2007]}.
+    essentially implementing lexical scope. 
+    What follows is a definition of closure conversion, as can be found in a textbook 
+    (in fact this version is slightly adapted from {citet[guillemettetypepreserving2007]}).
+    The characteristic that instersts us in this definition is that it is written in nominal style.
+    For instance, it pretends that by matching on a {tm|\hat \lambda|}-abstraction, one obtains a name
+    {tm|x|} and an expression {tm|e|}, and it is silent about the issues of freshness and
+    transport of names between contexts. We will see that, thanks to 
+    our constructions, we will be able to write an implementation which essentially retains
+    these characteristics.
   »
   dmath
    [texm|
@@ -1846,7 +1852,7 @@ s (f . g)
    |  \llbracket x \rrbracket &= x \\
    |  \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure} (\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body}) e_\mathnormal{env} \\
    |                                         &\quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
-   |                                                                  y_1,\ldots,y_n & = FV(e) \\
+   |                                                                  y_1,\ldots,y_n & = FV(e)-\{x\} \\
    |                                                                  e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
    |                                                                  e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle
    |                                                               \end{array}\\
@@ -1887,9 +1893,9 @@ s (f . g)
   |]
 
   q«This representation is an instance of {|Functor|} and {|Monad|}, and
-    the corresponding code offers no surprise.»
+    the corresponding code offers no surprise.
 
-  q«We give an infix alias for {|AppLC|}:»
+    We give an infix alias for {|AppLC|}:»
 
   [agdaFP|
   |($$) = AppLC
@@ -1919,7 +1925,10 @@ s (f . g)
     environment.»
 
   q«The implementation closely follows the mathematical definition given
-    above.»
+    above. The work to manage variables explicitly is limited to the
+    lifting of the substitution {tm|[x_{env}.i/y_i]|}, and an application of
+    {|wk|}. We will note however that the subtitution performed {|wk|} is 
+    inferred automatically by GHC.»
 
   [agdaFP|
   |cc :: Eq a ⇒ Tm a → LC a
@@ -1937,12 +1946,16 @@ s (f . g)
   |idxFrom yn env z = Index (var env) . fromJust $ elemIndex z yn
   |]
 
+{-
+  Not really relevant since we're not tightly related to Guillemettetypepreserving2007.
+
   q«The definition of closure conversion we use has a single difference
     compared to {cite[guillemettetypepreserving2007]}: in closure
     creation, instead of binding one by one the free variables {|yn|} in
     the body to elements of the environment, we bind them all at once,
     using a substitution which maps variables to their position in the
     list {|yn|}.»
+-}
 
   q«Notably, in order to implement closure conversion,
     {citeauthor[guillemettetypepreserving2007]} first modify the
