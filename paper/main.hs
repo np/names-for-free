@@ -357,7 +357,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     but is eventually disturbing if one wishes to write functional code.
     Additionally, nominal representations are not canonical. (For instance, two α-equivalent 
     representations of the same term such as {|λx.x|} and {|λy.y|} may 
-    be different). Hence special cake has to be taken to prevent user code
+    be different). Hence special care has to be taken to prevent user code
     to violate the abstraction barrier.»
 
   -- NP: Note that in a safe interface for binders the supply does not
