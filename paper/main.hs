@@ -1105,8 +1105,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     functions on terms which involve only renaming. A couple examples
     follow.»
 
-  q«First, let us assume an equality test on “names” (the argument
-    of the functor structure. We can then write a function
+  q«First, let us assume an equality test on free variables. 
+    We can then write a function
     {|rename (x,y) t|} which replaces free occurences of {|x|} in {|t|}
     by {|y|} and {|swap (x,y) t|} which exchanges free occurences
     of {|x|} and {|y|} in {|t|}.»
@@ -1180,11 +1180,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   q«Another property of terms is that free variables can be substituted
     with terms. This property is captured algebraically by asserting
-    that terms form a {|Monad|}, where the {|return|} is the variable
+    that terms form a {|Monad|}, where {|return|} is the variable
     constructor and {|>>=|} acts as parallel substitution. Indeed, one
     can see a substitution from a context {|a|} to a context {|b|} as
-    mapping from {|a|} to {|Tm b|}, (Technically, substitutions are Kleisli
-    arrows.) and {|(>>=)|} applies a substitution everywhere in a term.»
+    mapping from {|a|} to {|Tm b|}, (technically a morphism in the associated Kleisli
+    category) and {|(>>=)|} applies a substitution everywhere in a term.»
 
   q«The definition of the {|Monad|} instance is straightforward for
     variable and application, and we isolate the handling of binders in
@@ -1224,16 +1224,23 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |             pack x (t >>= liftSubst θ)
   |]
 
-  q«We can combine the monadic structure with the membership ({|∈|})
-    type class to get useful polymorphic code, such as a generic
-    reference to a variable:»
+  p"laws"
+   «For terms, the meaning of the monad laws can be interpreted as follows.
+    The associativity law ensures that applying a composition of
+    substitutions is equivalent to sequentially applying them, while the
+    identity laws ensure that variables act indeed as such.»
+
+
+  q«We can write useful functions for terms based only on the {|Monad|} structure. 
+    For example, given the membership ({|∈|}), one can provide the a
+    generic combinator to reference to a variable within any term structure:»
 
   [agdaFP|
   |var :: (Monad tm, v ∈ a) ⇒ v → tm a
   |var = return . inj
   |]
 
-  q«Or substitution of an arbitrary variable:»
+  q«One can also substitute an arbitrary variable:»
 
   [agdaFP|
   |substitute :: (Monad tm, Eq a, v ∈ a) ⇒
@@ -1255,10 +1262,6 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |     Old x → return x
   |]
 
-  p"laws"
-   «The associativity law ensure that applying a composition of
-    substitutions is equivalent to sequentially applying them, while the
-    identity law ensure that variables act indeed as such.»
 
   {-
   lift Var x = Var x
@@ -1311,7 +1314,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |bitraverse _ g (New x) = New <$> g x
   |]
 
-  q«If a term has no free variable, then it can be converted from the
+  q«An example of a useful effect to apply is throwing an exception, 
+    implemented for example as the {|Maybe|} monad.
+    If a term has no free variable, then it can be converted from the
     type {|Tm a|} to {|Tm Zero|}, but this requires a dynamic check. It
     may seem like a complicated implementation is necessary, but in fact
     it is a direct application of the {|traverse|} function.»
