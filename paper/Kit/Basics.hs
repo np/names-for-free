@@ -18,7 +18,7 @@ import Text.PrettyPrint.Leijen (Doc, (<+>), (<$>))
 import qualified Text.PrettyPrint.Leijen as P
 import Kit.Config
 
-[keys|paragraphName|]
+[keys|paragraphName code|]
 
 put :: ParItem -> ParItemW
 put = tell
@@ -34,6 +34,9 @@ memoLookup list = (`Map.lookup` table)
 -- do not cut on unbreakable spaces
 breakableWords :: String -> [String]
 breakableWords = filter (not.null) . splitOneOf " \t\n"
+
+parMarkCode :: ParItem -> ParItem
+parMarkCode = BI.parNote code BI.nilNote
 
 parMarkParaName :: String -> ParItem -> ParItem
 parMarkParaName = BI.parNote paragraphName . BI.stringNote

@@ -118,7 +118,7 @@ myHstring s
 
 qqP :: (a -> LatexItem) -> (a -> String) -> Bool -> Bool -> a -> ParItemW
 qqP toLatex toString leadingHardline indent x
-  = tell . {-parMarkCode .-} B.para
+  = tell . parMarkCode . B.para
   . (if indent then id else (B.noindent ⊕))
   . (B.comment (toString x) ⊕)
   . (if leadingHardline then (hardline ⊕) else id)
