@@ -631,9 +631,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"auto-inject"
    «Knowing that the injection functions are uniquely determined by
-    their type, one may wish to infer them mechanically. Thanks the
+    their type, one may wish to infer them mechanically. Thanks 
     the powerful instance search mechanism implemented in GHC, this
-    is feasible. To the effect, we define a class {|v ∈ a|} capturing that {|v|}
+    is feasible. To this effect, we define a class {|v ∈ a|} capturing that {|v|}
     occurs as part of a context {|a|}:»
 
   [agdaFP|
@@ -678,15 +678,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     occurrence of a variable is a reference to some previously bound
     variable. With de Bruijn indices, one must (yet again) count the
     number of binders traversed between the variable bindings and
-    its potential occurrences --- an error prone task. New as well,
+    its potential occurrences --- an error prone task. Here as well,
     we can take advantage of polymorphism to ensure that no mistake
     happens. We provide a combinator {|unpack|}, which hides the 
     type of the newly bound variables (the type {|()|}) as an existentially
     quantified type {|v|}. The combinator {|unpack|} takes a binding
     structure (of type {|Tm (Succ a)|}) and gives a pair of
     a value {|x|} of type {|v|} and a
-    sub-term of type {|Tm (a ▹ v)|}. Here we write the combinator in
-    continuation-passing style as it appears the most convenient to use
+    sub-term of type {|Tm (a ▹ v)|}. Here we represtent the existential using
+    continuation-passing style instead of a data-type, as it appears more convenient to use
     this way. 
     Because this combinator is not specific to our
     type {|Tm|} we generalize it to any type constructor {|f|}:»
@@ -788,7 +788,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -}
 
   p""«The continuation {|k|}
-  is oblivious to the
+  is oblivious to 
   the monomorphic type used by the implementation of {|fresh|}: this is expressed by universally quantifing {|v|} in the type of the continuation {|k|}.
 
   In fact, thanks to parametricity, and because {|v|} occurs only positively in the arguments of {|k|},
@@ -824,14 +824,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«A production-quality version of {|pack|} would allow to bind any 
     free variable. Assuming that the constraint {|Insert v a b|} means
     that by removing the variable {|v|} 
-    from the context {|b|} one obtains {|a|}, then a generic pack would have the 
+    from the context {|b|} one obtains {|a|}, then a generic {|pack|} would have the 
     following type:»
   [agdaFP|
   |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
   |           v → f b → (w → f (a ▹ w))
   |]
-  q«The implementation of {|packGen|} and {|Insert|} is deferred to the appendix, 
-  as it is and involved, but straightforward extension of {|inj|} and {|(∈)|}.»
+  q«The implementation of {|packGen|} and {|Insert|} is a straightforward extension of {|inj|} and {|(∈)|},
+     but it does not fit here, so we defer it to the appendix.»
 
   p"lamP"
    «In sum, the {|pack|} combinator makes it possible to give a nominal-style
@@ -2632,7 +2632,7 @@ s (f . g)
   subsection «Future work: no injections»
 
   p "getting rid of the injections by using a stronger type system" «
-    We use the powerful GHC instance search in a very specific way: only to discover in injections.
+    We use the instance search of GHC in a very specific way: only to discover in injections.
     This suggests that a special-purpose type-system (featuring a form of subtyping)
     could be built to take care of those injections automatically.
     An obvious benefit would be some additional shortening of programs manipulating terms.
