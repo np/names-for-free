@@ -1,11 +1,11 @@
-There is no shortage of techniques to help programming terms, names and
-binders each with their benefits and shortcomings. We propose a novel
-technique, whose dynamic (run-time) representation is based on de Bruijn
-indices and nested data types, but uses static (type-system) features
-to offer a convenient interface for construction and manipulation of
-binders. The key idea is to view a subterm with an additional free
-variable either as $\forall v. v \rightarrow \mathsf{Term} (a + v)$ or
-$\exists v. v \times \mathsf{Term} (a + v)$. We demonstrate on a number
-of examples how by using this approach one gets the combined expressive
-power of nominal or HOAS and the rich structure of the nested data
-types.
+We propose a novel technique to represent names and binders in
+Haskell. The dynamic (run-time) representation is based on de Bruijn
+indices, but it features an interface to write and manipulate
+variables conviently, using Haskell-level lambdas and variables. The
+key idea is to use rich types: a subterm with an additional free variable
+is viewed either as $\forall v. v \rightarrow \mathsf{Term} (a + v)$
+or $\exists v. v \times \mathsf{Term} (a + v)$ depending on weather it
+is constructed or analysed.  We demonstrate on a number of examples
+how this approach approach permits to express terms construction and 
+manipulation in a natural way, while retaining the good properties of
+de Bruijn indices representations.
