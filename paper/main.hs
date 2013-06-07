@@ -479,6 +479,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |  App :: Tm a → Tm a → Tm a
   |  Lam :: Tm (Succ a) → Tm a
   |]
+  onlyInCode [agdaP|  deriving (Show)|]
 
   p"the type of Lam"
    «The recursive case {|Lam|} changes the type parameter, increasing
@@ -506,7 +507,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |untag (Old x) = x
   |untag (New x) = x
   |]
+
 --  |instance Bifunctor (▹) where
+  onlyInCode [agdaP|deriving instance (Show a, Show b) ⇒ Show (a ▹ b)|]
 
   p"apNested example"
    «Using the {|Tm|} representation, the implementation of the application
