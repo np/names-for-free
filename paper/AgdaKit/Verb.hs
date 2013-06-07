@@ -36,6 +36,9 @@ import Kit.Basics
 import Kit.Config
 import Kit.Verb
 
+-- hacked Agda kit
+import Kit.Haskell
+
 -- Agda
 type AgdaInput = [(String, Maybe Color)]
 
@@ -87,7 +90,7 @@ substNbsp = filter ψ . map θ
         ψ  _  = True
 
 agdaCodeP :: Bool -> Bool -> AgdaInput -> ParItemW
-agdaCodeP = qqP (agdaBaseCode False True) (substNbsp . rebuildAgdaInput)
+agdaCodeP = qqP (agdaBaseCode False True) (haskellify . rebuildAgdaInput)
 
 color2color :: Color -> C.Color
 color2color (CMYK c y mag k) = C.cmyk c y mag k

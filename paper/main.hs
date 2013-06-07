@@ -11,9 +11,12 @@ import Control.Monad.Writer
 
 import Language.LaTeX.Builder.QQ (texm, texFile)
 
-import Kit (document, dmath, {-pc, pcm,-} printAgdaDocument, writeAgdaTo, startComment, stopComment, citet, citeauthor, acknowledgements, acmCategory)
-import NomPaKit
-import NomPaKit.QQ
+import Kit
+import Kit.Aliases
+import Kit.Style
+import Kit.QQ
+import Kit.ACM
+import AgdaKit.QQ
 
 --import qualified MiniTikz.Builder as D -- hiding (node)
 --import MiniTikz.Builder (right, below, nodeDistance, oF, dnode, spath, scope)
@@ -2429,7 +2432,7 @@ s (f . g)
 
   q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to term analysis and manipulation.»
 
-  subsection $ «NomPa (nominal fragment)» -- TODO: NP (revise -- optional eq. tests.) 
+  subsection $ «{_NomPa} (nominal fragment)» -- TODO: NP (revise -- optional eq. tests.) 
 
 {-
     -- minimal kit to define types
@@ -2485,13 +2488,13 @@ s (f . g)
 
   p""
    «{citet[pouillardunified2012]} describe an interface for names and
-    binders which provides maximum safety. The library {|NomPa|} is
+    binders which provides maximum safety. The library {_NomPa} is
     writen in {_Agda}, using dependent types. The interface makes use
     of a notion of {|World|}s (intuitively a set of names), {|Binder|}s
     (name declaration), and {|Name|}s (the occurrence of a name).
 
     A {|World|}   can   either   be {|Empty|}   (called {|ø|}   in   the
-    library {|NomPa|}) in or  result of the addition  of a {|Binder|} to
+    library {_NomPa}) in or  result of the addition  of a {|Binder|} to
     an existing {|World|}, using the operator {|(◅)|}. The type {|Name|}
     is indexed by {|World|}s: this ties occurrences to the context where
     they make sense.»
@@ -2903,7 +2906,7 @@ main = do
       compile ["sigplanconf"] "paper" (doc False)
     _ → error "unexpected arguments"
 
-categ = acmCategory «D.3.3» «Language Constructs and Features» «»
+categ = Kit.ACM.cat «D.3.3» «Language Constructs and Features» «»
 
 
 doc includeUglyCode = document title authors keywords abstract categ (body includeUglyCode) appendix

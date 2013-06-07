@@ -12,10 +12,13 @@ import Data.List.Split (splitOneOf)
 import Data.Maybe (maybeToList)
 import Data.String (fromString)
 import Data.Generics.Uniplate.Data (universeBi)
-import Language.LaTeX
+import Data.Char
 
 import Control.Applicative ((<$>),pure)
 
+import HSH
+
+import Language.LaTeX
 import qualified Language.LaTeX.Builder as B
 import qualified Language.LaTeX.Builder.Internal as BI
 import qualified Language.LaTeX.Types as T
@@ -24,20 +27,28 @@ import qualified Language.LaTeX.Length as L
 import Language.LaTeX.Builder.QQ
 import Language.LaTeX.Slicer (slice)
 
-import NomPaKit.Char (mnsymbol)
+import Kit.Char (mnsymbol)
+import Kit.Preamble
+import Kit.ACM
+import Kit.Basics
+import Kit.IEEE
+import AgdaKit.QQ
 
-authorinfo (name, email', inst') =
-  BI.preambleCmdArgs "authorinfo" $ map (BI.mandatory . BI.latexItem) [name, inst', email']
+defaultQQ = agda
 
+
+infix 8 `labeled`
+labeled x lbl = x ⊕ B.label lbl
+
+ref = B.ref
 
 begin = BI.latexCmdArg "begin"
 end = BI.latexCmdArg "end"
 
-acmCategory a1 a2 a3 = B.para $ BI.latexCmdArgs "category" $ map (T.Mandatory . (:[])) [a1,a2,a3]
-
 acknowledgements x = tell $ B.para $ BI.latexCmdArg "acks" mempty <> x
 
-p = tell . B.para
+p :: String -> LatexItem -> ParItemW
+p nam = put . namedPara nam
 pc = tell . B.center . B.para
 pcm = tell . B.center . B.displaymath
 dmath = tell . B.displaymath
@@ -45,7 +56,9 @@ itp = tell . return . B.item
 it = itp . B.para
 itpm = itp . B.displaymath
 itm = it . B.math -- fmap (T.LatexCast . T.MathItm) . T.mathItmM
-section titl lbl = tell . B.section $ titl <> B.label lbl
+section = put . B.section
+subsection = put . B.subsection
+paragraph = put . B.paragraph' (★) Nothing
 itemize block = B.itemize Nothing !$? block
 footnote = B.footnote
 
@@ -57,30 +70,14 @@ llncs msize mpaper args =
      maybeToList (BI.texLength <$> msize) ++
      args
 
-ieee msize mpaper args =
-  B.documentclass (BI.otherDocumentClassKind "IEEEtran") $
-     maybeToList (BI.latexPaper <$> mpaper) ++
-     maybeToList (BI.texLength <$> msize) ++
-     args
 
-sigplanconf msize mpaper args =
-  B.documentclass (BI.otherDocumentClassKind "sigplanconf") $
-     maybeToList (BI.latexPaper <$> mpaper) ++
-     maybeToList (BI.texLength <$> msize) ++
-     args
-
-
-inst = BI.latexCmdArg "inst"
-email = BI.latexCmdArg "email"
-
-usepackage :: [String] -> String -> PreambleItem
-usepackage xs = BI.usepackage (map BI.rawAnyTex xs) . BI.pkgName
-
-hyphs = B.hyphenation ["crypto--graphic"]
+hyphs = B.hyphenation ["crypto--graphic"] -- kept as an example
 
 data Comment = Comment String
              | Indent (Int -> Int)
              | Nop
+
+cite = BI.latexCmdAnyArgs "cite" . pure . BI.latexKeysArg
 
 citet :: [Key] -> LatexItem
 citet = BI.latexCmdAnyArgs "citet" . pure . BI.latexKeysArg
@@ -118,22 +115,12 @@ document title authors keywords abstract categ body appendix = B.document doccla
   where
     docclass = sigplanconf (Just (L.pt 9)) Nothing
                   (fmap BI.latexItem [«preprint»,«authoryear»])
-    -- sep = BI.rawTex " \\\\ "
-    -- andS = BI.rawTex " \\and "
     preamble =
         usepackage [] "color" <>
-   --   usepackage [] "tikz" <>
         fonts <>
         B.title title <>
         hyphs <>
         mconcat (map authorinfo authors) 
-        {-
-        B.author (mconcat . intersperse (BI.rawTex " \\and ")
-                 . map (\(namn , skola , _) -> namn <> inst (fromString (show skola)))
-                 $ authors) <>
-        mconcat [ B.institute $  inst <> mconcat (map ((sep<>) . email) emails)
-                | (inst , emails) <- zip insts [[email | (_,i,email)<-authors,i==n]|n<-[1..]]]
-        -}
     body' = B.maketitle
           <> mkabstract abstract 
           <> categ
@@ -145,103 +132,14 @@ document title authors keywords abstract categ body appendix = B.document doccla
           <> B.newpage
           <> mapNonEmpty (B.appendix <>) appendix
 
-fonts :: PreambleItem
-fonts = usepackage [] "amssymb"
-      ⊕ usepackage [] "MnSymbol"
-      ⊕ usepackage [] "epsdice"
-      ⊕ usepackage [] "bbm"
-      -- ⊕ usepackage [] "bbding"   -- to get Ellipse => BROKEN
-      ⊕ usepackage [] "dsfont"   -- to get mathds => not enough symbols
-      ⊕ usepackage [] "stmaryrd" -- To get {ll,rr}bracket
-      -- ⊕ usepackage ["T3","OT1"] "fontenc"
-
-      ⊕ [qp|\def\mynegthinspace{\!}
-           |\DeclareRobustCommand{\dedicace}[1]{%
-           |  \cleardoublepage
-           |  \thispagestyle{empty}
-           |  \vspace*{\stretch{1}}\par
-           |  {\begin{flushright}\emph{#1}\end{flushright}\par}
-           |  \vspace*{\stretch{2}}
-           |}
-           |]
-
-      -- These two declarations are from the tipa package.
-      -- However importing the packages breaks the document.
-      -- Note that we require T3 fonts here. (we prefix our version with 'np')
-      ⊕ [qp|\DeclareTextSymbol\nptextcrlambda{T3}{172}
-           |\DeclareTextSymbolDefault\nptextcrlambda{T3}
-           |]
-      -- (like with tipa above)
-      -- Take just a symbol from mathabx (prefixed with 'np')
-      -- /usr/share/texmf-dist/tex/generic/mathabx/mathabx.dcl
-      ⊕ [qp|\DeclareFontFamily{U}{npmathb}{\hyphenchar\font45}
-           |\DeclareFontShape{U}{npmathb}{m}{n}{
-           |      <5> <6> <7> <8> <9> <10> gen * mathb
-           |      <10.95> mathb10 <12> <14.4> <17.28> <20.74> <24.88> mathb12
-           |      }{}
-           |\DeclareSymbolFont{npmathb}{U}{npmathb}{m}{n}
-           |\DeclareFontSubstitution{U}{npmathb}{m}{n}
-           |\DeclareMathSymbol{\npbigstar}   {2}{npmathb}{"0E} % to fool the highlighter => "
-           |\DeclareMathSymbol{\npdotdiv}    {2}{npmathb}{"01} % to fool the highlighter => "
-           |
-           |\DeclareFontFamily{U}{matha}{\hyphenchar\font45}
-           |\DeclareFontShape{U}{matha}{m}{n}{
-           |      <5> <6> <7> <8> <9> <10> gen * matha
-           |      <10.95> matha10 <12> <14.4> <17.28> <20.74> <24.88> matha12
-           |      }{}
-           |\DeclareSymbolFont{matha}{U}{matha}{m}{n}
-           |\DeclareFontSubstitution{U}{matha}{m}{n}
-           |\DeclareMathSymbol{\npoasterisk} {2}{matha}{"66} % to fool the highlighter => "
-           |\DeclareMathSymbol{\npnotequiv}  {3}{matha}{"19} % to fool the highlighter => "
-           |]
-           {-
-           -}
-
-{-
-myStrut = B.vphantom (BI.rawTex "$\\{$")
-
--- this should be fixed probably, I have no idea what it is doing
--- myNewline = myStrut <> B.decl (B.nopagebreak 4) (BI.latexParMode (B.newline ø))
-
-width0_5 = "ᵣ₁₂ᴺᵂˢ"
-width1 = "∀αβ·ƛ_⟦⟧⟨⟩↑øℓ∈"
-width2 = "¬ℕ⟶⊎∨∧⊆"
-
-align k = B.makebox (L.ex (k * 1.22)) B.centered
-
--- let's customize the rendering of some charcters in `verb' mode
--- this one doesn't work and I don't know why
-{-
-myXchar _ _     '\n' = myNewline
-myXchar mayAlign xchar x
-  | x `elem` width0_5= mayAlign (0.5 :: Rational) $ xchar x
-  | x `elem` width1  = mayAlign 1 $ xchar x
-  | x `elem` width2  = mayAlign 2 $ xchar x
-  | x `elem` "‽"     = mayAlign 0.5 " "
-  | x `elem` "="     = B.ttchar x
-  | x `elem` "{}"    = M.mchar B.hchar x
-  | x `elem` "("     = mayAlign 1 . B.math $ M.lparen -- mleft '('
-  | x `elem` ")"     = mayAlign 1 . B.math $ M.rparen -- mright ')'
-myXchar _ xchar x      = xchar x
--}
-
--- verb mayAlign = B.texttt . B.spaceProtector (myXchar mayAlign (M.mchar B.ttchar))
-
--- do not cut on unbreakable spaces
--- words = filter (not.null) . splitOneOf " \t\n"
-
--- word breakable code
--- wCode = B.unwords . map (verb (const id)) . words
-
-{-
-pCode x = tell . {-(B.comment x <>) .-} B.para . ([tex|~\\~|] <>)
-              . verb align . dropWhile (=='\n') $ x
-
-
--- agdaCode  = wCode
-agdaPCode = pCode
-
-agda  = mkQQ "agda"  'agdaCode
-agdaP = mkQQ "agdaP" 'agdaPCode
--}
--}
+compile :: [FilePath] -> FilePath -> LatexM Document -> IO ()
+compile input_dirs docName doc = do
+  let texFile = docName++".tex"
+      saneChar x = isAscii x && (isLetter x || isNumber x || x `elem` "_-./")
+      sane x | all saneChar x = x
+             | otherwise      = error "insane chars"
+      opts = concatMap (\x -> "-I "++sane x) input_dirs
+      builddir = sane $ "_build/"++docName
+  writeFile texFile =<< either error return (showLaTeX doc)
+  runIO $ "mkdir -p " ++ builddir
+  runIO $ "rubber --cache --into " ++ builddir ++ " --pdf " ++ opts ++ " " ++ texFile

@@ -3,8 +3,8 @@ BIBS=(local.bib npouillard.bib)
 # 
 
 LIBSOURCES=(
-  `find NomPaKit MiniTikz -type f`
-  ColorizeAgda.hs)
+  `find AgdaKit Kit MiniTikz -type f`
+  Kit.hs)
 
 ALLSOURCES=(main.hs
             sigplanconf/sigplanconf.cls
