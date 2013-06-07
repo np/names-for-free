@@ -1813,36 +1813,38 @@ s (f . g)
 
   [agdaFP|
   |data Sem a where
-  |  LamSem :: (∀ b. (a → b) → Sem b → Sem b) → Sem a
-  |  VarSem :: a → [Sem a] → Sem a
+  |  LamS :: (∀ b. (a → b) → Sem b → Sem b) → Sem a
+  |  VarS :: a → [Sem a] → Sem a
   |
   |instance Functor Sem where
-  |  fmap f (LamSem g)    = LamSem $ λ h x -> g (h . f) x
-  |  fmap f (VarSem x ts) = VarSem (f x) (map (fmap f) ts)
+  |  fmap f (LamS g)    = LamS $ λ h x → g (h . f) x
+  |  fmap f (VarS x ts) = VarS (f x) (map (fmap f) ts)
   |
-  |varSem :: a → Sem a
-  |varSem x = VarSem x []
+  |varS :: a → Sem a
+  |varS x = VarS x []
   |
   |ev :: (a → Sem b) → Tm a → Sem b
   |ev f (Var x)   = f x
   |ev f (Lam b)   = unpack b $ λ x t →
-  |                 LamSem $ λ g u → ev (extend (x, u) (fmap g . f)) t
-  |ev f (App t u) = appSem (ev f t) (ev f u)
+  |                 LamS $ λ g u →
+  |                   ev (extend (x, u) (fmap g . f)) t
+  |ev f (App t u) = appS (ev f t) (ev f u)
   |
-  |appSem :: Sem a → Sem a → Sem a
-  |appSem (LamSem f)    u = f id u
-  |appSem (VarSem x ts) u = VarSem x (ts++[u])
+  |appS :: Sem a → Sem a → Sem a
+  |appS (LamS f)    u = f id u
+  |appS (VarS x ts) u = VarS x (ts++[u])
   |
   |extend :: (v, r) → (a → r) → (a ▹ v) → r
   |extend (_, r) _ (New _) = r
   |extend (_, _) f (Old x) = f x
   |
   |reify :: Sem a → Tm a
-  |reify (VarSem x ts) = foldl App (Var x) (map reify ts)
-  |reify (LamSem f)    = lam $ λ x -> reify (f Old (varSem (New x)))
+  |reify (VarS x ts) = foldl App (Var x) (map reify ts)
+  |reify (LamS f)    = lam $ λ x →
+  |                      reify (f Old (varS (New x)))
   |
   |nbe :: Tm a → Tm a
-  |nbe = reify . ev varSem
+  |nbe = reify . ev varS
   |]
 
   [agdaFP|
