@@ -2670,8 +2670,10 @@ appendix = execWriter $ do
   subsection «NbE»
   [agdaP|
   |instance Functor No where 
-  |  fmap f (LamNo x t)  = LamNo x (fmap (bimap f id) t)
-  |  fmap f (VarNo x xs) = VarNo (f x) (fmap (fmap f) xs)
+  |  fmap f (LamNo x t)  = 
+  |     LamNo x (fmap (bimap f id) t)
+  |  fmap f (VarNo x xs) = 
+  |     VarNo (f x) (fmap (fmap f) xs)
   |]
 
   subsection «CPS»
@@ -2691,13 +2693,17 @@ appendix = execWriter $ do
   |  fmap f (VarC x)      = VarC (f x)
   |  fmap f (FstC x)      = FstC (f x)
   |  fmap f (SndC x)      = SndC (f x)
-  |  fmap f (PairC v1 v2) = PairC (fmap f v1) (fmap f v2)
-  |  fmap f (LamC t)      = LamC (fmap (bimap f id) t)
+  |  fmap f (PairC v1 v2) = 
+  |     PairC (fmap f v1) (fmap f v2)
+  |  fmap f (LamC t)      =
+  |     LamC (fmap (bimap f id) t)
   |
   |instance Functor TmC where
   |  fmap f (HaltC v)    = HaltC (fmap f v)
-  |  fmap f (AppC v1 v2) = AppC  (fmap f v1) (fmap f v2)
-  |  fmap f (LetC p t)   = LetC (fmap f p) (fmap (bimap f id) t)
+  |  fmap f (AppC v1 v2) = 
+  |     AppC  (fmap f v1) (fmap f v2)
+  |  fmap f (LetC p t)   = 
+  |     LetC (fmap f p) (fmap (bimap f id) t)
   |]
 
   [agdaP|
@@ -2728,8 +2734,8 @@ appendix = execWriter $ do
   |  return = VarLC
   |  VarLC x >>= θ = θ x
   |  Closure c env >>= θ = Closure c (env >>= θ)
-  |  LetOpen t g >>= θ =
-  |    LetOpen (t >>= θ) (λ f env → g f env >>= liftSubst (liftSubst θ))
+  |  LetOpen t g >>= θ = LetOpen (t >>= θ) 
+  |    (λ f env → g f env >>= liftSubst (liftSubst θ))
   |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppLC t u >>= θ = AppLC (t >>= θ) (u >>= θ)
@@ -2749,14 +2755,16 @@ appendix = execWriter $ do
   |  shuffle f (New x) = New (f x)
   |  shuffle f (Old x) = Old x
   |
-  |instance Insert v a b ⇒ Insert v (a ▹ v') (b ▹ v') where
+  |instance Insert v a b ⇒ 
+  |         Insert v (a ▹ v') (b ▹ v') where
   |  shuffle f (New x) = Old (New x)
   |  shuffle f (Old x) = case shuffle f x of
   |    New y → New y
   |    Old y → Old (Old y)
   |
-  |substituteGen :: (Insert v a b, Functor tm, Monad tm) ⇒ 
-  |                 v → tm a → tm b → tm a
+  |substituteGen :: 
+  |   (Insert v a b, Functor tm, Monad tm) ⇒ 
+  |   v → tm a → tm b → tm a
   |substituteGen x t u = 
   |   substituteOut x t (fmap (shuffle id) u)
   |]
@@ -2771,12 +2779,14 @@ appendix = execWriter $ do
   |name :: b → a ▹ b
   |name = New
   |
-  |-- In Agda: exportᴺ? : ∀ {b α} → Name (b ◅ α) → Maybe (Name α)
+  |-- In Agda: exportᴺ? : 
+  |-- ∀ {b α} → Name (b ◅ α) → Maybe (Name α)
   |exportM :: a ▹ b → Maybe a
   |exportM (New _) = Nothing
   |exportM (Old x) = Just x
   |
-  |-- In Agda: exportᴺ : ∀ {α b} → Name (b ◅ α) → Name (b ◅ ø) ⊎ Name α
+  |-- In Agda: exportᴺ : 
+  |-- ∀ {α b} → Name (b ◅ α) → Name (b ◅ ø) ⊎ Name α
   |export :: a ▹ b → Either (Zero ▹ b) a
   |export (New x) = Left (New x)
   |export (Old x) = Right x

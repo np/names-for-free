@@ -141,6 +141,7 @@ document title authors keywords abstract body appendix = B.document docclass pre
           <> B.para [tex|\bibliographystyle{abbrvnat}|]
           <> mapNonEmpty (B.bibliography . mconcat . intersperse [tex|,|])
                          [«../../local»,«../../npouillard»,«../../jp»]
+          <> B.newpage
           <> mapNonEmpty (B.appendix <>) appendix
 
 fonts :: PreambleItem
