@@ -1804,6 +1804,44 @@ s (f . g)
     use an existential-based version of scopes, which we splice in
     the {|LamNo|} constructor.»
 
+  notetodo «NP: I believe this is a proper realisation of NbE and
+            what we had previously was hereditary-substitution
+            based normalisation.»
+
+  [agdaFP|
+  |data Sem a where
+  |  LamSem :: (∀ b. (a → b) → Sem b → Sem b) → Sem a
+  |  VarSem :: a → [Sem a] → Sem a
+  |
+  |instance Functor Sem where
+  |  fmap f (LamSem g)    = LamSem $ λ h x -> g (h . f) x
+  |  fmap f (VarSem x ts) = VarSem (f x) (map (fmap f) ts)
+  |
+  |varSem :: a → Sem a
+  |varSem x = VarSem x []
+  |
+  |ev :: (a → Sem b) → Tm a → Sem b
+  |ev f (Var x)   = f x
+  |ev f (Lam b)   = unpack b $ λ x t →
+  |                 LamSem $ λ g u → ev (extend (x, u) (fmap g . f)) t
+  |ev f (App t u) = appSem (ev f t) (ev f u)
+  |
+  |appSem :: Sem a → Sem a → Sem a
+  |appSem (LamSem f)    u = f id u
+  |appSem (VarSem x ts) u = VarSem x (ts++[u])
+  |
+  |extend :: (v, r) → (a → r) → (a ▹ v) → r
+  |extend (_, r) _ (New _) = r
+  |extend (_, _) f (Old x) = f x
+  |
+  |reify :: Sem a → Tm a
+  |reify (VarSem x ts) = foldl App (Var x) (map reify ts)
+  |reify (LamSem f)    = lam $ λ x -> reify (f Old (varSem (New x)))
+  |
+  |nbe :: Tm a → Tm a
+  |nbe = reify . ev varSem
+  |]
+
   [agdaFP|
   |data No a where
   |  LamNo :: v → No (a ▹ v) → No a
