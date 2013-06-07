@@ -1174,7 +1174,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   q«Again, this arbitrary weakening function relieves the programmer from
     tediously counting indices and constructing an appropriate renaming function. We
-    demonstrate this feature in sec. {ref cpsSec}.»
+    demonstrate this feature in sec. {ref examples}.»
 
   subsection $ «Substitution and Monads»
 
@@ -1839,6 +1839,10 @@ s (f . g)
     essentially implementing lexical scope. 
     What follows is a definition of closure conversion, as can be found in a textbook 
     (in fact this version is slightly adapted from {citet[guillemettetypepreserving2007]}).
+    In it, we use a hat to distinguish
+    object-level abstractions ({tm|\hat\lambda|}) from host-level ones.
+    Similarly, the {tm|@|} sign is used for object-level applications. »
+  q«
     The characteristic that instersts us in this definition is that it is written in nominal style.
     For instance, it pretends that by matching on a {tm|\hat \lambda|}-abstraction, one obtains a name
     {tm|x|} and an expression {tm|e|}, and it is silent about the issues of freshness and
@@ -1971,10 +1975,10 @@ s (f . g)
     style (CPS) based partially on {cite[chlipalaparametric2008]} and
     {cite[guillemettetypepreserving2008]}.
 
-    The main objective of the transformation is to make explicit the
-    order of evaluation, {|let|}-binding every intermediate {|Value|} in
-    a specific order. To this end, we target as special representation,
-    every intermediate result is named. We allow for {|Value|}s to be
+    The main objective of the transformation is to make the
+    order of evaluation explicit, by {|let|}-binding every intermediate {|Value|} in
+    a specific order. To this end, we target a special representation,
+    where every intermediate result is named. We allow for {|Value|}s to be
     pairs, so we can easily replace each argument with a pair of an
     argument and a continuation.»
 
@@ -2053,9 +2057,7 @@ s (f . g)
     not created). This is done by passing a host-language continuation
     to the transformation. At the top-level the halting continuation
     is used. A definition of the transformation using mathematical
-    notation could be written as follows. We use a hat to distinguish
-    object-level abstractions ({tm|\hat\lambda|}) from host-level ones.
-    Similarly, the {tm|@|} sign is used for object-level applications. »
+    notation could be written as follows.»
 
   dmath
    [texm|
@@ -2083,7 +2085,9 @@ s (f . g)
     continuation. Doing so yields a value of type {|TmC (a ▹ a)|}.
     To obtain a result of the right type it suffices to remove the
     extra tagging introduced by {|a ▹ a|} everywhere in the term,
-    using {|(untag <$> )|}.»
+    using {|(untag <$>)|}. Besides, we use a number of instances of {|wk|}, 
+    and for each of them
+    GHC is able to infer the substitution to perform.»
 
   {-
   [agdaFP|
