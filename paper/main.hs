@@ -2632,12 +2632,15 @@ s (f . g)
      »
 -}
   subsection «Future work: Improving safety»
-  q«As it stands, a user can potentially instantiate {|v|} a monotype either in 
+  q«As it stands our interface prevents mistakes in the manipulation of de Bruijn indices, but
+    requires a collaboration from the user. 
+    Indeed, a malicious user can instantiate {|v|} 
+    to a monotype either in 
     {|∀ v. v → tm (a ▹ v)|} or {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
     by providing a quantifier which allows only substitution for type variables. This
     quantifier can be understood as being both existential and universal, and hence is self dual.
     Choosing the notation {|∇|} for it (due to the similarity of the nabla quantifier of quantifier
-    of {citet[millerproof2003]}), we would have the following definitions, and safety would never be   
+    of {citet[millerproof2003]}), we would have the following definitions, and safety could not be 
     compromised. »
 
   commentCode [agdaFP|
@@ -2656,8 +2659,8 @@ s (f . g)
   q«An apparent issue with our conversion functions between
     {|ExistScope|} or {|UnivScope|} on one side and {|SuccScope|} on the
     other side is that all but {|succToExist|} cost a time 
-    proportional to the term converted. In the current state of affairs, we 
-    might be able to use a system of rewrite rules, such as that implemented in GHC to 
+    proportional to the size of the term converted. In the current state of affairs, we 
+    might be able to use a system of rewrite rules, such as that implemented in GHC, to 
     eliminate the conversions to and from the safe interfaces. However, within
     a system which supports ∇-quantification, a better option offers itself:
     the machine-representation of the type {|v|} where {|v|} is ∇-bound should be
@@ -2671,8 +2674,7 @@ s (f . g)
     This suggests that a special-purpose type-system (featuring a form of subtyping)
     could be built to take care of those injections automatically.
     An obvious benefit would be some additional shortening of programs manipulating terms.
-    A more subtle one is that, since injections would not be present at all, the performance
-    could be increased. Additionally, this simplification of programs would imply an
+    Additionally, this simplification of programs would imply an
     even greater simplification of the proofs about them; indeed, a variation in complexity in
     an object usually yields a greater variation in complexity in proofs about it.
   »
