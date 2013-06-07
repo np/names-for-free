@@ -8,4 +8,4 @@ or $\exists v. v \times \mathsf{Term} (a + v)$ depending on weather it
 is constructed or analysed.  We demonstrate on a number of examples
 how this approach approach permits to express terms construction and 
 manipulation in a natural way, while retaining the good properties of
-de Bruijn indices representations.
+representations based on de Bruijn indices.

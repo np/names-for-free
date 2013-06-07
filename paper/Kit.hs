@@ -33,7 +33,7 @@ authorinfo (name, email', inst') =
 begin = BI.latexCmdArg "begin"
 end = BI.latexCmdArg "end"
 
-acmCategory a1 a2 a3 = tell $ B.para $ BI.latexCmdArgs "category" $ map (T.Mandatory . (:[])) [a1,a2,a3]
+acmCategory a1 a2 a3 = B.para $ BI.latexCmdArgs "category" $ map (T.Mandatory . (:[])) [a1,a2,a3]
 
 acknowledgements x = tell $ B.para $ BI.latexCmdArg "acks" mempty <> x
 
@@ -114,7 +114,7 @@ showAgdaDocument = unlines . commentsOf
 printAgdaDocument = putStrLn . showAgdaDocument
 writeAgdaTo destFile = writeFile destFile . showAgdaDocument
 
-document title authors keywords abstract body appendix = B.document docclass preamble body'
+document title authors keywords abstract categ body appendix = B.document docclass preamble body'
   where
     docclass = sigplanconf (Just (L.pt 9)) Nothing
                   (fmap BI.latexItem [«preprint»,«authoryear»])
@@ -135,8 +135,9 @@ document title authors keywords abstract body appendix = B.document docclass pre
                 | (inst , emails) <- zip insts [[email | (_,i,email)<-authors,i==n]|n<-[1..]]]
         -}
     body' = B.maketitle
+          <> mkabstract abstract 
+          <> categ
           <> B.para (begin "keywords" <> keywords <> end "keywords")
-          <> mkabstract abstract
           <> body
           <> B.para [tex|\bibliographystyle{abbrvnat}|]
           <> mapNonEmpty (B.bibliography . mconcat . intersperse [tex|,|])

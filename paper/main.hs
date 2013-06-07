@@ -300,7 +300,6 @@ On top of Bound:
 
 body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   let onlyInCode = when includeUglyCode
-  acmCategory «D.3.3» «Language Constructs and Features» «»
   
   onlyInCode $ do 
      [agdaP|
@@ -2820,7 +2819,10 @@ main = do
       compile ["sigplanconf"] "paper" (doc False)
     _ → error "unexpected arguments"
 
-doc includeUglyCode = document title authors keywords abstract (body includeUglyCode) appendix
+categ = acmCategory «D.3.3» «Language Constructs and Features» «»
+
+
+doc includeUglyCode = document title authors keywords abstract categ (body includeUglyCode) appendix
 -- }}}
 
 -- vim: foldmarker
