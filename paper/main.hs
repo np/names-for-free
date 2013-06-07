@@ -349,12 +349,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     to generate fresh atoms. This side effect can be resolved with a
     supply for unique atoms or using an abstraction such as a monad
     but is eventually disturbing if one wishes to write functional code.
-    Because nominal name abstractions are not canonical, special
-    care has to be taken against violations.
-    For instance, two α-equivalent 
-    representations of the same term (such as {|λx.x|} and {|λy.y|}) 
-    should be undistiguishable,
-    this is not true in nominal representations, at least by default.»
+    Additionally, nominal representations are not canonical. (For instance, two α-equivalent 
+    representations of the same term such as {|λx.x|} and {|λy.y|} may 
+    be different). Hence special cake has to be taken to prevent user code
+    to violate the abstraction barrier.»
 
   -- NP: Note that in a safe interface for binders the supply does not
   -- have to be threaded, only passed downward and can be represented
@@ -363,7 +361,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"de Bruijn pros&cons"
    «To avoid the problem of name capture, one can represent names
-    canonically, for example by the number of binders (λ for instance)
+    canonically, for example by the number of binders (typically λ)
     to cross between an occurrence and its binding site. In practice
     however, this representation makes it hard to manipulate terms:
     instead of calling things by name, programmers have to rely on their
@@ -380,14 +378,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Finally, the idea of HOAS is to use the binders of the host language (in our case Haskell)
     to represent binders of the object language. This technique does not suffer
     from name-capture problems nor involves arithmetic. However the 
-    arbitrary functions in the term representation mean that it is difficult 
+    presence of functions in the term representation mean that it is difficult 
     to manipulate, and it may contain values which do not represent any term.»
 
   p"contribution"
    «The contribution of this paper is a new programming interface for binders, which
     provides the ability to write terms in a natural style close to
     concrete syntax. We can for example build the application function
-    of the untyped λ-calculus as follows.»
+    of the untyped λ-calculus as follows:»
 
   commentCode apTm
 
@@ -397,8 +395,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   commentCode canEta
 
   p"contribution continued"
-   «All the while, the representation does not require either a
-    name supply, there is not chance of name capture,
+   «All the while, we do not require either a
+    name supply, there is no chance of name capture,
     testing terms for α-equivalence remains straightforward and representable
     terms are exactly those intended.
     The cost of this
@@ -409,14 +407,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     we present in detail the implementation of the technique as well
     as basic applications.
     Larger applications (normalisation by evaluation, closure conversion, 
-    CPS transformation) are presented in {ref examples}.
+    CPS transformation) are presented in sec. {ref examples}.
     »
 
   section $ «Overview» `labeled` overview
 
   p"flow"
-   «In this section we describe our interface. We begin
-    by describing a simple implementation which can support it.»
+   «In this section we describe our interface, but before doing so we 
+    describe a simple implementation which can support it.»
 
   subsection $ «de Bruijn Indices»
 
