@@ -1398,7 +1398,7 @@ s (f . g)
     one of the lightweight encodings available. In the absence of view patterns,   
     a CPS encoding is
     convenient for programming (so we used this so far),
-    but in the following a datatype representation is more convenient when dealing with scopes only:»
+    but a datatype representation is more convenient when dealing with scopes only:»
 
   [agdaFP|
   |data ExistScope tm a where
@@ -1408,12 +1408,18 @@ s (f . g)
   q«As we observe in a number of examples, these representations
     are dual from a usage perspective: the universal-based representation
     allows safe the construction of terms, while the existential-based representation is
-    allows safe the analysis of terms.»
+    allows safe the analysis of terms.
+    Strictly speaking, safety holds only if one disregards non-termination and {|seq|}, 
+    but because the
+    values of type {|v|} are never used for computation, mistakenly using a
+    diverging term in place of a witness
+    of variable name is far-fetched.»
 
   q«For the above reason, we do not commit to either side, and use the suitable representation on 
   a case-by-case basis. This is possible because the representations are both isomorphic to
-  a concrete represention of binders such as {|SuccScope|} (and by transivitity between each other).
-  (Strictly speaking, this holds only if one disregards non-termination and {|seq|}.)»
+  a concrete represention of binders such as {|SuccScope|}, and by transivitity between each other.
+  In the following we exhibit the conversion functions, and prove that they form an isomorphism,
+  assuming an idealised Haskell lacking non-termination and {|seq|}.»
 
   subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
   p"conversions"
@@ -1447,8 +1453,8 @@ s (f . g)
   |    t
   |]
 
-  q«The second property {|succToUniv . polyToSucc == id|} more
-    difficult to prove: this corresponds to the fact that one cannot
+  q«The second property ({|succToUniv . polyToSucc == id|}) is more
+    difficult to prove: it corresponds to the fact that one cannot
     represent more terms in {|UnivScope|} than in {|SuccScope|},
     and relies on parametricity. Hence we need to use the free
     theorem for a value {|f|} of type {|UnivScope tm a|}.
@@ -1466,7 +1472,7 @@ s (f . g)
   | f x₂ == fmap g (f x₁)
   |]
 
-  q«We can then specialise {|v₁|} and {|x₁|} to {|()|}, {|v|}
+  q«We can then specialize {|v₁|} and {|x₁|} to {|()|}, {|v|}
     to {|const x₂|}, and {|g|} to {|bimap id v|}. By definition,
     {|g|} satisfies the conditions of the lemma. We can then reason
     equationally:»
@@ -1494,7 +1500,7 @@ s (f . g)
   |]
   q«One will recognise {|pack|} and {|unpack|} as CPS versions of {|existToSucc|} and {|succToExist|}.»
 
-  q«The proof {|existToSucc . succToExist == id|} is nearly identical to the 
+  q«The proof of {|existToSucc . succToExist == id|} is nearly identical to the 
   first proof about {|UnivScope|} and hence omitted.
   To prove {|succToExist . existToSucc == id|}, we first remark that by definition»
   commentCode [agdaFP|
@@ -1539,7 +1545,7 @@ s (f . g)
   |]
   q«When using {|succToUniv|}, the type of the second argument of {|succToUniv|}
     should always be a type variable in order to have maximally polymorphic contexts.
-    To reming us of this requirement when writing code, we give the alias {|atVar|} for {|succToUniv|}.
+    To remind us of this requirement when writing code, we give the alias {|atVar|} for {|succToUniv|}.
     (Similarly, to guarantee safetly, the first argument of {|pack|} (encapsulated here in {|lamP|}) must be maximally polymorphic.)»
 
   onlyInCode [agdaFP| 
