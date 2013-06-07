@@ -1,15 +1,15 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS -fno-warn-orphans #-}
-module ColorizeAgda
-  (module ColorizeAgda
+module AgdaKit.Colorize
+  (module AgdaKit.Colorize
   ,Token(..), ParseError) where
 
 import Data.Functor
 import Data.List
 import Data.Int
 import Data.Ratio
--- import Agda.Syntax.Position (Position(..), Interval'(..), Range'(..), Interval, Range, getRange, posPos)
-import Agda.Syntax.Position (Position(..), Interval(..), Range(..), getRange)
+import Agda.Syntax.Position (Position(..), Interval'(..), Range'(..), Interval, Range, getRange, posPos)
+-- import Agda.Syntax.Position (Position(..), Interval(..), Range(..), getRange)
 import Agda.Syntax.Parser.Lexer (lexer, normal)
 import Agda.Syntax.Parser.Tokens (Token(..))
 import Agda.Syntax.Parser.Monad (ParseError, ParseResult(..),
