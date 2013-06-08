@@ -154,7 +154,7 @@ canEta =
   [agdaFP|
   |canEta (Lam e) = unpack e $ λ x t → case t of
   |  App e1 (Var y) → y `isOccurenceOf` x &&
-  |          ☐         x `freshFor` e1
+  |                    x `freshFor` e1
   |  _ → False
   |canEta _ = False
   |]
@@ -168,7 +168,7 @@ canEtaWithSig =
   |canEta :: Tm Zero → Bool
   |canEta (Lam e) = unpack e $ λ x t → case t of
   |  App e1 (Var y) → y `isOccurenceOf` x &&
-  |          ☐         x `freshFor` e1
+  |                    x `freshFor` e1
   |  _ → False
   |canEta _ = False
   |]
@@ -333,11 +333,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   section $ «Intro» `labeled` intro
 
   p"the line of work where we belong"
-   «One of the main application area of functional programming languages
-    such as Haskell is programming language technology. In particular,
-    Haskell programmers often finds themselves manipulating data
-    structures representing some higher-order object language, 
+   «One of the main application areas of functional programming
+    languages such as Haskell is programming language technology. In
+    particular, Haskell programmers often find themselves manipulating
+    data structures representing some higher-order object languages,
     featuring binders and names.»
+
+  -- NP: not sure about «higher-order object language»
 
   p"identifying the gap"
    «Yet, the most commonly used representations for names and binders
@@ -361,7 +363,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     Additionally, nominal representations are not canonical. (For instance, two α-equivalent 
     representations of the same term such as {|λx.x|} and {|λy.y|} may 
     be different). Hence special care has to be taken to prevent user code
-    to violate the abstraction barrier.»
+    to violate the abstraction barrier. Furthermore fresh name
+    generation is an observable effect breaking referential transparency
+    ({|fresh x in x ≠ fresh x in x|}). For instance a function
+    generating fresh names and not properly using them to close
+    abstractions becomes impure.»
 
   -- NP: Note that in a safe interface for binders the supply does not
   -- have to be threaded, only passed downward and can be represented
@@ -371,10 +377,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"de Bruijn pros&cons"
    «To avoid the problem of name capture, one can represent names
     canonically, for example by the number of binders (typically λ)
-    to cross between an occurrence and its binding site. In practice
+    to cross between an occurence and its binding site. In practice
     however, this representation makes it hard to manipulate terms:
     instead of calling things by name, programmers have to rely on their
-    arithmetic abilities, which turn out to be error-prone. As soon as
+    arithmetic abilities, which turns out to be error-prone. As soon as
     one has to deal with more than just a couple open bindings, it becomes
     easy to make mistakes.»
 
@@ -390,6 +396,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     presence of functions in the term representation mean that it is difficult 
     to manipulate, and it may contain values which do not represent any term.»
 
+  {- NP: the HOAS point of view is that this is more an issue of using Haskell
+     function space that is improper for this situation. -}
+
   p"contribution"
    «The contribution of this paper is a new programming interface for binders, which
     provides the ability to write terms in a natural style close to
@@ -398,19 +407,19 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   commentCode apTm
 
-  q«and we are able to test is a term is eta-contractible using the
+  q«and we are able to test if a term is eta-contractible using the
     following function:»
 
   commentCode canEta
 
   p"contribution continued"
-   «All the while, we do not require either a
-    name supply, there is no chance of name capture,
-    testing terms for α-equivalence remains straightforward and representable
+   «All the while, neither do we require a
+    name supply, nor there is a chance of name capture.
+    Testing terms for α-equivalence remains straightforward and representable
     terms are exactly those intended.
     The cost of this
     achievement is the use of somewhat more involved types for binders,
-    and the use of Haskell type-system extensions implemented only in the Glasgow
+    and the use of Haskell type-system extensions implemented in the Glasgow
     Haskell Compiler. The new construction is informally described and
     motivated in sec. {ref overview}. In sections {ref contextSec} to {ref scopesSec}
     we present in detail the implementation of the technique as well
@@ -428,11 +437,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   subsection $ «de Bruijn Indices»
 
   p"de Bruijn indices"
-   «{citet[debruijnlambda1972]} proposed to represent an occurence 
-    of some variable {|x|}
-    by counting the number binders that one has to cross beween the occurence and the
-    binding site of {|x|}. A direct implementation of the idea may yield
-    the following representation of untyped λ-terms:»
+   «{citet[debruijnlambda1972]} proposed to represent an occurence of
+    some variable {|x|} by counting the number of binders that one
+    has to cross beween the occurence and the binding site of {|x|}.
+    A direct implementation of the idea may yield the following
+    representation of untyped λ-terms:»
 
   [agdaFP|
   |data Nat = O | S Nat
@@ -459,19 +468,19 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   paragraph «Nested Abstract Syntax»
 
   p"nested data types"
-   «In functional programming languages such as Haskell, it is possible
-    to remedy to this situation by using “nested recursion”. That is, one
-    parameterizes the type of terms by a type that can represent
-    {emph«free»} variables. If the parameter is the empty type, terms
-    are closed. If the parameter is the unit type, there is at most one
-    free variable, etc.»
+   «In functional programming languages such as Haskell, it is
+    possible to remedy to this situation by using nested data types
+    and polymorphic recursion. That is, one parameterizes the type of
+    terms by a type that can represent {emph«free»} variables. If the
+    parameter is the empty type, terms are closed. If the parameter is
+    the unit type, there is at most one free variable, etc.»
 
   -- Because the parameter is the type of free-variables,
   -- it does not affect the representation of bound variables
   -- at all.
 
   p"citation"
-   «This representation in known as Nested Abstract
+   «This representation is known as Nested Abstract
     Syntax {cite nestedcites}»
 
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
@@ -489,14 +498,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     its cardinality by one, since the body can refer to one more
     variable.»
 
-  p"flash-forward"«Anticipating on the amendements we propose, we define the {|Succ a|} type as 
-   a proper sum of {|a|} and the unit type {|()|} instead of {|Maybe a|} as customary. 
-   Because the sum is used in an
-   assymetric fashinon (the left-hand-side corresponds to variables bound earlier and the right-hand-side
-   to the freshly bound one), we give a special definition of sum written {|▹|},
-   whose the syntax reflects the
-   intended semantics.»
-  
+  p"flash-forward"
+   «Anticipating on the amendments we propose, we define the {|Succ a|}
+    type as a proper sum of {|a|} and the unit type {|()|} instead
+    of {|Maybe a|} as customary. Because the sum is used in an
+    asymmetric fashion (the left-hand-side corresponds to variables
+    bound earlier and the right-hand-side to the freshly bound one),
+    we give a special definition of sum written {|▹|}, whose syntax
+    reflects the intended semantics.»
+
   [agdaFP|
   |type Succ a = a ▹ ()
   |
@@ -521,8 +531,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |apNested :: Tm Zero
   |apNested = Lam $ Lam $ Var (Old $ New ())
-  |                       `App`
-  |                       Var (New ())
+  |                 `App` Var (New ())
   |]
 
   p"the type of apNested"
@@ -545,12 +554,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"de Bruijn drawback"
    «However the main drawback of using de Bruijn indices remains: one must still
-    count the number of binders between the declaration of a variable and its occurrences.»
+    count the number of binders between the declaration of a variable and its occurences.»
 
   subsection «Referring to bound variables by name»
 
   p"flow"
-   «To address the issues touched upon in the previous section, we
+   «To address the issues just touched upon, we
     propose to build λ-abstractions with a function called {|lam|}. What
     matters the most is its type:»
 
@@ -576,7 +585,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"explain v →"
    «The sub-term receives an arbitrary value of type {|v|},
-    to be used at occurrences of the variable bound by {|lam|}.»
+    to be used at occurences of the variable bound by {|lam|}.»
 
   -- NP: "provide the sub-term" is one side of the coin, the other side
   -- would be to say that a name abstraction receives a value of type v
@@ -601,7 +610,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Using our approach, the binding structure, which can be identified as
     the {emph«specification»}, is written using the host language binders.
 
-    However at variable occurrences, de Bruijn indices are still present
+    However at variable occurences, de Bruijn indices are still present
     in the form of the constructors {|New|} and {|Old|}, and are
     purely part of the {emph«implementation»}.»
 
@@ -629,12 +638,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"unicity of injections"
    «In general, in a closed context, if one considers the
-    expression {|Var (Oldⁿ (New x))|}, only one possible value
+    expression {|Var ((Old)ⁿ (New x))|}, only one possible value
     of {|n|} is admissible. Indeed, anywhere in the formation of a
-    term using {|lam|}, the type of variables is {|a = a0 ▹ v0 ▹
-    v1 ▹ ⋯ ▹ vn|} where {|v0|}, {|v1|}, … , {|vn|} are all distinct and
-    universally quantified, and none of them occurs as part of {|a0|}.
-    Hence, there is only one injection function from a given {|vi|}
+    term using {|lam|}, the type of variables is {|a = a₀ ▹ v₀ ▹
+    v₁ ▹ ⋯ ▹ vₙ|} where {|v₀|}, {|v₁|}, … , {|vₙ|} are all distinct and
+    universally quantified, and none of them occurs as part of {|a₀|}.
+    Hence, there is only one injection function from a given {|vᵢ|}
     to {|a|}.»
 
   paragraph «Auto-inject»
@@ -685,10 +694,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"unpack"
    «Often, one wants to be able to check if an
-    occurrence of a variable is a reference to some previously bound
+    occurence of a variable is a reference to some previously bound
     variable. With de Bruijn indices, one must (yet again) count the
     number of binders traversed between the variable bindings and
-    its potential occurrences --- an error prone task. Here as well,
+    its potential occurences --- an error prone task. Here as well,
     we can take advantage of polymorphism to ensure that no mistake
     happens. We provide a combinator {|unpack|}, which hides the 
     type of the newly bound variables (the type {|()|}) as an existentially
@@ -706,14 +715,17 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   unpackCode
 
+  -- NP: removed “occurs only positively in∼{|f|} (or∼{|Tm|})”
+  -- since it is wrong if you can pick any f. Either we stick
+  -- a Functor f instance or argue that this because of the lack
+  -- of information of v.
   p"why unpack works"
-   «Because {|v|} is existentially bound and occurs only positively
-    in {|Tm|}, {|x|} can never be used in a computation. It acts as a
-    reference to a variable in a context, but in a way which is only
-    accessible to the type-checker.
+   «Because {|v|} is existentially bound, {|x|} can never be used in a
+    computation. It acts as a reference to a variable in a context, but
+    in a way which is only accessible to the type-checker.
 
     For instance, when facing a term {|t|} of type
-    {|Tm (a ▹ v0 ▹ v1 ▹ v)|}, {|x|} refers to the last introduced free
+    {|Tm (a ▹ v₀ ▹ v₁ ▹ v)|}, {|x|} refers to the last introduced free
     variable in {|t|}.
 
     Using {|unpack|}, one can write a function which can recognise an
@@ -737,12 +749,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -}
 
   p"canEta"
-   «In the above example, the functions {|isOccurenceOf|}
+   «In the above example, the two functions {|isOccurenceOf|}
     and {|freshFor|} use the {|inj|} function to lift {|x|} to
     a reference in the right context before comparing it to the
-    occurrences. The calls to these functions do not get more
-    complicated in the presence of multiple binders. For example, the
-    code which recognises the pattern {|λ x y → e x|} is as follows:»
+    occurences. The calls to these functions do not get more complicated
+    in the presence of multiple binders. For example, the code which
+    recognises the pattern {|λ x y → e x|} is as follows:»
 
   [agdaFP|
   |recognize :: Tm Zero → Bool
@@ -750,7 +762,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |    Lam f → unpack f $ λ x t1 → case t1 of
   |      Lam g → unpack g $ λ y t2 → case t2 of
   |        App e1 (Var y) → y `isOccurenceOf` x &&
-  |                ☐         x `freshFor` e1
+  |                          x `freshFor` e1
   |        _ → False
   |      _ → False
   |    _ → False
@@ -807,7 +819,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p""«As we have seen in previous examples, the {|unpack|} combinator gives the possibility
   to refer to a free variable by name, enabling for example to compare a variable
-  occurrence with a free variable. Essentially, it offers a nominal interface to free variables:
+  occurence with a free variable. Essentially, it offers a nominal interface to free variables:
   even though the running code will use de Bruijn indices, the programmer sees names; and
   the correspondence is enforced by the type system.
   »
@@ -865,16 +877,18 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «We have seen that the type of free variables essentially describes
     the context where they are meaningful. A context can either be
     empty (and we represent it by the type {|Zero|}) or not (which we
-    can represent by the type {|a ▹ v|}).»
+    can represent by the type {|a ▹ v|}).»
 
   p"explain remove"
-   «An important functon of the {|v|} type variable is to make sure 
-    programmers refer to the variable they intend to. For example, 
-    consider the following function, which takes a list of (free) variables
-    and removes one of them from the list. It takes a list of variables
-    in the context {|a ▹ v|} and returns a list in the context {|a|}. For extra
-    safety, it also takes the name of the variable being removed, which is used only for
-    type-checking purposes.»
+   «An important function of the {|v|} type variable is to make sure
+    programmers refer to the variable they intend to. For example,
+    consider the following function, which takes a list of (free)
+    variables and removes one of them from the list. It takes a list
+    of variables in the context {|a ▹ v|} and returns a list in the
+    context {|a|}. For extra safety, it also takes the name of the
+    variable being removed, which is used only for type-checking
+    purposes.»
+
   -- (As for {|pack|}, {|remove|} can be generalised to use the {|Insert|})... However we have not siien ∈ yet, so this makes little sense.
   [agdaFP|
   |remove :: v → [a ▹ v] → [a]
@@ -914,7 +928,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Second, if two indices refer to the first variable they are equal;
     otherwise we recurse. We stress that this equality inspects only the
     {emph«indices»}, not the values contained in the type. For
-    example {|New 0 == New 1|} is {|True|}»
+    example {|New 0 == New 1|} is {|True|}:»
 
   {-
   instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where
@@ -972,9 +986,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «The cognoscenti will recognize the two above instances as
     {emph«incoherent»}, that is, if {|v|} and {|v'|} were instantiated
     to the same type, both instances would apply equally. Fortunately,
-    this incoherency will never trigger as long as one keeps the contexts
-    maximally polymorphic contexts: {|v|} and {|v'|}
-    will always be different.»
+    this incoherence never triggers as long as one keeps the contexts
+    maximally polymorphic contexts: {|v|} and {|v'|} will always be
+    different.»
 
   -- NP: maybe mention the fact that GHC let us do that
 
@@ -995,7 +1009,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"occursIn"
-   «One can test if a variable is fresh for a given term as follows:»
+   «One can test if a variable is fresh for a given term as follows (as
+    we shall see {|Tm|} is {|Foldable|} hence supports {|elem|}:»
 
 --   [agdaFP|
 --   |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
@@ -1341,7 +1356,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"freeVars is toList"
    «Thanks to terms being an instance of {|Traversable|} they are
     also {|Foldable|} meaning that we can combine all the elements of
-    the structure (i.e. the occurrences of free variables in the term)
+    the structure (i.e. the occurences of free variables in the term)
     using any {|Monoid|}. One particular monoid is the free monoid of
     lists. Consequently, {|Data.Foldable.toList|} is computing the free
     variables of a term:»
@@ -1665,7 +1680,7 @@ s (f . g)
    Consequently we will assume that all free variables
    are substituted for their size, and here the function will have type {|Tm Int → Int|}.
 
-   In our {|size|} function, we will consider that each variable occurrence as the constant
+   In our {|size|} function, we will consider that each variable occurence as the constant
    size 1 for the purpose of this example.
 
    This is be realised by applying the constant 1 at every function argument of a {|Lam|} constructor. One then needs
@@ -2129,7 +2144,7 @@ s (f . g)
   p"latex vs. haskell"
    «The implementation follows the above definition, except for the
     following minor differences. For the {|Lam|} case, the only
-    deviation are is an occurrence of {|wk|}. In the {|App|} case, we
+    deviation are is an occurence of {|wk|}. In the {|App|} case, we
     have an additional reification of the host-level continuation as a
     proper {|Value|} using the {|lamC|} function.
 
@@ -2299,7 +2314,7 @@ s (f . g)
     by using polymorphism. This observation also underlies the safety of
     our {|UnivScope|} representation.»
 
-  q«Another disadvantage of HOAS is the negative occurrence
+  q«Another disadvantage of HOAS is the negative occurence
     of the recursive type, which makes it tricky to analyse
     terms {citet[washburnboxes2003]}.»
 
@@ -2493,12 +2508,12 @@ s (f . g)
     binders which provides maximum safety. The library {_NomPa} is
     writen in {_Agda}, using dependent types. The interface makes use
     of a notion of {|World|}s (intuitively a set of names), {|Binder|}s
-    (name declaration), and {|Name|}s (the occurrence of a name).
+    (name declaration), and {|Name|}s (the occurence of a name).
 
     A {|World|}   can   either   be {|Empty|}   (called {|ø|}   in   the
     library {_NomPa}) in or  result of the addition  of a {|Binder|} to
     an existing {|World|}, using the operator {|(◅)|}. The type {|Name|}
-    is indexed by {|World|}s: this ties occurrences to the context where
+    is indexed by {|World|}s: this ties occurences to the context where
     they make sense.»
 
   commentCode [agdaFP|
