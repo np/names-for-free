@@ -86,7 +86,6 @@ textsymbols =
   , c '`' $ [tex|{`}|]
   , c '\'' $ [tex|{'}|]
 
-  , c 'ⁿ' (myHchar '\8345' {- 'ₙ' -}) -- TODO ugly hack to workaround GHC #5519
   , c '™' $ myHchar 'ᵀ' ⊕ myHchar 'ᵐ'
 
   , a 'à' B.grave 'a'
