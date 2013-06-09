@@ -1960,12 +1960,12 @@ s (f . g)
   |extend (_, r) _ (New _) = r
   |extend (_, _) f (Old x) = f x
   |
-  |reify :: Sem a → Tm a
-  |reify (VarS x ts) = foldl App (Var x) (map reify ts)
-  |reify (LamS f)    = lam $ λ x →
+  |reify :: Sem a → No a
+  |reify (VarS x ts) = VarNo x (map reify ts)
+  |reify (LamS f)    = lamNo $ λ x →
   |                      reify (f Old (varS (New x)))
   |
-  |nbe :: Tm a → Tm a
+  |nbe :: Tm a → No a
   |nbe = reify . ev varS
   |]
 
