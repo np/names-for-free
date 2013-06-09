@@ -3,7 +3,7 @@ BIBS=(local.bib npouillard.bib)
 # 
 
 LIBSOURCES=(
-  `find AgdaKit Kit MiniTikz -type f`
+  `find Paper AgdaKit Kit MiniTikz -type f`
   Kit.hs)
 
 ALLSOURCES=(main.hs

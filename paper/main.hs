@@ -18,6 +18,8 @@ import Kit.QQ
 import Kit.ACM
 import AgdaKit.QQ
 
+import Paper.NbE
+
 --import qualified MiniTikz.Builder as D -- hiding (node)
 --import MiniTikz.Builder (right, below, nodeDistance, oF, dnode, spath, scope)
 
@@ -141,8 +143,6 @@ unpackCode =  [agdaFP|
   |          (∀ v. v → f (a ▹ v) → r) → r
   |unpack e k = k () e
   |]
-
-q = p ""
 
 apTm =
   [agdaFP|
@@ -1873,101 +1873,8 @@ s (f . g)
   |extendCmp _ _ _ _       _       = False
   |]
 -}
-  subsection $ «Normalisation by Evaluation» `labeled` nbeSec
 
-  p"intro"
-   «A classical test of scope respresentations is how they support
-    normalisation by evaluation (NbE) {cite nbecites}.»
 
-  q«NbE takes its name from direct evaluation from terms to their
-    normal forms. The following type captures normal forms of the
-    untyped λ-calculus: a normal form is either an abstraction or
-    a variable applied to some normal forms. In this definition we
-    use an existential-based version of scopes, which we splice in
-    the {|LamNo|} constructor.»
-
-  notetodo «NP: I believe this is a proper realisation of NbE and
-            what we had previously was hereditary-substitution
-            based normalisation.»
-
-  onlyInCode [agdaP|
-  |data TmM a where
-  |  LamM :: (∀ b. (a → TmM b) → TmM b → TmM b) → TmM a
-  |  VarM :: a → [TmM a] → TmM a
-  |
-  |instance Functor TmM where
-  |  fmap f (LamM g)    = LamM $ \ h x → g (h . f) x
-  |  fmap f (VarM x ts) = VarM (f x) (map (fmap f) ts)
-  |
-  |-- Unlike Sem, TmM supports a simple 
-  |instance Monad TmM where
-  |  return x = VarM x []
-  |  LamM f    >>= θ = LamM $ f . (<=< θ)
-  |  VarM x ts >>= θ = foldl appM (θ x)((>>= θ)<$>ts)
-  |
-  |appM :: TmM a → TmM a → TmM a
-  |appM (LamM f)    u = f return u
-  |appM (VarM x ts) u = VarM x (ts++[u])
-  |
-  |evalM :: (a → TmM b) → Tm a → TmM b
-  |evalM f (Var x)   = f x
-  |evalM f (Lam b)   = unpack b $ \ x t →
-  |                    LamM $ \ g u →
-  |                     evalM (extend (x, u) (g <=< f)) t
-  |evalM f (App t u) = appM (evalM f t) (evalM f u)
-  |
-  |type ScopeM f a = ∀ b. (a → f b) → f b → f b
-  |unpackM :: ScopeM TmM a → (∀ v. v → TmM (a ▹ v) → r) → r
-  |unpackM s k = k () (s `atVarM` ())
-  |
-  |-- same as mesToUniv
-  |atVarM :: ScopeM TmM a → v → TmM (a ▹ v)
-  |s `atVarM` x = s (return . Old) (return (New x))
-  |
-  |reifyM :: TmM a → No a
-  |reifyM (VarM x ts) = VarNo x (map reifyM ts)
-  |reifyM (LamM s)    = unpackM s $ \ x t →
-  |                       LamNo x (reifyM t)
-  |
-  |nbeM :: Tm a → No a
-  |nbeM = reifyM . evalM return
-  |]
-
-  [agdaFP|
-  |data Sem a where
-  |  LamS :: (∀ b. (a → b) → Sem b → Sem b) → Sem a
-  |  VarS :: a → [Sem a] → Sem a
-  |
-  |instance Functor Sem where
-  |  fmap f (LamS g)    = LamS $ λ h x → g (h . f) x
-  |  fmap f (VarS x ts) = VarS (f x) (map (fmap f) ts)
-  |
-  |varS :: a → Sem a
-  |varS x = VarS x []
-  |
-  |ev :: (a → Sem b) → Tm a → Sem b
-  |ev f (Var x)   = f x
-  |ev f (Lam b)   = unpack b $ λ x t →
-  |                 LamS $ λ g u →
-  |                   ev (extend (x, u) (fmap g . f)) t
-  |ev f (App t u) = appS (ev f t) (ev f u)
-  |
-  |appS :: Sem a → Sem a → Sem a
-  |appS (LamS f)    u = f id u
-  |appS (VarS x ts) u = VarS x (ts++[u])
-  |
-  |extend :: (v, r) → (a → r) → (a ▹ v) → r
-  |extend (_, r) _ (New _) = r
-  |extend (_, _) f (Old x) = f x
-  |
-  |reify :: Sem a → No a
-  |reify (VarS x ts) = VarNo x (map reify ts)
-  |reify (LamS f)    = lamNo $ λ x →
-  |                      reify (f Old (varS (New x)))
-  |
-  |nbe :: Tm a → No a
-  |nbe = reify . ev varS
-  |]
 
   [agdaFP|
   |data No a where
@@ -1975,10 +1882,6 @@ s (f . g)
   |  VarNo :: a → [No a] → No a
   |]
 
-  q«The key to NbE is that normal forms are stable under substitution.
-    This is realised by an hereditary substitution function, which, as
-    it substitutes variables for their value, reduces redexes on the
-    fly.»
 
   [agdaFP|
   |instance Monad No where
@@ -2006,6 +1909,8 @@ s (f . g)
   |eval (Lam b)   = unpack b $ λ x t → LamNo x (eval t)
   |eval (App t u) = app (eval t) (eval u)
   |]
+
+  when (long || includeUglyCode) $ docNbE nbeSec nbecites
 
   subsection $ «Closure Conversion» `labeled` closureSec
   q«A common phase in the compilation of functional lanuages is closure conversion. 

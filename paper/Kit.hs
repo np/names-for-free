@@ -49,6 +49,7 @@ acknowledgements x = tell $ B.para $ BI.latexCmdArg "acks" mempty <> x
 
 p :: String -> LatexItem -> ParItemW
 p nam = put . namedPara nam
+q = p ""
 pc = tell . B.center . B.para
 pcm = tell . B.center . B.displaymath
 dmath = tell . B.displaymath
