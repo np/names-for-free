@@ -38,6 +38,7 @@ import Paper.NbE
       functorSec
       cpsSec
       closureSec
+      hereditarySec
       nbeSec
       contextSec
       scopesSec
@@ -80,6 +81,8 @@ import Paper.NbE
       taha-99 engler-96 norell-07 hutton-07 tapl attapl pottier-alphacaml
       fresh-ocaml pollack-sato-ricciotti-11 sato-pollack-10
       chargueraud-11-ln aydemir-08 cave-12
+
+      nanevski-08
      |]
 
 {-
@@ -94,6 +97,7 @@ fincites = [altenkirch93, mcbridemckinna04]
 nestedcites = [bellegarde94, birdpaterson99, altenkirchreus99]
 nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu]
 parametricityIntegrationCites = [kellerparametricity2012, bernardytypetheory2013, bernardycomputational2012]
+hereditarycites = [nanevski08] -- we could cite more
 
 
 title =  «Names For Free --- Polymorphic Views of Names and Binders»
@@ -125,7 +129,7 @@ notetodo x = p"" $ red «TODO {x}»
 -- notetodo _ = return ()
 --notecomm _ = return ()
 
-long = True
+long = False
 short = not long
 debug = False
 
@@ -425,9 +429,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     motivated in sec. {ref overview}. In sections {ref contextSec} to {ref scopesSec}
     we present in detail the implementation of the technique as well
     as basic applications.
-    Larger applications (normalisation by evaluation, closure conversion, 
+    Larger applications (normalisation using hereditary substitutions, closure conversion, 
     CPS transformation) are presented in sec. {ref examples}.
     »
+
+    -- TODO: normalisation by evaluation => restore it, put in appendix?
 
   section $ «Overview» `labeled` overview
 
@@ -1650,7 +1656,7 @@ s (f . g)
     well-suited to a given application domain, one might choose it as the scope representation
     in the implementation. Typically, this choice will be guided by performance reasons.
     Within this paper we favour code concision instead, and therefore in sec.
-    {ref nbeSec} we use {|ExistScope|}, and in sections
+    {ref hereditarySec} we use {|ExistScope|}, and in sections
     {ref closureSec} and {ref cpsSec} we use {|UnivScope|}.
     »
 
@@ -1874,7 +1880,13 @@ s (f . g)
   |]
 -}
 
+  subsection $ «Normalisation using hereditary substitution» `labeled` hereditarySec
 
+  q«Normalisation takes terms to their normal forms. The following type
+    captures normal forms of the untyped λ-calculus: a normal form is
+    either an abstraction or a variable applied to some normal forms. In
+    this definition we use an existential-based version of scopes, which
+    we splice in the {|LamNo|} constructor.»
 
   [agdaFP|
   |data No a where
@@ -1882,6 +1894,15 @@ s (f . g)
   |  VarNo :: a → [No a] → No a
   |]
 
+  [agdaP|
+  |lamNo :: (∀ v. v → No (a ▹ v)) → No a
+  |lamNo f = LamNo () (f ())
+  |]
+
+  q«The key to this normalisation procedure is that normal forms
+    are stable under hereditary substitution {cite hereditarycites}.
+    The function performing an hereditary substitution, substitutes
+    variables for their value, while reducing redexes on the fly.»
 
   [agdaFP|
   |instance Monad No where
@@ -1892,7 +1913,7 @@ s (f . g)
   |]
 
   q«The most notable feature of this substitution is the use of {|app|}
-    to evaluate redexes:»
+    to normalise redexes:»
 
   [agdaFP|
   |app :: No a → No a → No a
@@ -1900,14 +1921,14 @@ s (f . g)
   |app (VarNo f ts) u = VarNo f (ts++[u])
   |]
 
-  q«The evaluator can then be written as a simple recursion on the term
+  q«The normaliser can then be written as a simple recursion on the term
     structure:»
 
   [agdaFP|
-  |eval :: Tm a → No a
-  |eval (Var x)   = return x
-  |eval (Lam b)   = unpack b $ λ x t → LamNo x (eval t)
-  |eval (App t u) = app (eval t) (eval u)
+  |norm :: Tm a → No a
+  |norm (Var x)   = return x
+  |norm (Lam b)   = unpack b $ λ x t → LamNo x (norm t)
+  |norm (App t u) = app (norm t) (norm u)
   |]
 
   when (long || includeUglyCode) $ docNbE nbeSec nbecites
@@ -3003,3 +3024,4 @@ So it's easy to see that ∇ is a subtype of ∃ and ∀.
 
 
 -}
+
