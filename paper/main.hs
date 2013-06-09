@@ -317,9 +317,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |    FlexibleInstances, UndecidableInstances,
      |    IncoherentInstances, ScopedTypeVariables, StandaloneDeriving #-}
      |import Prelude hiding (elem,any,foldl)
+     |import Control.Monad
+     |import Control.Applicative
      |import Data.Foldable
      |import Data.Traversable
-     |import Control.Applicative
      |import Data.List (nub,elemIndex)
      |import Data.Maybe
      |-- import Data.Bifunctor 
@@ -1556,6 +1557,51 @@ s (f . g)
     to {|t₂ == fmap (bimap id (const ())) t₁|}, and we get the desired
     result.»
 
+  -- subsection «{|FunScope|}»
+  -- notetodo «NP: this one comes from NbE»
+  onlyInCode [agdaFP|
+  |type FunScope tm a = ∀ b. (a → b) → tm b → tm b
+  |
+  |fmapFunScope :: (a → b) → FunScope tm a → FunScope tm b
+  |fmapFunScope f g h x = g (h . f) x
+  |
+  |returnFunScope :: Monad tm ⇒ a → FunScope tm a
+  |returnFunScope x f t = return (f x)
+  |
+  |bindSuccScope :: Monad tm ⇒ (a → SuccScope tm b) →
+  |                   SuccScope tm a → SuccScope tm b
+  |bindSuccScope f t = t >>= \ x -> case x of
+  |  Old y -> f y
+  |  New () -> return (New ())
+  |
+  |-- NP: I started this one by converting to
+  |-- SuccScope, but so far I'm stuck here
+  |bindFunScope :: Monad tm ⇒ (a → FunScope tm b) →
+  |                  FunScope tm a → FunScope tm b
+  |bindFunScope f t g u =
+  |  funToUniv t u >>= \x -> case x of
+  |    New y → y
+  |    Old y → f y g u
+  |
+  |existToFun :: Monad tm ⇒ ExistScope tm a
+  |                       → FunScope tm a
+  |existToFun (E x t) f u = t >>= extend (x, u) (return . f)
+  |
+  |funToUniv :: Monad tm ⇒ FunScope tm a
+  |                      → UnivScope tm a
+  |funToUniv f = f Old . return . New
+  |
+  |-- funToSucc is a special case of funToUniv
+  |funToSucc :: Monad tm ⇒ FunScope tm a
+  |                      → SuccScope tm a
+  |funToSucc f = funToUniv f ()
+  |
+  |-- succToFun is a special case of existToFun
+  |succToFun :: Monad tm ⇒ SuccScope tm a
+  |                      → FunScope tm a
+  |succToFun = existToFun . E ()
+  |]
+
   subsection $ «A matter of style»
 
   q«We have seen that {|ExistScope|} is well-suited for term analysis, while 
@@ -1825,6 +1871,49 @@ s (f . g)
   notetodo «NP: I believe this is a proper realisation of NbE and
             what we had previously was hereditary-substitution
             based normalisation.»
+
+  onlyInCode [agdaP|
+  |data TmM a where
+  |  LamM :: (∀ b. (a → TmM b) → TmM b → TmM b) → TmM a
+  |  VarM :: a → [TmM a] → TmM a
+  |
+  |instance Functor TmM where
+  |  fmap f (LamM g)    = LamM $ \ h x → g (h . f) x
+  |  fmap f (VarM x ts) = VarM (f x) (map (fmap f) ts)
+  |
+  |-- Unlike Sem, TmM supports a simple 
+  |instance Monad TmM where
+  |  return x = VarM x []
+  |  LamM f    >>= θ = LamM $ f . (<=< θ)
+  |  VarM x ts >>= θ = foldl appM (θ x)((>>= θ)<$>ts)
+  |
+  |appM :: TmM a → TmM a → TmM a
+  |appM (LamM f)    u = f return u
+  |appM (VarM x ts) u = VarM x (ts++[u])
+  |
+  |evalM :: (a → TmM b) → Tm a → TmM b
+  |evalM f (Var x)   = f x
+  |evalM f (Lam b)   = unpack b $ \ x t →
+  |                    LamM $ \ g u →
+  |                     evalM (extend (x, u) (g <=< f)) t
+  |evalM f (App t u) = appM (evalM f t) (evalM f u)
+  |
+  |type ScopeM f a = ∀ b. (a → f b) → f b → f b
+  |unpackM :: ScopeM TmM a → (∀ v. v → TmM (a ▹ v) → r) → r
+  |unpackM s k = k () (s `atVarM` ())
+  |
+  |-- same as mesToUniv
+  |atVarM :: ScopeM TmM a → v → TmM (a ▹ v)
+  |s `atVarM` x = s (return . Old) (return (New x))
+  |
+  |reifyM :: TmM a → No a
+  |reifyM (VarM x ts) = VarNo x (map reifyM ts)
+  |reifyM (LamM s)    = unpackM s $ \ x t →
+  |                       LamNo x (reifyM t)
+  |
+  |nbeM :: Tm a → No a
+  |nbeM = reifyM . evalM return
+  |]
 
   [agdaFP|
   |data Sem a where
