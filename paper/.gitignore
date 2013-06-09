@@ -6,4 +6,4 @@
 /main.outline
 
 /PaperCode.hs
-/PaperCode.runghc
+*.runghc

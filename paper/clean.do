@@ -5,4 +5,5 @@ rm -f \
   main.tex \
   main.outline \
   PaperCode.hs \
+  PaperCode.hs.runghc \
   PaperCode.bin
