@@ -1093,14 +1093,16 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «The “renaming” to apply is given as a function {|f|} from {|a|}
     to {|b|} where {|a|} is the type of free variables of the input
     term ({|Tm a|}) and {|b|} is the type of free variables of the
-    “renamed” term ({|Tm b|}). The renaming operation then simply
-    preserves the structure of the input term. At occurence sites,
-    using {|f|} to rename free variables. At binding sites, {|f|} is
-    upgraded form {|a → b|} to {|a ▹ v → b ▹ v|} using the functoriality
-    of {|(▹ v)|} with {|bimap f id|}. Adapting the function {|f|} is
-    necessary to protect the bound name from being altered by {|f|}, and
-    thanks to our use of polymorphism, the type-checker ensures that we
-    make no mistake in doing so.»
+    “renamed” term ({|Tm b|}). Notice that {|f|} better be injective
+    to be considered a proper renaming, although the functor instance
+    works well for any function {|f|}. The renaming operation then
+    simply preserves the structure of the input term. At occurence
+    sites, using {|f|} to rename free variables. At binding sites,
+    {|f|} is upgraded form {|(a → b)|} to {|(a ▹ v → b ▹ v)|} using
+    the functoriality of {|(▹ v)|} with {|bimap f id|}. Adapting the
+    function {|f|} is necessary to protect the bound name from being
+    altered by {|f|}, and thanks to our use of polymorphism, the
+    type-checker ensures that we make no mistake in doing so.»
 
   [agdaFP|
   |instance Functor Tm where
@@ -1112,8 +1114,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"functor laws"
    «As usual satisfying functor laws implies that the structure is
-    preserved by the function action (fmap). The type for terms being a
-    functor therefore means that applying a renaming is going to only
+    preserved by the functor action ({|fmap|}). The type for terms being
+    a functor therefore means that applying a renaming is going to only
     affect the free variables and leave the structure untouched. Namely
     that whatever the function {|f|} is doing, the bound names are not
     going to change. As expected the laws are the following:»
@@ -1220,10 +1222,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |instance Monad Tm where
+  |  return = Var
   |  Var x   >>= θ = θ x
   |  Lam s   >>= θ = Lam (s >>>= θ)
   |  App t u >>= θ = App (t >>= θ) (u >>= θ)
-  |  return = Var
   |]
 
   q«At binding sites, one needs to lift the substitution so it does not
@@ -1244,6 +1246,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«Substitution under a binder {|(>>>=)|} is then the wrapping
     of {|liftSubst|} between {|unpack|} and {|pack|}. It is uniform as
     well, and thus can be reused for every structure with binders.»
+
+  -- TODO NP: SuccScope/UnivScope/... are monad transformers
 
   [agdaFP|
   |(>>>=) :: (Functor tm, Monad tm) ⇒
@@ -1405,7 +1409,7 @@ s (f . g)
   substitutive structure by using standard type-classes, we can recapitulate and succintly describe
   the essence of our constructions.»
 
-  q«In nested abstract systax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
+  q«In Nested Abstract Syntax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
     is represented as follows:»
   [agdaFP|
   |type SuccScope tm a = tm (Succ a)
@@ -1443,11 +1447,15 @@ s (f . g)
     diverging term in place of a witness
     of variable name is far-fetched.»
 
-  q«For the above reason, we do not commit to either side, and use the suitable representation on 
-  a case-by-case basis. This is possible because the representations are both isomorphic to
-  a concrete represention of binders such as {|SuccScope|}, and by transivitity between each other.
-  In the following we exhibit the conversion functions, and prove that they form an isomorphism,
-  assuming an idealised Haskell lacking non-termination and {|seq|}.»
+  q«For the above reason, we do not commit to either side, and use the
+    suitable representation on a case-by-case basis. This is possible
+    because these scope representations ({|SuccScope|}, {|UnivScope|}
+    and {|ExistScope|}) are all isomorphic to each other. In the
+    following we exhibit the conversion functions, and prove that
+    they form an isomorphism, assuming an idealised {_Haskell} lacking
+    non-termination and {|seq|}.»
+
+  -- NP: should we cite “Fast and loose reasoning is morally correct”
 
   subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
   p"conversions"
@@ -1455,33 +1463,34 @@ s (f . g)
   [agdaFP|
   |succToUniv :: Functor tm ⇒
   |              SuccScope tm a → UnivScope tm a
-  |succToUniv t = λ x → fmap (bimap id (const x)) t
+  |succToUniv t = λ x → bimap id (const x) <$> t
   |
-  |polyToSucc :: UnivScope tm a → SuccScope tm a
-  |polyToSucc f = f ()
+  |univToSucc :: UnivScope tm a → SuccScope tm a
+  |univToSucc f = f ()
   |]
-  q«The {|polyToSucc|} function has not been given a name in the previous sections, 
-    but was implicitly used 
-    in the definition of {|lam|}. 
-    This is the first occurence of the {|succToUniv|} function.»
 
+  q«The {|univToSucc|} function has not been given a name in the
+    previous sections, but was implicitly used in the definition
+    of {|lam|}. This is the first occurence of the {|succToUniv|}
+    function.»
 
-  
-  q«We prove first that {|UnivScope|} is a proper representation of {|SuccScope|},
-    that is {|polyToSucc . succToUniv == id|}. This can be done by simple equational reasoning:»
+  q«We prove first that {|UnivScope|} is a proper representation
+    of {|SuccScope|}, that is {|univToSucc . succToUniv ≡ id|}. This can
+    be done by simple equational reasoning:»
+
   commentCode [agdaFP|
-  |    polyToSucc (succToUniv t)
-  | == {- by def -}
-  |    existToSucc (λ x → fmap (bimap id (const x)) t)
-  | == {- by def -}
-  |    fmap (bimap id (const ())) t
-  | == {- by () having just one element -}
-  |    fmap (bimap id id) t
-  | == {- by (bi)functor laws -}
-  |    t
+  |   univToSucc (succToUniv t)
+  | ≡ {- by def -}
+  |   univToSucc (λ x → bimap id (const x) <$> t)
+  | ≡ {- by def -}
+  |   bimap id (const ()) <$> t
+  | ≡ {- by () having just one element -}
+  |   bimap id id <$> t
+  | ≡ {- by (bi)functor laws -}
+  |   t
   |]
 
-  q«The second property ({|succToUniv . polyToSucc == id|}) is more
+  q«The second property ({|succToUniv . univToSucc ≡ id|}) is more
     difficult to prove: it corresponds to the fact that one cannot
     represent more terms in {|UnivScope|} than in {|SuccScope|},
     and relies on parametricity. Hence we need to use the free
@@ -1492,12 +1501,12 @@ s (f . g)
     that {|tm|} is a functor. We obtain the following lemma:»
 
   commentCode [agdaFP|
-  | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
-  | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
+  | ∀v₁:*. ‼ ∀v₂:*. ∀v:v₁ → v₂.
+  | ∀x₁:v₁. ∀x₂:*. v x₁ ≡ x₂.
   | ∀g:(a ▹ v₁) → (a ▹ v₂).
-  | (∀ y:v₁. New (v y) == g (New y)) →
-  | (∀ n:a.  Old n     == g (Old n)) →
-  | f x₂ == fmap g (f x₁)
+  | (∀ y:v₁. New (v y) ≡ g (New y)) →
+  | (∀ n:a. ‼ Old n     ≡ g (Old n)) →
+  | f x₂ ≡ g <$> f x₁
   |]
 
   q«We can then specialize {|v₁|} and {|x₁|} to {|()|}, {|v|}
@@ -1506,55 +1515,64 @@ s (f . g)
     equationally:»
 
   commentCode [agdaFP|
-  |    f
-  | == {- by the above -}
-  |    λ x → fmap (bimap id (const x)) (f ())
-  | == {- by def -}
-  |    succToUniv (f ())
-  | == {- by def -}
-  |    succToUniv (polyToSucc f)
+  |   f
+  | ≡ {- by the above -}
+  |   λ x → bimap id (const x) <$> f ()
+  | ≡ {- by def -}
+  |   succToUniv (f ())
+  | ≡ {- by def -}
+  |   succToUniv (univToSucc f)
   |]
 
   subsection «{|ExistScope tm a ≅ SuccScope tm a|} »
+
   p"conversions"
-   «The conversion functions witnessing the isomorphism are the following.»
+   «The conversion functions witnessing the isomorphism are the
+    following.»
+
   [agdaFP|
   |succToExist :: SuccScope tm a → ExistScope tm a
-  |succToExist t = E () t
+  |succToExist = E ()
   |
   |existToSucc :: Functor tm ⇒ 
   |               ExistScope tm a → SuccScope tm a
-  |existToSucc (E _ t) = fmap (bimap id (const ())) t
+  |existToSucc (E _ t) = bimap id (const ()) <$> t
   |]
-  q«One will recognise {|pack|} and {|unpack|} as CPS versions of {|existToSucc|} and {|succToExist|}.»
 
-  q«The proof of {|existToSucc . succToExist == id|} is nearly identical to the 
-  first proof about {|UnivScope|} and hence omitted.
-  To prove {|succToExist . existToSucc == id|}, we first remark that by definition»
+  q«One notice that {|pack|} and {|unpack|} as CPS versions
+    of {|existToSucc|} and {|succToExist|}.»
+
+  q«The proof of {|existToSucc . succToExist ≡ id|} is nearly identical
+    to the first proof about {|UnivScope|} and hence omitted. To
+    prove {|succToExist . existToSucc ≡ id|}, we first remark that by
+    definition:»
+
   commentCode [agdaFP|
-  |succToExist (existToSucc (E y t)) == 
+  |succToExist (existToSucc (E y t)) ≡
   |  E () (fmap (bimap id (const ())) t)
   |]
-  q«It remains To show that {|E y t|} is equivalent to the right-hand side of the above equation.
-  To do so, we consider
-  any observation function {|o|} of type {|∀v. v → tm (a▹v) → K|} for 
-  some constant type {|K|}, and show 
-  that it will return the same result if
-  applied to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ())) t|}.
-  This fact is a consequence of the free theorem associated with {|o|}:»
+
+  q«It remains to show that {|E y t|} is equivalent to the right-hand
+    side of the above equation. To do so, we consider any observation
+    function {|o|} of type {|∀v. v → tm (a ▹ v) → K|} for some constant
+    type {|K|}, and show that it will return the same result if applied
+    to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ()))
+    t|}. This fact is a consequence of the free theorem associated
+    with {|o|}:»
+
   commentCode [agdaFP|
-  | ∀v₁:*.  ∀v₂:*. ∀v:v₁ → v₂.
-  | ∀x₁:v₁. ∀x₂:*. v x₁ == x₂.
+  | ∀v₁:*. ‼ ∀v₂:*. ∀v:v₁ → v₂.
+  | ∀x₁:v₁. ∀x₂:*. v x₁ ≡ x₂.
   | ∀t₁:tm (a ▹ v₁). ∀t₂:tm (a ▹ v₂).
   | (∀g:(a ▹ v₁) → (a ▹ v₂).
-  |  (∀ y:v₁. New (v y) == g (New y)) →
-  |  (∀ n:a.  Old n     == g (Old n)) →
-  |  t₂ == fmap g t₁) →
-  | o x₂ t₂ == o x₁ t₁
+  |  (∀ y:v₁. New (v y) ≡ g (New y)) →
+  |  (∀ n:a.  Old n     ≡ g (Old n)) →
+  |  t₂ ≡ fmap g t₁) →
+  | o x₂ t₂ ≡ o x₁ t₁
   |] 
   q«Indeed, after specialising {|x₂|} to {|()|} and {|v|}
     to {|const ()|}, the last condition is equivalent
-    to {|t₂ == fmap (bimap id (const ())) t₁|}, and we get the desired
+    to {|t₂ ≡ fmap (bimap id (const ())) t₁|}, and we get the desired
     result.»
 
   -- subsection «{|FunScope|}»
@@ -1855,7 +1873,7 @@ s (f . g)
   |extendCmp _ _ _ _       _       = False
   |]
 -}
-  subsection $ «Normalisation by evaluation» `labeled` nbeSec
+  subsection $ «Normalisation by Evaluation» `labeled` nbeSec
 
   p"intro"
    «A classical test of scope respresentations is how they support
@@ -1967,7 +1985,7 @@ s (f . g)
   |  return x = VarNo x []
   |
   |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst θ)
-  |  VarNo f xs >>= θ = foldl app (θ f)((>>= θ)<$>xs)
+  |  VarNo f ts >>= θ = foldl app (θ f)((>>= θ)<$>ts)
   |]
 
   q«The most notable feature of this substitution is the use of {|app|}
@@ -1976,7 +1994,7 @@ s (f . g)
   [agdaFP|
   |app :: No a → No a → No a
   |app (LamNo x t)  u = substituteOut x u t
-  |app (VarNo f xs) u = VarNo f (xs++[u])
+  |app (VarNo f ts) u = VarNo f (ts++[u])
   |]
 
   q«The evaluator can then be written as a simple recursion on the term
@@ -2705,15 +2723,6 @@ s (f . g)
 
 
 {-
-  Lam :: Binding Tm a -> Tm a
-  type BindingS tm a = tm (Succ a) -- = tm (a :▹ ()) ≅ tm (Maybe a)
-  type BindingH tm a = ∀ v. v -> tm (a :▹ v)
-  data BindingN tm a where
-    Binding :: v -> tm (a :▹ v) -> Binding tm a
-
-  Tm bnd a -> Tm bnd' a'
-
-  BindingS f a ≅ BindingH f a ≅ BindingN f a
 
   Functor f =>
   f () ≅ ∀ v. v → f v ≅ ∃ v. (v, f v)
@@ -2864,8 +2873,8 @@ appendix = execWriter $ do
   |instance Functor No where 
   |  fmap f (LamNo x t)  = 
   |     LamNo x (fmap (bimap f id) t)
-  |  fmap f (VarNo x xs) = 
-  |     VarNo (f x) (fmap (fmap f) xs)
+  |  fmap f (VarNo x ts) =
+  |     VarNo (f x) (fmap (fmap f) ts)
   |]
 
   subsection «CPS»
