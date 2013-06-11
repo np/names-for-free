@@ -29,13 +29,14 @@ import Paper.NbE
 [keys|intro
       overview
       termStructure
+      functorSec
+      monadSec
       examples
       comparison
       performance
       proofs
       discussion
       implementationExtras
-      functorSec
       cpsSec
       closureSec
       hereditarySec
@@ -84,6 +85,7 @@ import Paper.NbE
       chargueraud-11-ln aydemir-08 cave-12
 
       nanevski-08
+      bound-kmett-12
      |]
 
 {-
@@ -1201,7 +1203,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     tediously counting indices and constructing an appropriate renaming function. We
     demonstrate this feature in sec. {ref examples}.»
 
-  subsection $ «Substitution and Monads»
+  subsection $ «Substitution and Monads» `labeled` monadSec
 
   q«Another useful property of terms is that free variables can be substituted
     with terms. This property is captured algebraically by asserting
@@ -2324,11 +2326,21 @@ s (f . g)
 
   subsection $ «E. Kmett's Bound package for {_Haskell}» -- TODO: NP
 
-  -- TODO flow
-  q«The main performance issue with de Brujin indices from the cost
-    of importing terms into scopes without capture, this requires to
-    increment the free-variables which incurs not only a cost but a loss
-    of sharing.»
+  q«In his {_Haskell} package, {citet[boundkmett12]} elegantly addresses
+    the main performance issue caused by de Brujin indices.»
+
+  q«Indeed the main performance issue comes from the cost of importing
+    terms into scopes without capture, this requires to increment the
+    free-variables which incurs not only a cost but a loss of sharing.»
+
+  q«In the {_Bound} package, Kmett captures most of definitions
+    of scopes through a single data type, namely {|Scope|}. This
+    type {|Scope|} not only help improving performances but supports
+    multiple binders and enjoys a structure of monad transformers.
+    Additionally the type {|Scope|} is made an instance of type class
+    featuring a function {|>>>=|} similar to the one from section {ref
+    monadSec}. Here we specialize the type {|Scope|} to a single binder
+    to focus on the performance improvement.»
 
   [agdaFP|
   |data TmK a where
@@ -2337,27 +2349,35 @@ s (f . g)
   |  AppK :: TmK a → TmK a → TmK a
   |]
 
-  q«Thanks to this representation the application of substitutions do
-    not require their lifting, as can be made explicit by the following 
-    {|Monad|} instance:»
+  q«Thanks to this representation the application of substitutions
+    do not require their lifting, as can be made explicit by the
+    following {|Monad|} instance:»
+
   [agdaFP|
   |instance Monad TmK where
   |  return = VarK
   |  VarK a >>= θ = θ a
   |  AppK a b >>= θ = AppK (a >>= θ) (b >>= θ) 
-  |  LamK t >>= θ = LamK (t >>= \x -> case x of
-  |                   New b -> return (New b)
-  |                   Old a -> VarK (Old (a >>= θ)))
+  |  LamK t >>= θ = LamK (t >>= \x -> VarK $ case x of
+  |                   New b -> New b
+  |                   Old a -> Old (a >>= θ))
   |]
-  q«Our interface can be adapted in a straightforward manner to take advantage of this feature:»
+
+  q«Our interface can be adapted in a straightforward manner to take
+    advantage of this feature:»
+
   commentCode [agdaFP|
   |type ExistScope' tm a = ∃v. v × tm (tm a ▹ v)
   |type UnivScope'  tm a = ∀v. v → tm (tm a ▹ v)
   |]
+
   -- TODO off-topic
+  -- NP: misplaced as well
+  {-
   q«Besides, Nested Abstract Syntax misses a controlled and
     uniform way to represent variables which prevents from using machine
     integers to represent all the variables.»
+  -}
 
   subsection $ «HOAS: Higher-Order Abstract Syntax»
 
