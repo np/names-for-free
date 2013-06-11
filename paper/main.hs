@@ -1228,12 +1228,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     with {|return|}.»
 
   -- TODO we under use the monadic structure of tm∘(▹v)
-  notetodo «pass a name to liftSubst»
   [agdaFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒
-  |             (a → tm b) → (a ▹ v) → tm (b ▹ v)
-  |liftSubst θ (Old x) = fmap Old (θ x)
-  |liftSubst θ (New x) = return (New x)
+  |             v -> (a → tm b) → (a ▹ v) → tm (b ▹ v)
+  |liftSubst _ θ (Old x) = fmap Old (θ x)
+  |liftSubst _ θ (New x) = return (New x)
   |]
 
   q«Substitution under a binder {|(>>>=)|} is then the wrapping
@@ -1246,7 +1245,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |(>>>=) :: (Functor tm, Monad tm) ⇒
   |          tm (Succ a) → (a → tm b) → tm (Succ b)
   |s >>>= θ = unpack s $ λ x t →
-  |             pack x (t >>= liftSubst θ)
+  |             pack x (t >>= liftSubst x θ)
   |]
 
   p"laws"
@@ -1896,7 +1895,7 @@ s (f . g)
   |instance Monad No where
   |  return x = VarNo x []
   |
-  |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst θ)
+  |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst x θ)
   |  VarNo f ts >>= θ = foldl app (θ f)((>>= θ)<$>ts)
   |]
 
@@ -2032,7 +2031,7 @@ s (f . g)
   |cc t0@(Lam b) =
   |  let yn = nub $ freeVars t0
   |  in Closure (λ x env → cc (b `atVar` x) >>=
-  |                   liftSubst (idxFrom yn env))
+  |                   liftSubst x (idxFrom yn env))
   |             (Tuple $ map VarLC yn)
   |cc (App e1 e2) =
   |  LetOpen (cc e1)
@@ -2890,7 +2889,8 @@ appendix = execWriter $ do
   |  VarLC x >>= θ = θ x
   |  Closure c env >>= θ = Closure c (env >>= θ)
   |  LetOpen t g >>= θ = LetOpen (t >>= θ) 
-  |    (λ f env → g f env >>= liftSubst (liftSubst θ))
+  |    (λ f env → g f env >>= 
+  |        liftSubst env (liftSubst f θ))
   |  Tuple ts >>= θ = Tuple (map (>>= θ) ts)
   |  Index t i >>= θ = Index (t >>= θ) i
   |  AppLC t u >>= θ = AppLC (t >>= θ) (u >>= θ)
