@@ -2039,7 +2039,7 @@ s (f . g)
   |          (λ f x → var f $$ wk (cc e2) $$ var x)
   |
   |idxFrom :: Eq a ⇒ [a] → v → a → LC (Zero ▹ v)
-  |idxFrom yn env z = Index (var env) . 
+  |idxFrom yn env z = Index (var env) $
   |                   fromJust (elemIndex z yn)
   |]
 
