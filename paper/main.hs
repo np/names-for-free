@@ -444,7 +444,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   subsection $ «de Bruijn Indices»
 
   p"de Bruijn indices"
-   «{citet[debruijnlambda1972]} proposed to represent an occurence of
+   «{_Citet[debruijnlambda1972]} proposed to represent an occurence of
     some variable {|x|} by counting the number of binders that one
     has to cross beween the occurence and the binding site of {|x|}.
     A direct implementation of the idea may yield the following
@@ -1242,6 +1242,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     with {|return|}.»
 
   -- TODO we under use the monadic structure of tm∘(▹v)
+  notetodo «pass a name to liftSubst»
   [agdaFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒
   |             (a → tm b) → (a ▹ v) → tm (b ▹ v)
@@ -1881,8 +1882,10 @@ s (f . g)
 -}
 
   subsection $ «Normalisation using hereditary substitution» `labeled` hereditarySec
-
-  q«Normalisation takes terms to their normal forms. The following type
+  q«A standard test of binder representations is how well they support normalisation. 
+    In this section we show how to implement normalisation using our constructions.»
+  -- Normalisation takes terms to their normal forms. 
+  q«The following type
     captures normal forms of the untyped λ-calculus: a normal form is
     either an abstraction or a variable applied to some normal forms. In
     this definition we use an existential-based version of scopes, which
@@ -1894,14 +1897,15 @@ s (f . g)
   |  VarNo :: a → [No a] → No a
   |]
 
-  [agdaP|
-  |lamNo :: (∀ v. v → No (a ▹ v)) → No a
-  |lamNo f = LamNo () (f ())
-  |]
+-- Unused
+--  [agdaP|
+--  |lamNo :: (∀ v. v → No (a ▹ v)) → No a
+--  |lamNo f = LamNo () (f ())
+--  |]
 
   q«The key to this normalisation procedure is that normal forms
     are stable under hereditary substitution {cite hereditarycites}.
-    The function performing an hereditary substitution, substitutes
+    The function performing an hereditary substitution substitutes
     variables for their value, while reducing redexes on the fly.»
 
   [agdaFP|
@@ -1980,6 +1984,8 @@ s (f . g)
 
   -- NP: we should either change to SuccScope or mention that we illustrate
   -- here the UnivScope representation.
+  -- JP: done at end of sec. 5.4
+   
 
   [agdaFP|
   |data LC a where
@@ -1987,13 +1993,11 @@ s (f . g)
   |  AppLC :: LC a → LC a → LC a
   |  Closure :: (∀ vx venv. vx → venv →
   |           LC (Zero ▹ venv ▹ vx)) →
-  |           LC a →
-  |           LC a
+  |           LC a → LC a
   |  Tuple :: [LC a] → LC a
   |  Index :: LC a → Int → LC a
-  |  LetOpen :: LC a →
-  |             (∀ vf venv. vf → venv →
-  |              LC (a ▹ vf ▹ venv)) → LC a
+  |  LetOpen :: LC a → (∀ vf venv. vf → venv →
+  |                     LC (a ▹ vf ▹ venv)) → LC a
   |]
 
   q«This representation is an instance of {|Functor|} and {|Monad|}, and
@@ -2270,7 +2274,7 @@ s (f . g)
     quantified type.) However limited, this higher-order aspect is
     enough to allow an easy implementation of the CPS transform.»
 
-  section $ «Comparisons» `labeled` comparison
+  section $ «Related Work» `labeled` comparison
 
   notetodo «Why don't we compare interfaces instead of representation?»
   notetodo «Tell that any representation embodies an interface»
@@ -2646,7 +2650,7 @@ s (f . g)
   -}
 
   subsection $ «Multiple Binders/Rec/Pattern/Telescope» -- TODO: NP
-
+  notetodo «Fill this»
 
 {-
 
@@ -2723,20 +2727,21 @@ s (f . g)
     to a monotype either in 
     {|∀ v. v → tm (a ▹ v)|} or {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
     by providing a quantifier which allows only substitution for type variables. This
-    quantifier can be understood as being both existential and universal, and hence is self dual.
-    Choosing the notation {|∇|} for it (due to the similarity of the nabla quantifier of quantifier
-    of {citet[millerproof2003]}), we would have the following definitions, and safety could not be 
-    compromised. »
+    quantifier can be understood as being at the same time existential and universal, 
+    and hence is self dual.
+    Choosing the notation {|∇|} (pronounced nabla) for it, due to the similarity to the quantifier
+    of {citet[millerproof2003]}, also written ∇.  
+    We would then have the following definitions, and safety could not be compromised. »
 
   commentCode [agdaFP|
    |type UnivScope  tm a = ∇ v.  v → tm (a ▹ v)
-   |type ExistScope tm a = ∇ v. (v , tm (a ▹ v))
+   |type ExistScope tm a = ∇ v. (v ,  tm (a ▹ v))
    |]
   q«
    These definitions would preclude using {|SuccScope|} as an implementation, 
    however this should not cause any issue as either of the above could be used directly
    in an implementation.
-   Supporting our version of {|∇|} in a type-checker seem a rather modest extension,
+   Supporting our version of {|∇|} in a type-checker seems a rather modest extension,
    therefore we wish to investigate how some future version of GHC could support it.
    »
 
@@ -2766,21 +2771,18 @@ s (f . g)
 
   subsection «Conclusion»
   q«
-  We have shown how to make de Bruijn indices safe, by typing them with the exact context
-  where they make sense. Obtaining such polymorphic contexts is done by using (appropriately)
+  We have shown how to make de Bruijn indices safe, by typing them precisely with 
+  the context where they make sense. Such precise contexts are obtained is by using (appropriately)
   either of the interfaces {|UnivScope|} or {|ExistScope|}. These two interfaces can 
-  be seen as the both sides of the nabla quantifier of {citet [millerproof2003]}. 
+  be seen as the both sides of the ∇ quantifier of {citet [millerproof2003]}. 
   Essentially, we have deconstructed that flavour of quantification over names, 
-  and implemented it in Haskell. The result is a safe method to manipulated names
-  and binders, which is supported by today's Glasgow Haskell Compiler.»
-   
+  and implemented it in Haskell. The result is a safe method to manipulate names
+  and binders, which is supported by today's Glasgow Haskell Compiler.
 
-  q «
-  We do not suffer from name-capture and complicated α-equivalence problems; but
-  we can conveniently call variables by their name.
+  The method preserves the good properties of de Bruijn indices, while providing
+  a convenient interface to program with them.
   »
 
-  -- notetodo «a word on impredicativity?»
 
   acknowledgements   «We thank Emil Axelsson and Koen Claessen for useful feedback.»
 
