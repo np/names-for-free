@@ -2323,12 +2323,34 @@ s (f . g)
     increment the free-variables which incurs not only a cost but a
     loss of sharing.»
 
+  [agdaFP|
+  |data TermK a where
+  |  VarK :: a → TermK a
+  |  LamK :: TermK (TermK a ▹ ()) → TermK a
+  |  AppK :: TermK a → TermK a → TermK a
+  |]
+
+  q«Thanks to this representation the application of substitutions do
+    not require their lifting, as can be made explicit by the following 
+    {|Monad|} instance:»
+  [agdaFP|
+  |instance Monad TermK where
+  |return = VarK
+  |VarK a >>= θ = θ a
+  |AppK a b >>= θ = AppK (a >>= θ) (b >>= θ) 
+  |LamK t >>= θ = LamK (t >>= \x -> case x of
+  |                 New b -> return (New b)
+  |                 Old a -> VarK (Old (a >>= θ)))
+  |]
+  q«Our interface can be adapted in a straightforward manner to take advantage of this feature:»
+  [agdaFP|
+  |type ExistScope' tm a = ∃v. v × tm (tm a ▹ v)
+  |type UnivScope'  tm a = ∀v. v → tm (tm a ▹ v)
+  |]
   -- TODO off-topic
   q«Besides, Nested Abstract Syntax misses a controlled and
     uniform way to represent variables which prevents from using machine
     integers to represent all the variables.»
-
-  notetodo «JP: can we say that ``Bound'' is like having explicit substitutions?»
 
   subsection $ «HOAS: Higher-Order Abstract Syntax»
 
