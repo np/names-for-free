@@ -33,6 +33,12 @@ docNbE label nbecites = do
     definition we use an existential-based version of scopes, which we
     splice in the {|LamNo|} constructor.»
 
+  [agdaP|
+  |lamNo :: (∀ v. v → No (a ▹ v)) → No a
+  |lamNo f = LamNo () (f ())
+  |]
+
+
   p"Sem"
    «Terms are first evaluated into semantic terms where name-abstraction TODO»
 

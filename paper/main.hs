@@ -1897,12 +1897,6 @@ s (f . g)
   |  VarNo :: a → [No a] → No a
   |]
 
--- Unused
---  [agdaP|
---  |lamNo :: (∀ v. v → No (a ▹ v)) → No a
---  |lamNo f = LamNo () (f ())
---  |]
-
   q«The key to this normalisation procedure is that normal forms
     are stable under hereditary substitution {cite hereditarycites}.
     The function performing an hereditary substitution substitutes
