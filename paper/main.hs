@@ -42,6 +42,7 @@ import Paper.NbE
       nbeSec
       contextSec
       scopesSec
+      styleSec
      |]
 
 -- figures
@@ -333,14 +334,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |main = putStrLn "It works!"
      |]
 
-  notetodo «unify the terminology names/context/free variables»
--- JP (when the rest is ready)
+  notetodo «unify the terminology names/context/free variables (when the rest is ready)»
   section $ «Intro» `labeled` intro
 
   p"the line of work where we belong"
    «One of the main application areas of functional programming
-    languages such as Haskell is programming language technology. In
-    particular, Haskell programmers often find themselves manipulating
+    languages such as {_Haskell} is programming language technology. In
+    particular, {_Haskell} programmers often find themselves manipulating
     data structures representing some higher-order object languages,
     featuring binders and names.»
 
@@ -350,8 +350,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Yet, the most commonly used representations for names and binders
     yield code which is difficult to read, or error-prone to write
     and maintain. The techniques in question are often referred as
-    “nominal”, “de Bruijn indices” and “HOAS: Higher-Order Abstract
-    Syntax”.»
+    “nominal”, “de Bruijn indices” and “Higher-Order Abstract
+    Syntax (HOAS)”.»
 
   -- NP: We can make this better.
   p"Nominal pros&cons"
@@ -381,22 +381,20 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"de Bruijn pros&cons"
    «To avoid the problem of name capture, one can represent names
-    canonically, for example by the number of binders (typically λ)
-    to cross between an occurence and its binding site. In practice
+    canonically, for example by the number of binders, typically λ,
+    to cross between an occurence and its binding site (a de Bruijn index). 
+    This has the added benefit of making α-equivalent terms syntactically equal.
+    In practice
     however, this representation makes it hard to manipulate terms:
     instead of calling things by name, programmers have to rely on their
     arithmetic abilities, which turns out to be error-prone. As soon as
     one has to deal with more than just a couple open bindings, it becomes
     easy to make mistakes.»
 
-  p"de Bruijn make α-eq easy"
-   «For instance deciding if two terms are α-equivalent is
-    straightforward and efficient with de Bruijn indices and is more
-    involved and error-prone with nominal approaches.»
-
   p"HOAS"
-   «Finally, the idea of HOAS is to use the binders of the host language (in our case Haskell)
-    to represent binders of the object language. This technique does not suffer
+   «Finally, one can use the binders of the host language (in our case {_Haskell})
+    to represent binders of the object language. This technique (called HOAS)
+    does not suffer
     from name-capture problems nor involves arithmetic. However the 
     presence of functions in the term representation mean that it is difficult 
     to manipulate, and it may contain values which do not represent any term.»
@@ -419,12 +417,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"contribution continued"
    «All the while, neither do we require a
-    name supply, nor there is a chance of name capture.
+    name supply, nor is there a chance of name capture.
     Testing terms for α-equivalence remains straightforward and representable
     terms are exactly those intended.
     The cost of this
     achievement is the use of somewhat more involved types for binders,
-    and the use of Haskell type-system extensions implemented in the Glasgow
+    and the use of {_Haskell} type-system extensions implemented in the Glasgow
     Haskell Compiler. The new construction is informally described and
     motivated in sec. {ref overview}. In sections {ref contextSec} to {ref scopesSec}
     we present in detail the implementation of the technique as well
@@ -475,7 +473,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   paragraph «Nested Abstract Syntax»
 
   p"nested data types"
-   «In functional programming languages such as Haskell, it is
+   «In functional programming languages such as {_Haskell}, it is
     possible to remedy to this situation by using nested data types
     and polymorphic recursion. That is, one parameterizes the type of
     terms by a type that can represent {emph«free»} variables. If the
@@ -624,7 +622,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"type-checking the number of Old..."
    «The type-checker then makes sure that the implementation matches the specification:
     for example if one now makes a mistake and forgets one {|Old|} when entering the
-    term, the Haskell type system rejects the definition.»
+    term, the {_Haskell} type system rejects the definition.»
 
   commentCode [agdaFP|
   |oops_ = lam $ λ f → lam $ λ x → Var (New f)
@@ -639,8 +637,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     {emph«implementation»} is inexistent (if we ignore diverging terms).
     Indeed, because the type {|v|} corresponding to a bound variable is
     universally quantified, the only way to construct a value of its
-    type is to use the variable bound by {|lam|}. (In Haskell 
-    one can always use a diverging program; however one has to make a concious decision 
+    type is to use the variable bound by {|lam|}. (In {_Haskell}
+    one can use a diverging program; however one has to make a concious decision 
     to produce a value of such an obviously empty type.)»
 
   p"unicity of injections"
@@ -693,11 +691,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «So far, we have seen that by taking advantage of polymorphism, 
     our interface allows to construct
     terms with de Bruijn indices, combined with the safety and
-    convenience of named variables. In the next section we will show how
+    convenience of named variables. In the next section we show how
     to use the same idea to provide the same advantages for the analysis
-    and manipulation on terms.»
+    and manipulation of terms.»
 
-  subsection «Pack/Unpack: Referring to free variables by name»
+  subsection «Referring to free variables by name»
 
   p"unpack"
    «Often, one wants to be able to check if an
@@ -728,7 +726,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- of information of v.
   p"why unpack works"
    «Because {|v|} is existentially bound, {|x|} can never be used in a
-    computation. It acts as a reference to a variable in a context, but
+    computation. It only acts as a reference to a variable in a context,
     in a way which is only accessible to the type-checker.
 
     For instance, when facing a term {|t|} of type
@@ -1016,24 +1014,10 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"occursIn"
-   «One can test if a variable is fresh for a given term as follows (as
-    we shall see {|Tm|} is {|Foldable|} hence supports {|elem|}:»
-
---   [agdaFP|
---   |occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
---   |x `occursIn` t = inj x `elem` freeVars t
---   |]
-  -- one should not use Data.Foldable.elem; we have not seen the Foldable instance yet.
-  --
-  -- OR: inj x `elem` t
-  -- x `occursIn` t = inj x `elem` freeVars t
-  -- OR: using freeVars
-  -- x `occursIn` t = any (`isOccurenceOf` x) (freeVars t)
-
-
---  p"freshFor"
---   «Sometimes we need the negation of {|occursIn|}, here is {|freshFor|}:»
---
+   «One can test if a variable is fresh for a given term as follows:»
+  -- We should not use Data.Foldable.elem here: we have not seen the
+  -- Foldable instance yet.  At this point the cosmetic benefit is
+  -- outweighed by the cost of the dangling (future) references.
   [agdaFP|
   |freshFor :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
   |x `freshFor` t = not (inj x `elem` freeVars t)
@@ -1079,7 +1063,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «It is well-known that every term representation parameterized
     on the type of free variables should exhibit monadic structure,
     with substitution corresponding to the binding operator {cite
-    nestedcites{-TODO-}}. This means that the representation is stable
+    nestedcites{-TODO-}}. That is, a {|Monad tm|} constraint means
+    that a that a term representation {|tm|} is stable
     under substitution. In this section we review this structure,
     as well as other standard related structures on terms. These
     structures are perhaps easier to implement directly on a concrete
@@ -1099,11 +1084,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «The “renaming” to apply is given as a function {|f|} from {|a|}
     to {|b|} where {|a|} is the type of free variables of the input
     term ({|Tm a|}) and {|b|} is the type of free variables of the
-    “renamed” term ({|Tm b|}). Notice that {|f|} better be injective
-    to be considered a proper renaming, although the functor instance
+    “renamed” term ({|Tm b|}). While the function {|f|} should be injective
+    to be considered a renaming, the functor instance
     works well for any function {|f|}. The renaming operation then
     simply preserves the structure of the input term. At occurence
-    sites, using {|f|} to rename free variables. At binding sites,
+    sites it uses {|f|} to rename free variables. At binding sites,
     {|f|} is upgraded form {|(a → b)|} to {|(a ▹ v → b ▹ v)|} using
     the functoriality of {|(▹ v)|} with {|bimap f id|}. Adapting the
     function {|f|} is necessary to protect the bound name from being
@@ -1124,7 +1109,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     a functor therefore means that applying a renaming is going to only
     affect the free variables and leave the structure untouched. Namely
     that whatever the function {|f|} is doing, the bound names are not
-    going to change. As expected the laws are the following:»
+    going to change. The {|Functor|} laws are the following:»
 
   doComment
     [agdaFP|
@@ -1133,7 +1118,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     |]
 
   p"reading the laws"
-   «Therefore the identity function corresponds to not renaming anything
+   «In terms of renaming, they mean that the identity function corresponds
+    to not renaming anything
     and compositions of renaming functions corresponds to two sequential
     renaming operations.»
 
@@ -1214,7 +1200,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Substitution and Monads»
 
-  q«Another property of terms is that free variables can be substituted
+  q«Another useful property of terms is that free variables can be substituted
     with terms. This property is captured algebraically by asserting
     that terms form a {|Monad|}, where {|return|} is the variable
     constructor and {|>>=|} acts as parallel substitution. Indeed, one
@@ -1235,8 +1221,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   q«At binding sites, one needs to lift the substitution so it does not
-    act on the newly bound variables. As for the {|Functor|} instance,
-    the type system will guarantee that no mistake is made. Perhaps
+    act on the newly bound variables, a behaviour isolated in the helper {|>>>=|}. As for the {|Functor|} instance,
+    the type system guarantees that no mistake is made. Perhaps
     noteworthy is that this operation is independent of the concrete
     term structure: we only “rename” with {|fmap|} and inject variables
     with {|return|}.»
@@ -1325,7 +1311,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     than a {|Functor|} and strictly less powerful than a {|Monad|}.
     Any {|Monad|} is an {|Applicative|} and any {|Applicative|}
     is a {|Functor|}. To be traversed a structure only needs
-    an applicative and therefore will support monadic actions
+    an applicative and therefore support monadic actions
     directly {cite[mcbrideapplicative2007]}.»
 
   [agdaFP|
@@ -1341,7 +1327,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"explain bitraverse"
    «In order to traverse name abstractions, indices need to be traversed
-    as well. The type {|(▹)|} is a bi-functor that is bi-traversable.
+    as well. The type {|(▹)|} is a bi-functor and is bi-traversable.
     The function {|bitraverse|} is given two effectful functions, one for
     each case:»
 
@@ -1433,7 +1419,7 @@ s (f . g)
   |type UnivScope  tm a = ∀ v.  v → tm (a ▹ v)
   |type ExistScope tm a = ∃ v. (v ,  tm (a ▹ v))
   |]
-  q«The above syntax for existentials is not supported in Haskell, so we must use
+  q«The above syntax for existentials is not supported in {_Haskell}, so we must use
     one of the lightweight encodings available. In the absence of view patterns,   
     a CPS encoding is
     convenient for programming (so we used this so far),
@@ -1444,7 +1430,7 @@ s (f . g)
   |  E :: v → tm (a ▹ v) → ExistScope tm a
   |] 
 
-  q«As we observe in a number of examples, these representations
+  q«As we have observed on a number of examples, these representations
     are dual from a usage perspective: the universal-based representation
     allows safe the construction of terms, while the existential-based representation is
     allows safe the analysis of terms.
@@ -1455,11 +1441,11 @@ s (f . g)
     of variable name is far-fetched.»
 
   q«For the above reason, we do not commit to either side, and use the
-    suitable representation on a case-by-case basis. This is possible
+    suitable representation on a case-by-case basis. This flexibility is possible
     because these scope representations ({|SuccScope|}, {|UnivScope|}
     and {|ExistScope|}) are all isomorphic to each other. In the
     following we exhibit the conversion functions, and prove that
-    they form an isomorphism, assuming an idealised {_Haskell} lacking
+    they form isomorphisms, assuming an idealised {_Haskell} lacking
     non-termination and {|seq|}.»
 
   -- NP: should we cite “Fast and loose reasoning is morally correct”
@@ -1496,11 +1482,15 @@ s (f . g)
   | ≡ {- by (bi)functor laws -}
   |   t
   |]
-
-  q«The second property ({|succToUniv . univToSucc ≡ id|}) is more
-    difficult to prove: it corresponds to the fact that one cannot
-    represent more terms in {|UnivScope|} than in {|SuccScope|},
-    and relies on parametricity. Hence we need to use the free
+ 
+  q«The second property ({|succToUniv . univToSucc ≡ id|}) means that
+    there is no ``junk'' in the representation:  one cannot
+    represent more terms in {|UnivScope|} than in {|SuccScope|}.
+    It is more
+    difficult to prove, as it 
+    and relies on parametricity and in turn on the lack of junk (non-termination or {|seq|}) 
+    in the host language. 
+    Hence we need to use the free
     theorem for a value {|f|} of type {|UnivScope tm a|}.
     Transcoding {|UnivScope tm a|} to a relation by using Paterson's
     version {cite[fegarasrevisiting1996]} of the abstraction
@@ -1546,10 +1536,10 @@ s (f . g)
   |existToSucc (E _ t) = bimap id (const ()) <$> t
   |]
 
-  q«One notice that {|pack|} and {|unpack|} as CPS versions
+  q«One can recognise {|pack|} and {|unpack|} as CPS versions
     of {|existToSucc|} and {|succToExist|}.»
 
-  q«The proof of {|existToSucc . succToExist ≡ id|} is nearly identical
+  q«The proof of {|existToSucc . succToExist ≡ id|} (no junk) is nearly identical
     to the first proof about {|UnivScope|} and hence omitted. To
     prove {|succToExist . existToSucc ≡ id|}, we first remark that by
     definition:»
@@ -1562,7 +1552,7 @@ s (f . g)
   q«It remains to show that {|E y t|} is equivalent to the right-hand
     side of the above equation. To do so, we consider any observation
     function {|o|} of type {|∀v. v → tm (a ▹ v) → K|} for some constant
-    type {|K|}, and show that it will return the same result if applied
+    type {|K|}, and show that it returns the same result if applied
     to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ()))
     t|}. This fact is a consequence of the free theorem associated
     with {|o|}:»
@@ -1583,7 +1573,7 @@ s (f . g)
     result.»
 
   -- subsection «{|FunScope|}»
-  -- notetodo «NP: this one comes from NbE»
+  --  «NP: this one comes from NbE»
   onlyInCode [agdaFP|
   |type FunScope tm a = ∀ b. (a → b) → tm b → tm b
   |
@@ -1627,8 +1617,8 @@ s (f . g)
   |succToFun = existToFun . E ()
   |]
 
-  subsection $ «A matter of style»
-
+  subsection $ «A matter of style» `labeled` styleSec
+  
   q«We have seen that {|ExistScope|} is well-suited for term analysis, while 
   {|UnivScope|} is well-suited for term construction. What about term {emph«transformations»},
   which combine both aspects? In this case, one is free to choose either interface. This 
@@ -1655,7 +1645,7 @@ s (f . g)
   q«By using an interface such as ours, term representations can be made agnostic to the
     particular scope representation one might choose. In other words, if some interface appears
     well-suited to a given application domain, one might choose it as the scope representation
-    in the implementation. Typically, this choice will be guided by performance reasons.
+    in the implementation. Typically, this choice is be guided by performance considerations.
     Within this paper we favour code concision instead, and therefore in sec.
     {ref hereditarySec} we use {|ExistScope|}, and in sections
     {ref closureSec} and {ref cpsSec} we use {|UnivScope|}.
@@ -1944,8 +1934,8 @@ s (f . g)
     The characteristic that instersts us in this definition is that it is written in nominal style.
     For instance, it pretends that by matching on a {tm|\hat \lambda|}-abstraction, one obtains a name
     {tm|x|} and an expression {tm|e|}, and it is silent about the issues of freshness and
-    transport of names between contexts. We will see that, thanks to 
-    our constructions, we will be able to write an implementation which essentially retains
+    transport of names between contexts. In the rest of the section, we construct an
+    implementation which essentially retains
     these characteristics.
   »
   dmath
@@ -1968,13 +1958,17 @@ s (f . g)
     Most importantly, it has a constructor for {|Closure|}s, composed
     of a body and an environment. The body of closures have exactly two
     free variables: {|vx|} for the parameter of the closure and {|venv|}
-    for its environment. An environment will be realised by a {|Tuple|}.
-    Inside the closure, elements of the environment will be accessed via
+    for its environment.
+    These variables are represented
+    by two {|UnivScope|}s, which we splice in the type of the constructor.
+    An environment is realised by a {|Tuple|}.
+    Inside the closure, elements of the environment are accessed via
     their {|Index|} in the tuple. Finally, the {|LetOpen|} construction
     allows to access the components of a closure (its first argument)
     in an arbitrary expression (its second argument). This arbitrary
     expression has two extra free variables: {|vf|} for the code of the
-    closure and {|venv|} for its environment.»
+    closure and {|venv|} for its environment.
+     »
 
   -- NP: we should either change to SuccScope or mention that we illustrate
   -- here the UnivScope representation.
@@ -2029,7 +2023,7 @@ s (f . g)
   q«The implementation closely follows the mathematical definition given
     above. The work to manage variables explicitly is limited to the
     lifting of the substitution {tm|[x_{env}.i/y_i]|}, and an application of
-    {|wk|}. We will note however that the subtitution performed {|wk|} is 
+    {|wk|}. Additionally, the subtitution performed {|wk|} is 
     inferred automatically by GHC.»
 
   [agdaFP|
@@ -2045,7 +2039,8 @@ s (f . g)
   |          (λ f x → var f $$ wk (cc e2) $$ var x)
   |
   |idxFrom :: Eq a ⇒ [a] → v → a → LC (Zero ▹ v)
-  |idxFrom yn env z = Index (var env) . fromJust $ elemIndex z yn
+  |idxFrom yn env z = Index (var env) . 
+  |                   fromJust (elemIndex z yn)
   |]
 
 {-
@@ -2059,8 +2054,9 @@ s (f . g)
     list {|yn|}.»
 -}
 
-  q«Notably, in order to implement closure conversion,
-    {citeauthor[guillemettetypepreserving2007]} first modify the
+  q«A notable difference between the above implementation and that of
+    {citeauthor[guillemettetypepreserving2007]} is the following.
+    They first modify the
     function to take an additional substitution argument, citing the
     difficulty to support a direct implementation with de Bruijn
     indices. We need not do any such modification: our interface is
@@ -2070,11 +2066,11 @@ s (f . g)
 
   p"intro"
    «The next example is a transformation to continuation-passing
-    style (CPS) based partially on {cite[chlipalaparametric2008]} and
-    {cite[guillemettetypepreserving2008]}.
+    style (CPS) based partially on work by {citet[chlipalaparametric2008]} and
+    {citet[guillemettetypepreserving2008]}.
 
     The main objective of the transformation is to make the
-    order of evaluation explicit, by {|let|}-binding every intermediate {|Value|} in
+    order of evaluation explicit, by {tm|\mathsf{let}|}-binding every intermediate {|Value|} in
     a specific order. To this end, we target a special representation,
     where every intermediate result is named. We allow for {|Value|}s to be
     pairs, so we can easily replace each argument with a pair of an
@@ -2228,6 +2224,7 @@ s (f . g)
   |cps0 t = cps t $ HaltC . varC
   |]
 {-
+  -- This version departs from the mathematical notation and requires an explicit weakening
   [agdaFP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
@@ -2246,8 +2243,6 @@ s (f . g)
   |cps0 t = cps t $ HaltC . varC
   |]
 
-  notetodo «Why is this version better? 
-            It departs from the mathematical notation and requires an explicit weakening.»
   -- I suggest inlining this so meaningful names can be used.
   -- |type UnivScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
   [agdaFP|
@@ -2270,10 +2265,23 @@ s (f . g)
 
   section $ «Related Work» `labeled` comparison
 
-  notetodo «Why don't we compare interfaces instead of representation?»
-  notetodo «Tell that any representation embodies an interface»
-  notetodo «Tell how interfaces of locally-nameless (including Binders Unbound), α-caml, Fresh(OCaml)ML are all
-            unsafe and require some side effects.»
+  q«Representing names and binders in a safe and convenient manner is
+   a long-standing issue, with an extensive body of work devoted to it.
+   A survey is far beyond the scope of this paper.
+   Hence, we limit our comparison the work that we judge most relevant, 
+   or whose constrast with our proposal is the most revealing.
+  »
+  q«However, we do not limit our comparision to interfaces for names and
+    binders, but also look at terms representations. Indeed, we have 
+    noted in sec. {ref styleSec} that every term representation embodies
+    an interface for binders.»
+
+  --  «Tell how interfaces of locally-nameless (including Binders
+  --  Unbound), α-caml, Fresh(OCaml)ML are all unsafe and require some
+  --  side effects.»
+
+  -- JP: I did not do this because all I know has been already said in
+  -- the intro.
 
   subsection $ «Fin»
 
@@ -2297,14 +2305,12 @@ s (f . g)
     type {|Fin n|}. However, these approaches are not equivalent for
     at least two reasons. Nested Abstract Syntax can accept any
     type to represent variables. This makes the structure more like a
-    container and this can be particularly helpful to define the monadic
-    structure {intodo «so why don't we take advantage of this container
-    structure to implement substitution?»}
-    (substitution). The {|Fin|} approach has advantages as well: the
-    representation is concrete and simpler since closer to the original
-    approach for de Brujin indices. In particular the representation of
-    variables free and bound is more regular, and it could be more amenable
-    to optimize variables as machine integers.»
+    container and this allows to exhibit the subtitutive 
+    structure of terms as monads. The {|Fin|} approach has advantages as well: the
+    representation is concrete and closer to the original
+    approach of de Brujin. In particular the representation of
+    variables free and bound is more regular, and it may be more amenable
+    to the optimization of variables as machine integers.»
 
   {- There might even be ways to get a similar interface for Fin,
      it might get closer McBride approach, tough -}
@@ -2338,7 +2344,7 @@ s (f . g)
     so-called “exotic terms”: a function of type {|TmH → TmH|} which
     performs pattern matching on its argument does not necessarily
     represent a term of the object language. A proper realisation of the
-    HOAS ideas should only allow functions which use their argument for
+    HOAS idea should only allow functions which use their argument for
     substitution.»
 
   q«It has been observed before that one can implement this restriction
@@ -2347,7 +2353,7 @@ s (f . g)
 
   q«Another disadvantage of HOAS is the negative occurence
     of the recursive type, which makes it tricky to analyse
-    terms {citet[washburnboxes2003]}.»
+    terms {cite[washburnboxes2003]}.»
 
 
   subsection «Syntax for free»
@@ -2358,7 +2364,7 @@ s (f . g)
     formally prove that polymorphism rules out the exotic terms.
     Name abstractions, while represented by computational functions,
     these functions cannot react to the shape of their argument and thus
-    behave as substitutions. Here is this representation in Haskell:»
+    behave as substitutions. Here is this representation in {_Haskell}:»
 
   [agdaFP|
   |type TmF = ∀ a. ((a → a) → a)  -- lam
@@ -2374,11 +2380,11 @@ s (f . g)
   |]
 
   p"catamorphism only & can't go back"
-   «Being a polymorphic encoding, this technique is locked away in the
-    use of fold-based/catamorphism-based elimination of terms. Moreover
-    there seems to be no safe way to convert a term of this polymorphic
-    encoding to another safe representation of names. Indeed, as Atkey
-    shows it, this conversion relies on the Kripke version of the
+   «Being a polymorphic encoding, this technique is limited to analyse terms
+    via folds (catamorphism). Indeed,
+    there is no known safe way to convert a term of this polymorphic
+    encoding to another safe representation of names. As Atkey
+    shows, this conversion relies on the Kripke version of the
     parametricity result of this type. (At the moment, the attempts to
     integrate parametricity in a programming language only support 
     non-Kripke versions {cite parametricityIntegrationCites}.)»
@@ -2434,7 +2440,7 @@ s (f . g)
     some manipulation on terms, they must make an upfront choice of a
     particular instantiation for the parameter of {|TmP|} that supports
     all the required operations on free variables. This limitation is
-    not good for modularity and code clarity in general. Another issue
+    not good for modularity, and for code clarity in general. Another issue
     arises from the negative occurence of the variable type. Indeed this
     makes the type {|TmP|} invariant: it cannot be made a {|Functor|}
     nor a {|Traversable|} and this not a proper {|Monad|} either.»
@@ -2444,7 +2450,7 @@ s (f . g)
     a type-function, to capture the type associated with each variable.
     This is not our concern here, but we have no reason to believe that
     our technique cannot support this, beyond the lack of proper for
-    type-level computation in Haskell --- Chlipala uses {_Coq} for his
+    type-level computation in {_Haskell} --- Chlipala uses {_Coq} for his
     development.»
 
   subsection $ «McBride's “Classy Hack”»
@@ -2557,7 +2563,7 @@ s (f . g)
 
   p""«
   On top of these abstract notions, one can construct the following representation of terms (we use
-  a Haskell-like syntax for dependent types, similar to that of {_Idris}):
+  a {_Haskell}-like syntax for dependent types, similar to that of {_Idris}):
   »
 
   commentCode [agdaFP|
@@ -2577,7 +2583,7 @@ s (f . g)
     reasoning about programs involving binders.
 
     In contrast, our is interfaces are concrete (code using it
-    will always evaluate), but it requires the user to chose the
+    always evaluates), but it requires the user to chose the
     representation appropriate to the current use ({|SuccScope|},
     {|UnivScope|} or {|ExistScope|}).»
 
@@ -2643,8 +2649,12 @@ s (f . g)
     a signal for further separation of concerns.
   -}
 
-  subsection $ «Multiple Binders/Rec/Pattern/Telescope» -- TODO: NP
-  notetodo «Fill this»
+  
+  {-  
+    subsection $ «Multiple Binders, Recursion and Telescopes» 
+    JP: What we do seems to be focused mostly on static-level names; hence it
+        seems somewhat strange to try to bind multiple names at once
+  -}
 
 {-
 
@@ -2718,13 +2728,13 @@ s (f . g)
   q«As it stands our interface prevents mistakes in the manipulation of de Bruijn indices, but
     requires a collaboration from the user. 
     Indeed, a malicious user can instantiate {|v|} 
-    to a monotype either in 
-    {|∀ v. v → tm (a ▹ v)|} or {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
+    to a monotype either in the analysis of
+    {|∀ v. v → tm (a ▹ v)|} or the construction of {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
     by providing a quantifier which allows only substitution for type variables. This
     quantifier can be understood as being at the same time existential and universal, 
     and hence is self dual.
-    Choosing the notation {|∇|} (pronounced nabla) for it, due to the similarity to the quantifier
-    of {citet[millerproof2003]}, also written ∇.  
+    We the notation {|∇|} (pronounced nabla) for it, due to the similarity with the quantifier
+    of the same name introduced by {citet[millerproof2003]}.
     We would then have the following definitions, and safety could not be compromised. »
 
   commentCode [agdaFP|
@@ -2733,8 +2743,8 @@ s (f . g)
    |]
   q«
    These definitions would preclude using {|SuccScope|} as an implementation, 
-   however this should not cause any issue as either of the above could be used directly
-   in an implementation.
+   however this should not cause any issue: either of the above could be used directly
+   as an implementation.
    Supporting our version of {|∇|} in a type-checker seems a rather modest extension,
    therefore we wish to investigate how some future version of GHC could support it.
    »
@@ -2770,11 +2780,11 @@ s (f . g)
   either of the interfaces {|UnivScope|} or {|ExistScope|}. These two interfaces can 
   be seen as the both sides of the ∇ quantifier of {citet [millerproof2003]}. 
   Essentially, we have deconstructed that flavour of quantification over names, 
-  and implemented it in Haskell. The result is a safe method to manipulate names
+  and implemented it in {_Haskell}. The result is a safe method to manipulate names
   and binders, which is supported by today's Glasgow Haskell Compiler.
 
   The method preserves the good properties of de Bruijn indices, while providing
-  a convenient interface to program with them.
+  a convenient interface to program with multiple open binders.
   »
 
 
