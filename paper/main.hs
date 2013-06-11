@@ -1230,7 +1230,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- TODO we under use the monadic structure of tm∘(▹v)
   [agdaFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒
-  |             v -> (a → tm b) → (a ▹ v) → tm (b ▹ v)
+  |          v → (a → tm b) → (a ▹ v) → tm (b ▹ v)
   |liftSubst _ θ (Old x) = fmap Old (θ x)
   |liftSubst _ θ (New x) = return (New x)
   |]
@@ -2323,17 +2323,17 @@ s (f . g)
     loss of sharing.»
 
   [agdaFP|
-  |data TermK a where
-  |  VarK :: a → TermK a
-  |  LamK :: TermK (TermK a ▹ ()) → TermK a
-  |  AppK :: TermK a → TermK a → TermK a
+  |data TmK a where
+  |  VarK :: a → TmK a
+  |  LamK :: TmK (TmK a ▹ ()) → TmK a
+  |  AppK :: TmK a → TmK a → TmK a
   |]
 
   q«Thanks to this representation the application of substitutions do
     not require their lifting, as can be made explicit by the following 
     {|Monad|} instance:»
   [agdaFP|
-  |instance Monad TermK where
+  |instance Monad TmK where
   |  return = VarK
   |  VarK a >>= θ = θ a
   |  AppK a b >>= θ = AppK (a >>= θ) (b >>= θ) 
