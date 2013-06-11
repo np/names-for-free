@@ -83,6 +83,9 @@ cite = BI.latexCmdAnyArgs "cite" . pure . BI.latexKeysArg
 citet :: [Key] -> LatexItem
 citet = BI.latexCmdAnyArgs "citet" . pure . BI.latexKeysArg
 
+_Citet :: [Key] -> LatexItem
+_Citet = BI.latexCmdAnyArgs "Citet" . pure . BI.latexKeysArg
+
 citeauthor :: [Key] -> LatexItem
 citeauthor = BI.latexCmdAnyArgs "citeauthor" . pure . BI.latexKeysArg
 
