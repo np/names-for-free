@@ -62,6 +62,7 @@ subsection = put . B.subsection
 paragraph = put . B.paragraph' (★) Nothing
 itemize block = B.itemize Nothing !$? block
 footnote = B.footnote
+newpage = tell B.newpage
 
 mkabstract = BI.parEnv "abstract" [] . BI.latexItem
 

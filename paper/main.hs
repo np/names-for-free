@@ -96,7 +96,7 @@ spcites = [pollacksatoricciotti11, satopollack10]
 belugamu = cave12
 fincites = [altenkirch93, mcbridemckinna04]
 nestedcites = [bellegarde94, birdpaterson99, altenkirchreus99]
-nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu]
+nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu, pouillardunified2012]
 parametricityIntegrationCites = [kellerparametricity2012, bernardytypetheory2013, bernardycomputational2012]
 hereditarycites = [nanevski08] -- we could cite more
 
@@ -334,7 +334,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |main = putStrLn "It works!"
      |]
 
+  {-
   notetodo «unify the terminology names/context/free variables (when the rest is ready)»
+     NP: All these three notions names/context/free variables have to
+         be used appropriately. I would not "unify" them.
+         * A name is either bound or free
+         * A context is where a name makes sense
+         * A free variable makes reference to somewhere in a term (the Var constructor)
+   -}
   section $ «Intro» `labeled` intro
 
   p"the line of work where we belong"
@@ -478,18 +485,16 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     and polymorphic recursion. That is, one parameterizes the type of
     terms by a type that can represent {emph«free»} variables. If the
     parameter is the empty type, terms are closed. If the parameter is
-    the unit type, there is at most one free variable, etc.»
+    the unit type, there is at most one free variable, etc.
+
+    This representation is known as Nested Abstract
+    Syntax {cite nestedcites}.»
 
   -- Because the parameter is the type of free-variables,
   -- it does not affect the representation of bound variables
   -- at all.
 
-  p"citation"
-   «This representation is known as Nested Abstract
-    Syntax {cite nestedcites}»
-
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
-  -- NP: explain the meaning of New and Old
   [agdaFP|
   |data Tm a where
   |  Var :: a → Tm a
@@ -504,9 +509,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     variable.»
 
   p"flash-forward"
-   «Anticipating on the amendments we propose, we define the {|Succ a|}
-    type as a proper sum of {|a|} and the unit type {|()|} instead
-    of {|Maybe a|} as customary. Because the sum is used in an
+   «Anticipating on the amendments we propose, we define the
+    type {|Succ a|} as a proper sum of {|a|} and the unit type {|()|}
+    instead of {|Maybe a|} as customary. Because the sum is used in an
     asymmetric fashion (the left-hand-side corresponds to variables
     bound earlier and the right-hand-side to the freshly bound one),
     we give a special definition of sum written {|▹|}, whose syntax
@@ -517,7 +522,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |
   |data a ▹ v = Old a | New v
   |
-  |bimap :: (a → a') → (v → v') → (a ▹ v) → (a' ▹ v')
+  |bimap :: (a → a') → (v → v') →
+  |         (a ▹ v) → (a' ▹ v')
   |bimap f _ (Old x) = Old (f x)
   |bimap _ g (New x) = New (g x)
   |
@@ -545,7 +551,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     argument to {|Tm|}.»
 
   [agdaFP|
-  |data Zero -- no constructor
+  |data Zero -- no constructors
   |]
 
   p"polymorphic terms are closed"
@@ -582,14 +588,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
   -}
 
-  p"explain ∀ v"
+  p"explain ∀ v, v →"
    «That is, instead of adding a concrete unique type (namely {|()|}) in
     the recursive parameter of {|Tm|}, we quantify universally over a
     type variable {|v|} and add this type variable to the type of free
-    variables.»
-
-  p"explain v →"
-   «The sub-term receives an arbitrary value of type {|v|},
+    variables. The sub-term receives an arbitrary value of type {|v|},
     to be used at occurences of the variable bound by {|lam|}.»
 
   -- NP: "provide the sub-term" is one side of the coin, the other side
@@ -1063,15 +1066,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «It is well-known that every term representation parameterized
     on the type of free variables should exhibit monadic structure,
     with substitution corresponding to the binding operator {cite
-    nestedcites{-TODO-}}. That is, a {|Monad tm|} constraint means
-    that a that a term representation {|tm|} is stable
-    under substitution. In this section we review this structure,
-    as well as other standard related structures on terms. These
-    structures are perhaps easier to implement directly on a concrete
-    term representation, rather than our interface. However, we give an
-    implementation solely based on it, to demonstrate that
-    it is complete with respect to these structures. By doing
-    so, we also illustrate how to work with our interface in practice.»
+    nestedcites}. That is, a {|Monad tm|} constraint means that a that
+    a term representation {|tm|} is stable under substitution. In
+    this section we review this structure, as well as other standard
+    related structures on terms. These structures are perhaps easier
+    to implement directly on a concrete term representation, rather
+    than our interface. However, we give an implementation solely based
+    on it, to demonstrate that it is complete with respect to these
+    structures. By doing so, we also illustrate how to work with our
+    interface in practice.»
 
   subsection $ «Renaming and Functors» `labeled` functorSec
 
@@ -1280,7 +1283,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     variable from the context while performing the substitution:»
   [agdaFP|
   |substituteOut :: Monad tm ⇒
-  |              v → tm a → tm (a ▹ v) → tm a
+  |                 v → tm a → tm (a ▹ v) → tm a
   |substituteOut x t u = u >>= λ y → case y of
   |     New _ → t
   |     Old x → return x
@@ -1315,13 +1318,12 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   [agdaFP|
   |instance Traversable Tm where
-  |  traverse f (Var x) =
-  |    Var <$> f x
+  |  traverse f (Var x)   = Var <$> f x
   |  traverse f (App t u) =
   |    App <$> traverse f t <*> traverse f u
-  |  traverse f (Lam t) =
+  |  traverse f (Lam t)   =
   |    unpack t $ λ x b →
-  |      Lam . pack x <$> traverse (bitraverse f pure) b
+  |      lamP x <$> traverse (bitraverse f pure) b
   |]
 
   p"explain bitraverse"
@@ -1355,8 +1357,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     also {|Foldable|} meaning that we can combine all the elements of
     the structure (i.e. the occurences of free variables in the term)
     using any {|Monoid|}. One particular monoid is the free monoid of
-    lists. Consequently, {|Data.Foldable.toList|} is computing the free
-    variables of a term:»
+    lists. Consequently, {|Data.Foldable.toList|} is computing the
+    free variables of a term and {|Data.Foldable.elem|} can be used to
+    build {|freshFor|}:»
 
   [agdaFP|
   |freeVars' :: Tm a → [a]
@@ -1401,6 +1404,7 @@ s (f . g)
   substitutive structure by using standard type-classes, we can recapitulate and succintly describe
   the essence of our constructions.»
 
+  notetodo «NP: what about using a figure to collect some of the most crucial definitions?»
   q«In Nested Abstract Syntax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
     is represented as follows:»
   [agdaFP|
@@ -1456,7 +1460,8 @@ s (f . g)
   |succToUniv :: Functor tm ⇒
   |              SuccScope tm a → UnivScope tm a
   |succToUniv t = λ x → bimap id (const x) <$> t
-  |
+  |]
+  [agdaP|
   |univToSucc :: UnivScope tm a → SuccScope tm a
   |univToSucc f = f ()
   |]
@@ -1535,8 +1540,8 @@ s (f . g)
   |existToSucc (E _ t) = bimap id (const ()) <$> t
   |]
 
-  q«One can recognise {|pack|} and {|unpack|} as CPS versions
-    of {|existToSucc|} and {|succToExist|}.»
+  q«One can recognise the functions {|pack|} and {|unpack|} as CPS
+    versions of {|existToSucc|} and {|succToExist|}.»
 
   q«The proof of {|existToSucc . succToExist ≡ id|} (no junk) is nearly identical
     to the first proof about {|UnivScope|} and hence omitted. To
@@ -1566,8 +1571,9 @@ s (f . g)
   |  t₂ ≡ fmap g t₁) →
   | o x₂ t₂ ≡ o x₁ t₁
   |] 
+
   q«Indeed, after specialising {|x₂|} to {|()|} and {|v|}
-    to {|const ()|}, the last condition is equivalent
+    to {|const ()|}, the last condition amounts
     to {|t₂ ≡ fmap (bimap id (const ())) t₁|}, and we get the desired
     result.»
 
@@ -1894,7 +1900,6 @@ s (f . g)
   [agdaFP|
   |instance Monad No where
   |  return x = VarNo x []
-  |
   |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst x θ)
   |  VarNo f ts >>= θ = foldl app (θ f)((>>= θ)<$>ts)
   |]
@@ -1914,8 +1919,9 @@ s (f . g)
   [agdaFP|
   |norm :: Tm a → No a
   |norm (Var x)   = return x
-  |norm (Lam b)   = unpack b $ λ x t → LamNo x (norm t)
   |norm (App t u) = app (norm t) (norm u)
+  |norm (Lam b)   = unpack b $ λ x t →
+  |                   LamNo x (norm t)
   |]
 
   when (long || includeUglyCode) $ docNbE nbeSec nbecites
@@ -1990,9 +1996,9 @@ s (f . g)
   q«This representation is an instance of {|Functor|} and {|Monad|}, and
     the corresponding code offers no surprise.
 
-    We give an infix alias for {|AppLC|}:»
+    We give an infix alias for {|AppLC|}, namely {|$$|}.»
 
-  [agdaFP|
+  onlyInCode [agdaFP|
   |($$) = AppLC
   |infixl $$
   |]
@@ -2202,7 +2208,12 @@ s (f . g)
   -}
 
   -- |cps :: Tm a → Univ TmC a → TmC a
+  -- NP: I put this one before for page layout reasons
   [agdaFP|
+  |cps0 :: Tm a → TmC a
+  |cps0 t = cps t $ HaltC . varC
+  |]
+  [agdaP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
   |cps (App e1 e2) k =
@@ -2218,9 +2229,6 @@ s (f . g)
   |       letC (sndC p) $ λ x2 →
   |       cps (wk $ e `atVar` x1) $ λr →
   |       AppC (varC x2) (varC r)) k
-  |
-  |cps0 :: Tm a → TmC a
-  |cps0 t = cps t $ HaltC . varC
   |]
 {-
   -- This version departs from the mathematical notation and requires an explicit weakening
@@ -2314,13 +2322,13 @@ s (f . g)
   {- There might even be ways to get a similar interface for Fin,
      it might get closer McBride approach, tough -}
 
-  subsection $ «Kmett's Bound» -- TODO: NP
+  subsection $ «E. Kmett's Bound package for {_Haskell}» -- TODO: NP
 
   -- TODO flow
-  q«The main performance issue with de Brujin indices from the cost
+  q«The main performance issue with de Brujin indices from the cost
     of importing terms into scopes without capture, this requires to
-    increment the free-variables which incurs not only a cost but a
-    loss of sharing.»
+    increment the free-variables which incurs not only a cost but a loss
+    of sharing.»
 
   [agdaFP|
   |data TmK a where
@@ -2389,7 +2397,7 @@ s (f . g)
 
   [agdaFP|
   |type TmF = ∀ a. ((a → a) → a)  -- lam
-  |              → (a → a → a)    -- app
+  |              → (a → a → a)   -- app
   |              → a
   |]
 
@@ -2430,13 +2438,12 @@ s (f . g)
   |  VarP :: a → TmP a
   |  LamP :: (a → TmP a) → TmP a
   |  AppP :: TmP a → TmP a → TmP a
-  |]
-
-  q«Then, only universally quantified terms corresponds to terms of the λ-calculus:»
-
-  [agdaFP|
+  |
   |type TmP' = ∀ a. TmP a
   |]
+
+  q«Notice that only universally quantified terms ({|TmP'|}) are
+    guaranteed to correspond to terms of the λ-calculus.»
 
   q«The reprensentation of binders used by Chlipala can be seen as a
     special version of {|UnivScope|}, where all variables are assigned
@@ -2445,6 +2452,9 @@ s (f . g)
     handle fresh variables specially. The corresponding implementation
     of the monadic {|join|} is as follows:»
 
+  onlyInCode [agdaP|
+  |joinP :: TmP (TmP a) → TmP a
+  |]
   [agdaFP|
   |joinP (VarP x)   = x
   |joinP (LamP f)   = LamP (λ x → joinP (f (VarP x)))
@@ -2495,17 +2505,21 @@ s (f . g)
   |       → Tm m
   |var :: Fin n → Tm n
   |]
-  p "" «An advantage of McBride's interface is that it does not require the “incoherent instances” extension. »
-  -- 'Ordered overlapping type family instances' will improve the situation for us.
-  p "" «However, because McBride represents variables as {|Fin|}, 
-        the types of his combinators are less precise ours.
-        Notably, the {|Leq|} class captures only one aspect of context inclusion (captured by the class {|⊆|}
-        in our development),
-        namely that one context should be smaller than another.
-        This means, for example, that the class constraint {|w ⊆ w'|} can be meaning fully resolved
-        in more cases than {|Leq m n|}, in turn making functions such as {|wk|} more useful in practice.»
+  q«An advantage of McBride's interface is that it does not require the
+    “incoherent instances” extension. »
 
-  q«Additionally, our {|unpack|} and {|pack|} combinators extend the technique to term analysis and manipulation.»
+  -- 'Ordered overlapping type family instances' will improve the
+  -- situation for us.
+
+  q«However, because McBride represents variables as {|Fin|}, the types
+    of his combinators are less precise ours. Notably, the {|Leq|}
+    class captures only one aspect of context inclusion (captured
+    by the class {|⊆|} in our development), namely that one context
+    should be smaller than another. This means, for example, that the
+    class constraint {|a ⊆ b|} can be meaning fully resolved in more
+    cases than {|Leq m n|}, in turn making functions such as {|wk|}
+    more useful in practice. Additionally, our {|unpack|} and {|pack|}
+    combinators extend the technique to term analysis and manipulation.»
 
   subsection $ «{_NomPa} (nominal fragment)» -- TODO: NP (revise -- optional eq. tests.) 
 
@@ -2809,7 +2823,9 @@ s (f . g)
   »
 
 
-  acknowledgements   «We thank Emil Axelsson and Koen Claessen for useful feedback.»
+  acknowledgements
+   «We thank Emil Axelsson, Daniel Gustafsson and Koen Claessen for
+    useful feedback.»
 
 
 appendix = execWriter $ do
