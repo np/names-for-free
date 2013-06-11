@@ -2335,15 +2335,15 @@ s (f . g)
     {|Monad|} instance:»
   [agdaFP|
   |instance Monad TermK where
-  |return = VarK
-  |VarK a >>= θ = θ a
-  |AppK a b >>= θ = AppK (a >>= θ) (b >>= θ) 
-  |LamK t >>= θ = LamK (t >>= \x -> case x of
-  |                 New b -> return (New b)
-  |                 Old a -> VarK (Old (a >>= θ)))
+  |  return = VarK
+  |  VarK a >>= θ = θ a
+  |  AppK a b >>= θ = AppK (a >>= θ) (b >>= θ) 
+  |  LamK t >>= θ = LamK (t >>= \x -> case x of
+  |                   New b -> return (New b)
+  |                   Old a -> VarK (Old (a >>= θ)))
   |]
   q«Our interface can be adapted in a straightforward manner to take advantage of this feature:»
-  [agdaFP|
+  commentCode [agdaFP|
   |type ExistScope' tm a = ∃v. v × tm (tm a ▹ v)
   |type UnivScope'  tm a = ∀v. v → tm (tm a ▹ v)
   |]
