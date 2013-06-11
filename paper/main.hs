@@ -1980,6 +1980,8 @@ s (f . g)
 
   -- NP: we should either change to SuccScope or mention that we illustrate
   -- here the UnivScope representation.
+  -- JP: done at end of sec. 5.4
+   
 
   [agdaFP|
   |data LC a where
@@ -1987,13 +1989,11 @@ s (f . g)
   |  AppLC :: LC a → LC a → LC a
   |  Closure :: (∀ vx venv. vx → venv →
   |           LC (Zero ▹ venv ▹ vx)) →
-  |           LC a →
-  |           LC a
+  |           LC a → LC a
   |  Tuple :: [LC a] → LC a
   |  Index :: LC a → Int → LC a
-  |  LetOpen :: LC a →
-  |             (∀ vf venv. vf → venv →
-  |              LC (a ▹ vf ▹ venv)) → LC a
+  |  LetOpen :: LC a → (∀ vf venv. vf → venv →
+  |                     LC (a ▹ vf ▹ venv)) → LC a
   |]
 
   q«This representation is an instance of {|Functor|} and {|Monad|}, and
