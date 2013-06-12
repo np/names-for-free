@@ -19,6 +19,7 @@ import Kit.ACM
 import AgdaKit.QQ
 
 import Paper.NbE
+import System.IO (hPutStrLn, stderr)
 
 --import qualified MiniTikz.Builder as D -- hiding (node)
 --import MiniTikz.Builder (right, below, nodeDistance, oF, dnode, spath, scope)
@@ -3036,7 +3037,7 @@ appendix = execWriter $ do
 refresh_jp_bib = do
   let jpbib = "../../gitroot/bibtex/jp.bib"
   e ← doesFileExist jpbib
-  when e $ do putStrLn "refreshing bib"
+  when e $ do hPutStrLn stderr "refreshing bib"
               void . system $ "cp " ++ jpbib ++ " ."
 
 main = do
