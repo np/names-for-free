@@ -1,3 +1,2 @@
-redo-ifchange $2.tex
-redo-ifchange outliner.sh
+redo-ifchange $2.tex outliner.sh
 ./outliner.sh < $2.tex
