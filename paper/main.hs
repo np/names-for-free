@@ -324,7 +324,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |    FlexibleInstances, UndecidableInstances,
      |    IncoherentInstances, ScopedTypeVariables, StandaloneDeriving #-}
      |module PaperCode where
-     |import Prelude hiding (elem,any,foldl)
+     |import Prelude hiding (elem,any,foldl,foldr)
      |import Control.Monad
      |import Control.Applicative
      |import Data.Foldable
@@ -1913,14 +1913,14 @@ s (f . g)
   -- Normalisation takes terms to their normal forms. 
   q«The following type
     captures normal forms of the untyped λ-calculus: a normal form is
-    either an abstraction or a variable applied to some normal forms. In
+    either an abstraction over a normal form or a neutral term (a variable applied to some normal forms). In
     this definition we use an existential-based version of scopes, which
     we splice in the {|LamNo|} constructor.»
 
   [agdaFP|
   |data No a where
   |  LamNo :: v → No (a ▹ v) → No a
-  |  VarNo :: a → [No a] → No a
+  |  Neutr :: a → [No a] → No a
   |]
 
   q«The key to this normalisation procedure is that normal forms
@@ -1930,9 +1930,9 @@ s (f . g)
 
   [agdaFP|
   |instance Monad No where
-  |  return x = VarNo x []
+  |  return x = Neutr x []
   |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst x θ)
-  |  VarNo f ts >>= θ = foldl app (θ f)((>>= θ)<$>ts)
+  |  Neutr f ts >>= θ = foldl app (θ f)((>>= θ)<$>ts)
   |]
 
   q«The most notable feature of this substitution is the use of {|app|}
@@ -1941,7 +1941,7 @@ s (f . g)
   [agdaFP|
   |app :: No a → No a → No a
   |app (LamNo x t)  u = substituteOut x u t
-  |app (VarNo f ts) u = VarNo f (ts++[u])
+  |app (Neutr f ts) u = Neutr f (ts++[u])
   |]
 
   q«The normaliser is then a simple recursion on the term
@@ -2901,8 +2901,8 @@ appendix = execWriter $ do
   |instance Functor No where 
   |  fmap f (LamNo x t)  = 
   |     LamNo x (fmap (bimap f id) t)
-  |  fmap f (VarNo x ts) =
-  |     VarNo (f x) (fmap (fmap f) ts)
+  |  fmap f (Neutr x ts) =
+  |     Neutr (f x) (fmap (fmap f) ts)
   |]
 
   subsection «CPS»

@@ -70,7 +70,7 @@ docNbE label nbecites = do
   |extend (_, _) f (Old x) = f x
   |
   |reify :: Sem a → No a
-  |reify (VarS x ts) = VarNo x (map reify ts)
+  |reify (VarS x ts) = Neutr x (map reify ts)
   |reify (LamS f)    = lamNo $ λ x →
   |                      reify (f Old (varS (New x)))
   |
@@ -113,7 +113,7 @@ docNbE label nbecites = do
   |s `atVarM` x = s (return . Old) (return (New x))
   |
   |reifyM :: TmM a → No a
-  |reifyM (VarM x ts) = VarNo x (map reifyM ts)
+  |reifyM (VarM x ts) = Neutr x (map reifyM ts)
   |reifyM (LamM s)    = unpackM s $ \ x t →
   |                       LamNo x (reifyM t)
   |

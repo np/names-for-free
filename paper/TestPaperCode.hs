@@ -152,7 +152,7 @@ pp :: Tm String -> IO ()
 pp = putStrLn . pretty
 
 noToTm :: No a -> Tm a
-noToTm (VarNo x ts) = foldl App (Var x) (map noToTm ts)
+noToTm (Neutr x ts) = foldl App (Var x) (map noToTm ts)
 noToTm (LamNo x b)  = lamP x (noToTm b)
 
 test :: String -> Tm String -> IO ()
