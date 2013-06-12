@@ -1191,7 +1191,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Second, let us assume two arguments {|a|} and {|b|} related by the
     type class {|⊆|}. Thus we have {|injMany|} of type {|a → b|}, which
     can be seen as a renaming of free variables via the functorial
-    structure of terms. By applying it to {|fmap|}, one obtains
+    structure of terms. By applying {|fmap|} to it, one obtains
     an arbitrary weakening from the context {|a|} to the bigger
     context {|b|}.»
 
@@ -1206,8 +1206,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   subsection $ «Substitution and Monads» `labeled` monadSec
 
-  q«Another useful property of terms is that free variables can be substituted
-    with terms. This property is captured algebraically by asserting
+  q«Another useful property of terms is that they can be substituted for free variables in
+    other terms. This property is captured algebraically by asserting
     that terms form a {|Monad|}, where {|return|} is the variable
     constructor and {|>>=|} acts as parallel substitution. Indeed, one
     can see a substitution from a context {|a|} to a context {|b|} as
@@ -1226,7 +1226,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |  App t u >>= θ = App (t >>= θ) (u >>= θ)
   |]
 
-  q«At binding sites, one needs to lift the substitution so it does not
+  q«At binding sites, one needs to lift the substitution so that it does not
     act on the newly bound variables, a behaviour isolated in the helper {|>>>=|}. As for the {|Functor|} instance,
     the type system guarantees that no mistake is made. Perhaps
     noteworthy is that this operation is independent of the concrete
@@ -1459,8 +1459,8 @@ s (f . g)
 
   q«As we have observed on a number of examples, these representations
     are dual from a usage perspective: the universal-based representation
-    allows safe the construction of terms, while the existential-based representation is
-    allows safe the analysis of terms.
+    allows safe the construction of terms, while the existential-based representation 
+    allows safe analysis of terms.
     Strictly speaking, safety holds only if one disregards non-termination and {|seq|}, 
     but because the
     values of type {|v|} are never used for computation, mistakenly using a
@@ -1538,7 +1538,11 @@ s (f . g)
 
   q«We can then specialize {|v₁|} and {|x₁|} to {|()|}, {|v|}
     to {|const x₂|}, and {|g|} to {|bimap id v|}. By definition,
-    {|g|} satisfies the conditions of the lemma. We can then reason
+    {|g|} satisfies the conditions of the lemma and we get:»
+  commentCode [agdaFP|
+  |f x ≡ bimap id (const x) <$> f ()
+  |]
+  q«We can then reason
     equationally:»
 
   commentCode [agdaFP|
@@ -1665,7 +1669,7 @@ s (f . g)
   q«When using {|succToUniv|}, the type of the second argument of {|succToUniv|}
     should always be a type variable in order to have maximally polymorphic contexts.
     To remind us of this requirement when writing code, we give the alias {|atVar|} for {|succToUniv|}.
-    (Similarly, to guarantee safetly, the first argument of {|pack|} (encapsulated here in {|lamP|}) must be maximally polymorphic.)»
+    (Similarly, to guarantee safety, the first argument of {|pack|} (encapsulated here in {|lamP|}) must be maximally polymorphic.)»
 
   onlyInCode [agdaFP| 
   |atVar = succToUniv
@@ -1920,7 +1924,7 @@ s (f . g)
 
   q«The key to this normalisation procedure is that normal forms
     are stable under hereditary substitution {cite hereditarycites}.
-    The function performing an hereditary substitution substitutes
+    The function performing a hereditary substitution substitutes
     variables for their value, while reducing redexes on the fly.»
 
   [agdaFP|
@@ -1939,7 +1943,7 @@ s (f . g)
   |app (VarNo f ts) u = VarNo f (ts++[u])
   |]
 
-  q«The normaliser can then be written as a simple recursion on the term
+  q«The normaliser is then a simple recursion on the term
     structure:»
 
   [agdaFP|
@@ -1973,14 +1977,14 @@ s (f . g)
    [texm|
    |\begin{array}{r@{\,}l}
    |  \llbracket x \rrbracket &= x \\
-   |  \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure} (\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body}) e_\mathnormal{env} \\
-   |                                         &\quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
+   |  \llbracket \hat\lambda x. e \rrbracket &= \mathsf{closure}~(\hat\lambda x~x_\mathnormal{env}. e_\mathnormal{body})\, e_\mathnormal{env} \\
+   |                                         &\quad \quad \mathsf{where}~\begin{array}[t]{l@{\,}l}
    |                                                                  y_1,\ldots,y_n & = FV(e)-\{x\} \\
    |                                                                  e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
    |                                                                  e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle
    |                                                               \end{array}\\
-   |  \llbracket e_1@e_2 \rrbracket &= \mathsf{let} (x_f,x_\mathnormal{env}) = \mathsf{open} \llbracket e_1 \rrbracket \\
-   |                                &\quad \mathsf{in} x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
+   |  \llbracket e_1@e_2 \rrbracket &= \mathsf{let}~(x_f,x_\mathnormal{env}) = \mathsf{open}~\llbracket e_1 \rrbracket \\
+   |                                &\quad \mathsf{in}~ x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
    |\end{array}
    |]
 
@@ -2202,7 +2206,7 @@ s (f . g)
   p"latex vs. haskell"
    «The implementation follows the above definition, except for the
     following minor differences. For the {|Lam|} case, the only
-    deviation are is an occurence of {|wk|}. In the {|App|} case, we
+    deviation is an occurence of {|wk|}. In the {|App|} case, we
     have an additional reification of the host-level continuation as a
     proper {|Value|} using the {|lamC|} function.
 
@@ -2342,7 +2346,7 @@ s (f . g)
     structure of terms as monads. The {|Fin|} approach has advantages as well: the
     representation is concrete and closer to the original
     approach of de Brujin. In particular the representation of
-    variables free and bound is more regular, and it may be more amenable
+    free and bound variables is more regular, and it may be more amenable
     to the optimization of variables as machine integers.»
 
   {- There might even be ways to get a similar interface for Fin,
@@ -2435,7 +2439,7 @@ JP: Why? and how does this fit with our interfaces?
     constructing a model of System F's parametricity in {_Coq} he could
     formally prove that polymorphism rules out the exotic terms.
     Name abstractions, while represented by computational functions,
-    these functions cannot react to the shape of their argument and thus
+    cannot react to the shape of their argument and thus
     behave as substitutions. Here is this representation in {_Haskell}:»
 
   [agdaFP|
@@ -2491,8 +2495,8 @@ JP: Why? and how does this fit with our interfaces?
   q«The reprensentation of binders used by Chlipala can be seen as a
     special version of {|UnivScope|}, where all variables are assigned
     the same type. This specialisation has pros and cons. On the plus
-    side, substitution is easier to implement with PHOAS: one needs not
-    handle fresh variables specially. The corresponding implementation
+    side, substitution is easier to implement with PHOAS: fresh variables 
+    do not neet special treatment. The corresponding implementation
     of the monadic {|join|} is as follows:»
 
   onlyInCode [agdaP|
@@ -2539,7 +2543,7 @@ JP: Why? and how does this fit with our interfaces?
         similiarity is the use of instance search to recover the indices from a
         host-language variable name.
         A difference is that McBride integrates the injection in the abstraction
-        constructor rather than the variable constructor. The type of the {|var|} combinator becomes then
+        constructor rather than the variable constructor. The type of the {|var|} combinator then becomes
         simpler, at the expense of {|lam|}:
         »
 
@@ -2653,15 +2657,15 @@ JP: Why? and how does this fit with our interfaces?
 
   q«The safety of the technique comes from the abstract character of the
     interface. If one were to give concrete definitions for {|Binder|},
-    {|World|} and their related operations, it becomes possible for user
+    {|World|} and their related operations, it would become possible for user
     code to cheat the system.
 
     A drawback of the interface being abstract is that some subterms
     do not evaluate. This point is of prime concern in the context of
     reasoning about programs involving binders.
 
-    In contrast, our is interfaces are concrete (code using it
-    always evaluates), but it requires the user to chose the
+    In contrast, our interfaces are concrete (code using it
+    always evaluates), but it requires the user to choose the
     representation appropriate to the current use ({|SuccScope|},
     {|UnivScope|} or {|ExistScope|}).»
 
@@ -2818,8 +2822,9 @@ JP: Why? and how does this fit with our interfaces?
     requires a collaboration from the user. 
     Indeed, a malicious user can instantiate {|v|} 
     to a monotype either in the analysis of
-    {|∀ v. v → tm (a ▹ v)|} or the construction of {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
-    by providing a quantifier which allows only substitution for type variables. This
+    {|∀ v. v → tm (a ▹ v)|} or in the construction of {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
+    by providing a quantifier which allows to substitute for type variables only other type variables.
+    This
     quantifier can be understood as being at the same time existential and universal, 
     and hence is self dual.
     We the notation {|∇|} (pronounced nabla) for it, due to the similarity with the quantifier
@@ -2878,7 +2883,7 @@ JP: Why? and how does this fit with our interfaces?
 
 
   acknowledgements
-   «We thank Emil Axelsson, Koen Claessen and Daniel Gustafsson for
+   «We thank Emil Axelsson, Koen Claessen, Daniel Gustafsson and Patrik Jansson for
     useful feedback.»  -- In alphabetical order 
 
 appendix = execWriter $ do
