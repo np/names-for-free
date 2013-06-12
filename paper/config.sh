@@ -29,6 +29,7 @@ PACKAGES=(-hide-all-packages
           -package=uniplate
           -package=wl-pprint
           -package=highlighting-kate
+          -package=filepath
          )
 
 # redo arguments

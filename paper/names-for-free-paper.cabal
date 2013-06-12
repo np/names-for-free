@@ -9,7 +9,7 @@ executable paper
     build-depends: base>=3.0&&<5, containers>=0.1, base-unicode-symbols,
                    directory, template-haskell, mtl, split, process,
                    transformers, uniplate>=1.2, hlatex, wl-pprint,
-                   highlighting-kate
+                   highlighting-kate, filepath
     if impl(ghc >= 7.6)
       build-depends: HSH>=2.1
     else

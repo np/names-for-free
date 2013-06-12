@@ -2992,11 +2992,11 @@ main = do
   args ← getArgs
   refresh_jp_bib
   case args of
-    ["--tex"]     → printLatexDocument (doc False)
-    ["--haskell"] → printComments      (doc True)
-    {-[] → do
-      writeAgdaTo "PaperCode.hs" $ (doc True)
-      compile ["sigplanconf"] "paper" (doc False)-}
+    ["--tex"]      → printLatexDocument (doc False)
+    ["--comments"] → printComments      (doc True)
+    [] → do
+      writeCommentsTo "PaperCode.hs"  (doc True)
+      compile ["sigplanconf"] "main"  (doc False)
     _ → error "unexpected arguments"
 
 categ = Kit.cat «D.3.3» «Language Constructs and Features» «»

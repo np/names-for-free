@@ -29,6 +29,7 @@ import Control.Applicative ((<$>),pure)
 import System.Cmd (system)
 import System.Directory (doesFileExist)
 import System.Environment (getArgs)
+import qualified System.FilePath as FP
 
 import HSH
 
@@ -152,16 +153,18 @@ document title authors keywords abstract categ body appendix = B.document doccla
                          [«../../local»,«../../npouillard»,«../../jp»]
           <> B.newpage
           <> mapNonEmpty (B.appendix <>) appendix
-{-
+
 compile :: [FilePath] -> FilePath -> LatexM Document -> IO ()
 compile input_dirs docName doc = do
-  let texFile = docName++".tex"
-      saneChar x = isAscii x && (isLetter x || isNumber x || x `elem` "_-./")
-      sane x | all saneChar x = x
-             | otherwise      = error "insane chars"
-      opts = concatMap (\x -> "-I "++sane x) input_dirs
-      builddir = sane $ "_build/"++docName
-  writeFile texFile =<< either error return (showLaTeX doc)
-  runIO $ "mkdir -p " ++ builddir
-  runIO $ "rubber --cache --into " ++ builddir ++ " --pdf " ++ opts ++ " " ++ texFile
-  -}
+  let fp         = docName FP.<.> "tex"
+      opts       = input_dirs >>= \x -> ["-I",x
+                                        ,"-c","bibtex.path "++x
+                                        ,"-c","bibtex.stylepath "++x
+                                        ,"-c","index.path "++x
+                                        ,"-c","makeidx.path "++x
+                                        ]
+      builddir   = "_build" FP.</> docName
+      runIOS x y = runIO (x::String,y::[String]) :: IO ()
+  writeFile fp =<< either error return (showLaTeX doc)
+  runIOS "mkdir"    ["-p",builddir]
+  runIOS "rubber" $ ["--verbose","--cache","--into",builddir,"--pdf"]++opts++[fp]
