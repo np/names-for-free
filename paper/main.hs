@@ -2742,7 +2742,7 @@ JP: Why? and how does this fit with our interfaces?
   |type NScope tm a = tm (a ▹ Int)
   |]
   q«Adapting the idea to our framework would mean to quantify on a telescope of type variables:»
-  [agdaFP|
+  commentCode [agdaFP|
   |type NUnivScope  = ∀ v1, …, vn. (v1,…,vn) → Tm (a ▹ (v1,…,vn))
   |]
   q«Unfortunately, this is not allowed by {_Haskell}, at 
