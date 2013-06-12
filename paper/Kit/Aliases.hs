@@ -37,6 +37,7 @@ _FreshML = B.textsc «FreshML»
 _FreshML_Lite = B.textsc «FreshML-Lite»
 _FreshLib = B.textsc «FreshLib»
 _BindersUnbound = B.textsc «Binders Unbound»
+_Bound = B.textsc «Bound»
 _Belugaμ = «Beluga{B.math (M.sup M.mu)}»
 _Template_Agda = B.textsc «Template Agda»
 -- TODO => nicer
