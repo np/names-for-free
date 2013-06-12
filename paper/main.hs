@@ -2958,6 +2958,10 @@ appendix = execWriter $ do
   |name :: b → a ▹ b
   |name = New
   |
+  |-- ⊆-# : ∀ {α b} → b # α → α ⊆ (b ◅ α)
+  |import_ :: a → a ▹ b
+  |import_ = Old
+  |
   |-- In Agda: exportᴺ? : 
   |-- ∀ {b α} → Name (b ◅ α) → Maybe (Name α)
   |exportM :: a ▹ b → Maybe a
@@ -2969,6 +2973,11 @@ appendix = execWriter $ do
   |export :: a ▹ b → Either (Zero ▹ b) a
   |export (New x) = Left (New x)
   |export (Old x) = Right x
+  |
+  |-- ⊆-◅ : ∀ {α β} b → α ⊆ β → (b ◅ α) ⊆ (b ◅ β)
+  |-- fmap of (▹ b)
+  |-- ⊆-ø : ∀ {α} → ø ⊆ α
+  |-- magic :: Zero → a
   |]
 
   stopComment
