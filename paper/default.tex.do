@@ -12,5 +12,5 @@ fi
 
 "${CMD[@]}" --tex > "$3"
 if [ -x /usr/bin/show-non-ascii ]; then
-  sed -e 's/^%.*//' < "$3" | show-non-ascii
+  sed -e 's/^%.*//' < "$3" | show-non-ascii >>/dev/stderr
 fi
