@@ -323,6 +323,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
      |    TypeOperators, GADTs, MultiParamTypeClasses,
      |    FlexibleInstances, UndecidableInstances,
      |    IncoherentInstances, ScopedTypeVariables, StandaloneDeriving #-}
+     |module PaperCode where
      |import Prelude hiding (elem,any,foldl)
      |import Control.Monad
      |import Control.Applicative

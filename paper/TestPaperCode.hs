@@ -91,8 +91,8 @@ class App a where
 instance App (Tm a) where
   ($$) = App
 
-cooked :: Tm a
-cooked = fromJust $ closed $ let_
+cooked :: Int -> Tm a
+cooked n = fromJust $ closed $ let_
   [ ("id",     "x" ! "x")
   , ("False",  "f" ! "t" ! "f")
   , ("True",   "f" ! "t" ! "t")
@@ -113,7 +113,6 @@ cooked = fromJust $ closed $ let_
   , ("fac",    "fix" $$ ("rfac" ! "x" ! "x" $$ "one" $$ ("n" ! "mul" $$ "x" $$ ("rfac" $$ "n"))))
   , ("eqnat",  "fix" $$ ("reqnat" ! "x" ! "y" ! "x" $$ ("y" $$ "True" $$ ("const" $$ "False")) $$ ("x1" ! "y" $$ "False" $$ ("y1" ! "reqnat" $$ "x1" $$ "y1"))))
   , ("sumto",  "fix" $$ ("rsumto" ! "x" ! "x" $$ "Zero" $$ ("n" ! "add" $$ "x" $$ ("rsumto" $$ "n"))))
-
   , ("n5",     "add" $$ "two" $$ "three")
   , ("n6",     "add" $$ "three" $$ "three")
   , ("n17",    "add" $$ "n6" $$ ("add" $$ "n6" $$ "n5"))
@@ -126,12 +125,14 @@ cooked = fromJust $ closed $ let_
   , ("n120",   "fac" $$ "n5")
   , ("n14",    "mul" $$ "two" $$ ("Succ" $$ "n6"))
   , ("n105",   "sumto" $$ "n14")
- -- ] ("if" $$ "True" $$ "True" $$ "False")
- -- ] ("eqnat" $$ "n720" $$ ("add" $$ "n703" $$ "n17"))
- -- ] ("eqnat" $$ "n24" $$ ("add" $$ "n21" $$ "three"))
-  ] ("eqnat" $$ "n120" $$ ("add" $$ "n105" $$ ("Succ" $$ "n14")))
-  -- ] ("eqnat" $$ "n5" $$ ("add" $$ "two" $$ "three"))
--- -}
+  ]
+  (case n of
+     0 -> "if" $$ "True" $$ "True" $$ "False"
+     1 -> "eqnat" $$ "n5" $$ ("add" $$ "two" $$ "three")
+     2 -> "eqnat" $$ "n24" $$ ("add" $$ "n21" $$ "three")
+     3 -> "eqnat" $$ "n120" $$ ("add" $$ "n105" $$ ("Succ" $$ "n14"))
+     4 -> "eqnat" $$ "n720" $$ ("add" $$ "n703" $$ "n17")
+     _ -> error "cooked: expect [0..4]")
 
 prettyPrec :: [String] -> Bool -> Int -> Tm String -> ShowS
 prettyPrec _      d n (Var a)     = showString a
@@ -154,12 +155,23 @@ noToTm :: No a -> Tm a
 noToTm (VarNo x ts) = foldl App (Var x) (map noToTm ts)
 noToTm (LamNo x b)  = lamP x (noToTm b)
 
-main = do
-  pp cooked
-  let result = noToTm . norm $ cooked
+test :: String -> Tm String -> IO ()
+test name result = do
+  putStrLn name
   if result == true
     then putStrLn "Result correct."
     else do
       putStrLn "Unexpected result:"
       pp result
       exitFailure
+
+norm_vs_nbe n = do
+  let t = cooked n
+  putStrLn $ "level " ++ show n
+  pp t
+  test "norm" . noToTm . norm $ t
+  test "nbe " . noToTm . nbe  $ t
+
+main = do
+  norm_vs_nbe 3
+  norm_vs_nbe 4
