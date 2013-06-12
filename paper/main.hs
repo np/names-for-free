@@ -1240,6 +1240,24 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |liftSubst _ θ (New x) = return (New x)
   |]
 
+{-
+The job of >>>= is basically:
+(>>>=) :: (a → tm b) → s tm a → s tm b
+introduce θ : a → tm b
+          x : s tm a
+
+apply θ inside x (using appropriate higher-order fmap) and get
+          y : s tm (tm b)
+
+then the crucial point is to lift out tm:
+
+          z : s (tm ∘ tm) b
+
+then apply join inside the structure (using the other higher-order fmap)
+
+          w : s tm b
+-}
+
   q«Substitution under a binder {|(>>>=)|} is then the wrapping
     of {|liftSubst|} between {|unpack|} and {|pack|}. It is uniform as
     well, and thus can be reused for every structure with binders.»
@@ -1366,6 +1384,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   [agdaFP|
   |freeVars' :: Tm a → [a]
   |freeVars' = toList
+  |
+  |freshFor' :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
+  |x `freshFor'` t = not (inj x `elem` t)
   |]
 
 {- NP: cut off-topic?
@@ -1998,7 +2019,7 @@ s (f . g)
   q«This representation is an instance of {|Functor|} and {|Monad|}, and
     the corresponding code offers no surprise.
 
-    We give an infix alias for {|AppLC|}, namely {|$$|}.»
+    We give an infix alias for {|AppLC|}, named {|$$|}.»
 
   onlyInCode [agdaFP|
   |($$) = AppLC
@@ -2324,61 +2345,60 @@ s (f . g)
   {- There might even be ways to get a similar interface for Fin,
      it might get closer McBride approach, tough -}
 
-  subsection $ «E. Kmett's Bound package for {_Haskell}» -- TODO: NP
+  subsection $ «Delayed Substitutions»
 
-  q«In his {_Haskell} package, {citet[boundkmett12]} elegantly addresses
-    the main performance issue caused by de Brujin indices.»
+  q«The main performance issue with de Brujn indices comes from the cost of importing
+    terms into scopes without capture, which requires to increment
+    free-variables in the substiuted term (see {|fmap Old|} in the definition of {|liftSubst|}). 
+    This transformation incurs not only a direct cost proportional to the size of terms,
+    but also an indirect cost in the form of loss of sharing.»
 
-  q«Indeed the main performance issue comes from the cost of importing
-    terms into scopes without capture, this requires to increment the
-    free-variables which incurs not only a cost but a loss of sharing.»
-
-  q«In the {_Bound} package, Kmett captures most of definitions
-    of scopes through a single data type, namely {|Scope|}. This
-    type {|Scope|} not only help improving performances but supports
-    multiple binders and enjoys a structure of monad transformers.
-    Additionally the type {|Scope|} is made an instance of type class
-    featuring a function {|>>>=|} similar to the one from section {ref
-    monadSec}. Here we specialize the type {|Scope|} to a single binder
-    to focus on the performance improvement.»
+  q«{_Citet[birdpaterson99]} propose a solution to this issue, which can be expressed
+     simply as another implementation of binders, where free variables of the inner term stand for 
+     whole terms with one less free variables:»
 
   [agdaFP|
-  |data TmK a where
-  |  VarK :: a → TmK a
-  |  LamK :: TmK (TmK a ▹ ()) → TmK a
-  |  AppK :: TmK a → TmK a → TmK a
+  |type DelayedScope tm a = tm (tm a ▹ ()) 
   |]
 
-  q«Thanks to this representation the application of substitutions
-    do not require their lifting, as can be made explicit by the
-    following {|Monad|} instance:»
+  q«This means that the parallel substition for a term representation 
+    based on {|DelayedScope|} does not require lifting of substitutions.»
 
   [agdaFP|
-  |instance Monad TmK where
-  |  return = VarK
-  |  VarK a >>= θ = θ a
-  |  AppK a b >>= θ = AppK (a >>= θ) (b >>= θ) 
-  |  LamK t >>= θ = LamK (t >>= \x -> VarK $ case x of
+  |data TmD a where
+  |  VarD :: a → TmD a
+  |  LamD :: DelayedScope TmD a  → TmD a
+  |  AppD :: TmD a → TmD a → TmD a
+  |]
+
+  [agdaFP|
+  |instance Monad TmD where
+  |  return = VarD
+  |  VarD a >>= θ = θ a
+  |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ) 
+  |  LamD t >>= θ = LamD (t >>= \x -> VarD $ case x of
   |                   New b -> New b
   |                   Old a -> Old (a >>= θ))
   |]
 
-  q«Our interface can be adapted in a straightforward manner to take
-    advantage of this feature:»
+  q«Because idea of delayed substitutions is concerned with free variables, and
+    the concepts we present here is concerned with bound variables, one can
+    one can easily define define scopes which are both delayed and safe. Hence
+    the performance gain can is compatible with our safe interface.»
 
   commentCode [agdaFP|
   |type ExistScope' tm a = ∃v. v × tm (tm a ▹ v)
   |type UnivScope'  tm a = ∀v. v → tm (tm a ▹ v)
   |]
 
-  -- TODO off-topic
-  -- NP: misplaced as well
-  {-
-  q«Besides, Nested Abstract Syntax misses a controlled and
-    uniform way to represent variables which prevents from using machine
-    integers to represent all the variables.»
-  -}
+{-
+    Kmett's
+    type {|Scope|} not only help improving performances but supports
+    multiple binders and enjoys a structure of monad transformers.
+    
+JP: Why? and how does this fit with our interfaces?
 
+-}
   subsection $ «HOAS: Higher-Order Abstract Syntax»
 
   q«A way to represent bindings of an object language is via the
@@ -2462,7 +2482,7 @@ s (f . g)
   |type TmP' = ∀ a. TmP a
   |]
 
-  q«Notice that only universally quantified terms ({|TmP'|}) are
+  q«Only universally quantified terms ({|TmP'|}) are
     guaranteed to correspond to terms of the λ-calculus.»
 
   q«The reprensentation of binders used by Chlipala can be seen as a
@@ -2536,7 +2556,7 @@ s (f . g)
     class captures only one aspect of context inclusion (captured
     by the class {|⊆|} in our development), namely that one context
     should be smaller than another. This means, for example, that the
-    class constraint {|a ⊆ b|} can be meaning fully resolved in more
+    class constraint {|a ⊆ b|} can be meaningfully resolved in more
     cases than {|Leq m n|}, in turn making functions such as {|wk|}
     more useful in practice. Additionally, our {|unpack|} and {|pack|}
     combinators extend the technique to term analysis and manipulation.»
