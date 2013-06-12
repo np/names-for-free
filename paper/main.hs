@@ -1329,16 +1329,17 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |bitraverse _ g (New x) = New <$> g x
   |]
 
-  q«An example of a useful effect to apply is throwing an exception, 
-    implemented for example as the {|Maybe|} monad.
-    If a term has no free variable, then it can be converted from the
-    type {|Tm a|} to {|Tm Zero|}, but this requires a dynamic check. It
-    may seem like a complicated implementation is necessary, but in fact
-    it is a direct application of the {|traverse|} function.»
+  q«An example of a useful effect to apply is throwing an exception,
+    implemented for example as the {|Maybe|} monad. If a term has no
+    free variable, then it can be converted from the type {|Tm a|}
+    to {|Tm Zero|} or any {|Tm b|} actually, but this requires a dynamic
+    check. It may seem like a complicated implementation is necessary,
+    but in fact it is a direct application of the {|traverse|}
+    function.»
 
-  [agdaFP|
-  |close :: Traversable tm ⇒ tm a → Maybe (tm Zero)
-  |close = traverse (const Nothing)
+  [haskellFP|
+  |closed :: Traversable tm ⇒ tm a → Maybe (tm b)
+  |closed = traverse (const Nothing)
   |]
 
   p"freeVars is toList"
