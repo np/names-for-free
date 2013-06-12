@@ -8,7 +8,8 @@ build-Type:     Simple
 executable paper
     build-depends: base>=3.0&&<5, containers>=0.1, base-unicode-symbols,
                    directory, template-haskell, mtl, split, process,
-                   transformers, Agda, uniplate>=1.2, hlatex, wl-pprint
+                   transformers, uniplate>=1.2, hlatex, wl-pprint,
+                   highlighting-kate
     if impl(ghc >= 7.6)
       build-depends: HSH>=2.1
     else

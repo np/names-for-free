@@ -3,7 +3,7 @@ BIBS=(local.bib npouillard.bib)
 # 
 
 LIBSOURCES=(
-  `find Paper AgdaKit Kit MiniTikz -type f`
+  `find Paper Kit MiniTikz -type f -name '*.hs'`
   Kit.hs)
 
 ALLSOURCES=(main.hs
@@ -15,7 +15,6 @@ ALLSOURCES=(main.hs
 
 # TODO extract from cabal file or use cabal directly
 PACKAGES=(-hide-all-packages
-          -package=Agda
           -package=array
           -package=base
           -package=containers
@@ -29,6 +28,7 @@ PACKAGES=(-hide-all-packages
           -package=template-haskell
           -package=uniplate
           -package=wl-pprint
+          -package=highlighting-kate
          )
 
 # redo arguments

@@ -2,21 +2,7 @@
 {-# OPTIONS_GHC -F -pgmF frquotes -fno-warn-missing-signatures #-}
 -- VIM :source config.vim
 
-import Language.LaTeX
-
-import System.Cmd (system)
-import System.Directory (doesFileExist)
-import System.Environment (getArgs)
-import Control.Monad.Writer
-
-import Language.LaTeX.Builder.QQ (texm, texFile)
-
 import Kit
-import Kit.Aliases
-import Kit.Style
-import Kit.QQ
-import Kit.ACM
-import AgdaKit.QQ
 
 import Paper.NbE
 
@@ -145,20 +131,20 @@ commentWhen False x = x
 
 commentCode = doComment
 
-unpackCode =  [agdaFP|
+unpackCode =  [haskellFP|
   |unpack :: f (Succ a) → 
   |          (∀ v. v → f (a ▹ v) → r) → r
   |unpack e k = k () e
   |]
 
 apTm =
-  [agdaFP|
+  [haskellFP|
   |-- Building the following term: λ f x → f x
   |apTm = lam $ λ f → lam $ λ x → var f `App` var x
   |]
 
 canEta =
-  [agdaFP|
+  [haskellFP|
   |canEta (Lam e) = unpack e $ λ x t → case t of
   |  App e1 (Var y) → y `isOccurenceOf` x &&
   |                    x `freshFor` e1
@@ -168,10 +154,10 @@ canEta =
 
 -- NP: Trying to factor canEta and canEtaWithSig result
 -- in big space between the signature and the code.
--- This is due to the fact agdaP/agdaFP are building
+-- This is due to the fact haskellP/haskellFP are building
 -- paragraphs.
 canEtaWithSig =
-  [agdaFP|
+  [haskellFP|
   |canEta :: Tm Zero → Bool
   |canEta (Lam e) = unpack e $ λ x t → case t of
   |  App e1 (Var y) → y `isOccurenceOf` x &&
@@ -318,7 +304,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   let onlyInCode = when includeUglyCode
   
   onlyInCode $ do 
-     [agdaP|
+     [haskellP|
      |{-# LANGUAGE RankNTypes, UnicodeSyntax,
      |    TypeOperators, GADTs, MultiParamTypeClasses,
      |    FlexibleInstances, UndecidableInstances,
@@ -457,7 +443,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     A direct implementation of the idea may yield the following
     representation of untyped λ-terms:»
 
-  [agdaFP|
+  [haskellFP|
   |data Nat = O | S Nat
   |data TmB where
   |  VarB :: Nat → TmB
@@ -469,7 +455,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Using this representation, the implementation of the application
     function {|λ f x → f x|} is the following:»
 
-  [agdaFP|
+  [haskellFP|
   |apB :: TmB
   |apB = LamB $ LamB $ VarB (S O) `AppB` VarB O
   |]
@@ -497,13 +483,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- at all.
 
   -- NP,TODO: 'type', 'class', 'instance', '::', '⇒' are not recognized as keywords
-  [agdaFP|
+  [haskellFP|
   |data Tm a where
   |  Var :: a → Tm a
   |  App :: Tm a → Tm a → Tm a
   |  Lam :: Tm (Succ a) → Tm a
   |]
-  onlyInCode [agdaP|  deriving (Show)|]
+  onlyInCode [haskellP|  deriving (Show)|]
 
   p"the type of Lam"
    «The recursive case {|Lam|} changes the type parameter, increasing
@@ -519,7 +505,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     we give a special definition of sum written {|▹|}, whose syntax
     reflects the intended semantics.»
 
-  [agdaFP|
+  [haskellFP|
   |type Succ a = a ▹ ()
   |
   |data a ▹ v = Old a | New v
@@ -535,13 +521,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
 --  |instance Bifunctor (▹) where
-  onlyInCode [agdaP|deriving instance (Show a, Show b) ⇒ Show (a ▹ b)|]
+  onlyInCode [haskellP|deriving instance (Show a, Show b) ⇒ Show (a ▹ b)|]
 
   p"apNested example"
    «Using the {|Tm|} representation, the implementation of the application
     function {|λ f x → f x|} is the following:»
 
-  [agdaFP|
+  [haskellFP|
   |apNested :: Tm Zero
   |apNested = Lam $ Lam $ Var (Old $ New ())
   |                 `App` Var (New ())
@@ -552,7 +538,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     term: this is ensured by using the empty type {|Zero|} as an
     argument to {|Tm|}.»
 
-  [agdaFP|
+  [haskellFP|
   |data Zero -- no constructors
   |]
 
@@ -576,13 +562,13 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     propose to build λ-abstractions with a function called {|lam|}. What
     matters the most is its type:»
 
-  [agdaFP|
+  [haskellFP|
   |lam :: (∀ v. v → Tm (a ▹ v)) → Tm a
   |lam f = Lam (f ())
   |]
 
     {-
-  [agdaFP|
+  [haskellFP|
   |data Tm a where
   |  Var :: a → Tm a
   |  App :: Tm a → Tm a → Tm a
@@ -604,7 +590,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"const"
    «The application function is then built as follows:»
 
-  [agdaFP|
+  [haskellFP|
   |apTm_ :: Tm Zero
   |apTm_ = lam $ λ f → lam $ λ x → Var (Old (New f))
   |                  ☐        `App` Var (New x)
@@ -629,7 +615,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     for example if one now makes a mistake and forgets one {|Old|} when entering the
     term, the {_Haskell} type system rejects the definition.»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |oops_ = lam $ λ f → lam $ λ x → Var (New f)
   |                  ☐        `App` Var (New x)
   |-- Couldn't match expected type `v1'
@@ -665,7 +651,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     is feasible. To this effect, we define a class {|v ∈ a|} capturing that {|v|}
     occurs as part of a context {|a|}:»
 
-  [agdaFP|
+  [haskellFP|
   |class v ∈ a where
   |  inj :: v → a
   |]
@@ -674,7 +660,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «We can then wrap the injection function and {|Var|} in a convenient
     package:»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |var :: ∀ v a. (v ∈ a) ⇒ v → Tm a
   |var = Var . inj
   |]
@@ -766,7 +752,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     in the presence of multiple binders. For example, the code which
     recognises the pattern {|λ x y → e x|} is as follows:»
 
-  [agdaFP|
+  [haskellFP|
   |recognize :: Tm Zero → Bool
   |recognize t0 = case t0 of
   |    Lam f → unpack f $ λ x t1 → case t1 of
@@ -787,7 +773,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   subsection $ «Packing and Unpacking Binders»
 
   p""«In order to examine the content of a term with another bound variable,
-      one must apply a concrete argument to the function of type {|∀v. v → Term (a ▹ v)|}.
+      one must apply a concrete argument to the function of type {|∀ v. v → Term (a ▹ v)|}.
       The type of that argument can be chosen freely --- that freedom is sometimes useful
       to write idiomatic code. One choice is
       unit type and its single inhabitant {|()|}. However this choice locally reverts to using
@@ -813,7 +799,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   commentCode unpackCode
 
   {-
-  [agdaP|
+  [haskellP|
   |unpack binder k = k fresh (binder fresh)
   |  where fresh = ()
   |]
@@ -842,7 +828,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     of {|unpack|}. Indeed, given a value {|x|} of type {|v|} and a term
     of type {|Tm (a ▹ v)|} one can reconstruct a binder as follows: »
 
-  [agdaFP|
+  [haskellFP|
   |pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
   |pack x = fmap (bimap id (const ()))
   |]
@@ -858,7 +844,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     that by removing the variable {|v|} 
     from the context {|b|} one obtains {|a|}, then a generic {|pack|} would have the 
     following type:»
-  [agdaFP|
+  [haskellFP|
   |packGen :: ∀ f v a b w. (Functor f, Insert v a b) ⇒
   |           v → f b → (w → f (a ▹ w))
   |]
@@ -870,7 +856,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     interface to binders. For example an alternative way to build
     the {|Lam|} constructor is the following:»
 
-  [agdaFP|
+  [haskellFP|
   |lamP :: v → Tm (a ▹ v) → Tm a
   |lamP x t = Lam (pack x t)
   |]
@@ -900,7 +886,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     purposes.»
 
   -- (As for {|pack|}, {|remove|} can be generalised to use the {|Insert|})... However we have not siien ∈ yet, so this makes little sense.
-  [agdaFP|
+  [haskellFP|
   |remove :: v → [a ▹ v] → [a]
   |remove _ xs = [x | Old x ← xs]
   |]
@@ -910,7 +896,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     be directly transcribed from its nominal-style definition, thanks
     to the {|unpack|} combinator.»
 
-  [agdaFP|
+  [haskellFP|
   |freeVars :: Tm a → [a]
   |freeVars (Var x) = [x]
   |freeVars (Lam b) = unpack b $ λ x t →
@@ -926,7 +912,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     To implement comparison between names, we provide the following two {|Eq|} instances.
     First, the {|Zero|} type is vaccuously equipped with equality:»
 
-  [agdaFP|
+  [haskellFP|
   |instance Eq Zero where
   |  (==) = magic
   |
@@ -938,7 +924,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Second, if two indices refer to the first variable they are equal;
     otherwise we recurse. We stress that this equality inspects only the
     {emph«indices»}, not the values contained in the type. For
-    example {|New 0 == New 1|} is {|True|}:»
+    example {|New 0 == New 1|} is {|True|}:»
+
+  -- NP: TODO nbsp are messed up by the highlighter
 
   {-
   instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where
@@ -950,7 +938,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     _ == _ = True
   -}
 
-  [agdaFP|
+  [haskellFP|
   |instance Eq a ⇒ Eq (a ▹ v) where
   |  New _ == New _ = True
   |  Old x == Old y = x == y
@@ -972,7 +960,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   q«Consequently, the derived equality instance of {|Tm|} gives
     α-equality, and is guaranteed safe in fully-polymorphic contexts.»
 
-  onlyInCode [agdaFP|
+  onlyInCode [haskellFP|
   |deriving instance Eq a ⇒ Eq (Tm a)
   |]
 
@@ -984,7 +972,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     corresponding to finding the variable in the first position of the
     context, or further away in it, with the obvious injections:»
 
-  [agdaFP|
+  [haskellFP|
   |instance v ∈ (a ▹ v) where
   |  inj = New
   |
@@ -1013,7 +1001,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     one first lifts the bound variable to the context of the chosen occurence and
     then tests for equality.»
 
-  [agdaFP|
+  [haskellFP|
   |isOccurenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
   |x `isOccurenceOf` y = x == inj y
   |]
@@ -1023,7 +1011,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- We should not use Data.Foldable.elem here: we have not seen the
   -- Foldable instance yet.  At this point the cosmetic benefit is
   -- outweighed by the cost of the dangling (future) references.
-  [agdaFP|
+  [haskellFP|
   |freshFor :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
   |x `freshFor` t = not (inj x `elem` freeVars t)
   |]
@@ -1035,7 +1023,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     represent by a type class, named {|⊆|}. The sole method of the
     typeclass is again an injection, from the small context to the
     bigger one. The main application of {|⊆|} is presented at the end of sec. {ref functorSec}.»
-  [agdaFP|
+  [haskellFP|
   |class a ⊆ b where
   |  injMany :: a → b
   |]
@@ -1045,7 +1033,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     context is the smallest one; adding a variable makes the context
     larger; and variable append {|(▹ v)|} is monotonic for inclusion.»
 
-  [agdaFP|
+  [haskellFP|
   |instance a ⊆ a where injMany = id
   |
   |instance Zero ⊆ a where injMany = magic
@@ -1100,7 +1088,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     altered by {|f|}, and thanks to our use of polymorphism, the
     type-checker ensures that we make no mistake in doing so.»
 
-  [agdaFP|
+  [haskellFP|
   |instance Functor Tm where
   |  fmap f (Var x)   = Var (f x)
   |  fmap f (Lam b)   = unpack b $ λ x t →
@@ -1117,7 +1105,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     going to change. The {|Functor|} laws are the following:»
 
   doComment
-    [agdaFP|
+    [haskellFP|
     |fmap id ≡ id
     |fmap (f . g) ≡ fmap f . fmap g
     |]
@@ -1138,7 +1126,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     by {|y|} and {|swap (x,y) t|} which exchanges free occurences
     of {|x|} and {|y|} in {|t|}.»
 
-  [agdaFP|
+  [haskellFP|
   |rename0 :: Eq a ⇒ (a, a) → a → a
   |rename0 (x,y) z | z == x    = y
   |                | otherwise = z
@@ -1147,7 +1135,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |rename = fmap . rename0
   |]
 
-  [agdaP|
+  [haskellP|
   |swap0 :: Eq a ⇒ (a, a) → a → a
   |swap0 (x,y) z | z == y    = x
   |              | z == x    = y
@@ -1161,7 +1149,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- "proofs", appendix, long version, useless...
   -- using: fmap f (Lam g) = Lam (fmap (bimap f id) . g)
   doComment
-    [agdaFP|
+    [haskellFP|
     |fmap id (Var x)
     |  = Var (id x) = Var x
     |
@@ -1194,7 +1182,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     an arbitrary weakening from the context {|a|} to the bigger
     context {|b|}.»
 
-  [agdaFP|
+  [haskellFP|
   |wk :: (Functor f, a ⊆ b) ⇒ f a → f b
   |wk = fmap injMany
   |]
@@ -1217,7 +1205,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     variable and application, and we isolate the handling of binders in
     the {|(>>>=)|} function.»
 
-  [agdaFP|
+  [haskellFP|
   |instance Monad Tm where
   |  return = Var
   |  Var x   >>= θ = θ x
@@ -1233,7 +1221,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     with {|return|}.»
 
   -- TODO we under use the monadic structure of tm∘(▹v)
-  [agdaFP|
+  [haskellFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒
   |          v → (a → tm b) → (a ▹ v) → tm (b ▹ v)
   |liftSubst _ θ (Old x) = fmap Old (θ x)
@@ -1246,7 +1234,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   -- TODO NP: SuccScope/UnivScope/... are monad transformers
 
-  [agdaFP|
+  [haskellFP|
   |(>>>=) :: (Functor tm, Monad tm) ⇒
   |          tm (Succ a) → (a → tm b) → tm (Succ b)
   |s >>>= θ = unpack s $ λ x t →
@@ -1264,14 +1252,14 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     For example, given the membership ({|∈|}), one can provide the a
     generic combinator to reference to a variable within any term structure:»
 
-  [agdaFP|
+  [haskellFP|
   |var :: (Monad tm, v ∈ a) ⇒ v → tm a
   |var = return . inj
   |]
 
   q«One can also substitute an arbitrary variable:»
 
-  [agdaFP|
+  [haskellFP|
   |substitute :: (Monad tm, Eq a, v ∈ a) ⇒
   |              v → tm a → tm a → tm a
   |substitute x t u = u >>= λ y →
@@ -1283,7 +1271,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- to one substitution as in t[x≔u]
   q«One might however also want to remove the substituted
     variable from the context while performing the substitution:»
-  [agdaFP|
+  [haskellFP|
   |substituteOut :: Monad tm ⇒
   |                 v → tm a → tm (a ▹ v) → tm a
   |substituteOut x t u = u >>= λ y → case y of
@@ -1318,7 +1306,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     an applicative and therefore support monadic actions
     directly {cite[mcbrideapplicative2007]}.»
 
-  [agdaFP|
+  [haskellFP|
   |instance Traversable Tm where
   |  traverse f (Var x)   = Var <$> f x
   |  traverse f (App t u) =
@@ -1334,7 +1322,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     The function {|bitraverse|} is given two effectful functions, one for
     each case:»
 
-  [agdaFP|
+  [haskellFP|
   |bitraverse :: Functor f ⇒ (a     → f a')
   |                        → (b     → f b')
   |                        → (a ▹ b → f (a' ▹ b'))
@@ -1363,7 +1351,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     free variables of a term and {|Data.Foldable.elem|} can be used to
     build {|freshFor|}:»
 
-  [agdaFP|
+  [haskellFP|
   |freeVars' :: Tm a → [a]
   |freeVars' = toList
   |]
@@ -1379,7 +1367,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     way around requires to traverse the term.»
 
   -- TODO maybe too much
-  [agdaFP|
+  [haskellFP|
   |type S f b = forall a. (a -> b) -> f a -> b
   |type T f b = f b -> b
   |
@@ -1409,7 +1397,7 @@ s (f . g)
   notetodo «NP: what about using a figure to collect some of the most crucial definitions?»
   q«In Nested Abstract Syntax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
     is represented as follows:»
-  [agdaFP|
+  [haskellFP|
   |type SuccScope tm a = tm (Succ a)
   |]
 
@@ -1417,10 +1405,10 @@ s (f . g)
                                              one based on universal
   quantification, the other one based on existential quantification.»
 
-  onlyInCode [agdaFP|
+  onlyInCode [haskellFP|
   |type UnivScope f a = ∀ v. v → f (a ▹ v)
   |]
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |type UnivScope  tm a = ∀ v.  v → tm (a ▹ v)
   |type ExistScope tm a = ∃ v. (v ,  tm (a ▹ v))
   |]
@@ -1430,7 +1418,7 @@ s (f . g)
     convenient for programming (so we used this so far),
     but a datatype representation is more convenient when dealing with scopes only:»
 
-  [agdaFP|
+  [haskellFP|
   |data ExistScope tm a where
   |  E :: v → tm (a ▹ v) → ExistScope tm a
   |] 
@@ -1458,12 +1446,12 @@ s (f . g)
   subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
   p"conversions"
    «The conversion functions witnessing the isomorphism are the following.»
-  [agdaFP|
+  [haskellFP|
   |succToUniv :: Functor tm ⇒
   |              SuccScope tm a → UnivScope tm a
   |succToUniv t = λ x → bimap id (const x) <$> t
   |]
-  [agdaP|
+  [haskellP|
   |univToSucc :: UnivScope tm a → SuccScope tm a
   |univToSucc f = f ()
   |]
@@ -1477,7 +1465,7 @@ s (f . g)
     of {|SuccScope|}, that is {|univToSucc . succToUniv ≡ id|}. This can
     be done by simple equational reasoning:»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |   univToSucc (succToUniv t)
   | ≡ {- by def -}
   |   univToSucc (λ x → bimap id (const x) <$> t)
@@ -1503,10 +1491,10 @@ s (f . g)
     theorem {cite[reynolds83,bernardyproofs2012]}, assuming additionally
     that {|tm|} is a functor. We obtain the following lemma:»
 
-  commentCode [agdaFP|
-  | ∀v₁:*. ‼ ∀v₂:*. ∀v:v₁ → v₂.
-  | ∀x₁:v₁. ∀x₂:*. v x₁ ≡ x₂.
-  | ∀g:(a ▹ v₁) → (a ▹ v₂).
+  commentCode [haskellFP|
+  | ∀ v₁:*. ‼ ∀ v₂:*. ∀ v:v₁ → v₂.
+  | ∀ x₁:v₁. ∀ x₂:*. v x₁ ≡ x₂.
+  | ∀ g:(a ▹ v₁) → (a ▹ v₂).
   | (∀ y:v₁. New (v y) ≡ g (New y)) →
   | (∀ n:a. ‼ Old n     ≡ g (Old n)) →
   | f x₂ ≡ g <$> f x₁
@@ -1517,7 +1505,7 @@ s (f . g)
     {|g|} satisfies the conditions of the lemma. We can then reason
     equationally:»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |   f
   | ≡ {- by the above -}
   |   λ x → bimap id (const x) <$> f ()
@@ -1533,7 +1521,7 @@ s (f . g)
    «The conversion functions witnessing the isomorphism are the
     following.»
 
-  [agdaFP|
+  [haskellFP|
   |succToExist :: SuccScope tm a → ExistScope tm a
   |succToExist = E ()
   |
@@ -1550,24 +1538,24 @@ s (f . g)
     prove {|succToExist . existToSucc ≡ id|}, we first remark that by
     definition:»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |succToExist (existToSucc (E y t)) ≡
   |  E () (fmap (bimap id (const ())) t)
   |]
 
   q«It remains to show that {|E y t|} is equivalent to the right-hand
     side of the above equation. To do so, we consider any observation
-    function {|o|} of type {|∀v. v → tm (a ▹ v) → K|} for some constant
+    function {|o|} of type {|∀ v. v → tm (a ▹ v) → K|} for some constant
     type {|K|}, and show that it returns the same result if applied
     to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ()))
     t|}. This fact is a consequence of the free theorem associated
     with {|o|}:»
 
-  commentCode [agdaFP|
-  | ∀v₁:*. ‼ ∀v₂:*. ∀v:v₁ → v₂.
-  | ∀x₁:v₁. ∀x₂:*. v x₁ ≡ x₂.
-  | ∀t₁:tm (a ▹ v₁). ∀t₂:tm (a ▹ v₂).
-  | (∀g:(a ▹ v₁) → (a ▹ v₂).
+  commentCode [haskellFP|
+  | ∀ v₁:*. ‼ ∀ v₂:*. ∀ v:v₁ → v₂.
+  | ∀ x₁:v₁. ∀ x₂:*. v x₁ ≡ x₂.
+  | ∀ t₁:tm (a ▹ v₁). ∀ t₂:tm (a ▹ v₂).
+  | (∀ g:(a ▹ v₁) → (a ▹ v₂).
   |  (∀ y:v₁. New (v y) ≡ g (New y)) →
   |  (∀ n:a.  Old n     ≡ g (Old n)) →
   |  t₂ ≡ fmap g t₁) →
@@ -1581,7 +1569,7 @@ s (f . g)
 
   -- subsection «{|FunScope|}»
   --  «NP: this one comes from NbE»
-  onlyInCode [agdaFP|
+  onlyInCode [haskellFP|
   |type FunScope tm a = ∀ b. (a → b) → tm b → tm b
   |
   |fmapFunScope :: (a → b) → FunScope tm a → FunScope tm b
@@ -1592,16 +1580,16 @@ s (f . g)
   |
   |bindSuccScope :: Monad tm ⇒ (a → SuccScope tm b) →
   |                   SuccScope tm a → SuccScope tm b
-  |bindSuccScope f t = t >>= \ x -> case x of
-  |  Old y -> f y
-  |  New () -> return (New ())
+  |bindSuccScope f t = t >>= λ x → case x of
+  |  Old y  → f y
+  |  New () → return (New ())
   |
   |-- NP: I started this one by converting to
   |-- SuccScope, but so far I'm stuck here
   |bindFunScope :: Monad tm ⇒ (a → FunScope tm b) →
   |                  FunScope tm a → FunScope tm b
   |bindFunScope f t g u =
-  |  funToUniv t u >>= \x -> case x of
+  |  funToUniv t u >>= λ x → case x of
   |    New y → y
   |    Old y → f y g u
   |
@@ -1632,7 +1620,7 @@ s (f . g)
   can be illustrated by showing both alternatives for the {|Lam|} case of the {|fmap|} function.
   (The {|App|} and {|Var|} cases are identical.) Because the second version is more concise, we prefer it
     in the upcoming examples, but the other choice is equally valid.»
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |fmap' f (Lam b)
   |   = unpack b $ λ x t → lamP x (fmap (bimap f id) t)
   |fmap' f (Lam b) 
@@ -1643,11 +1631,11 @@ s (f . g)
     To remind us of this requirement when writing code, we give the alias {|atVar|} for {|succToUniv|}.
     (Similarly, to guarantee safetly, the first argument of {|pack|} (encapsulated here in {|lamP|}) must be maximally polymorphic.)»
 
-  onlyInCode [agdaFP| 
+  onlyInCode [haskellFP| 
   |atVar = succToUniv
   |]
 
-  subsection $ «{|Scope|} representations and {|Term|} representations»
+  subsection $ «Scope representations and term representations»
   
   q«By using an interface such as ours, term representations can be made agnostic to the
     particular scope representation one might choose. In other words, if some interface appears
@@ -1663,11 +1651,11 @@ s (f . g)
   q «One can take the example of a size function, counting the number of
     data constructors in a term:»
 
-  [agdaFP|
+  [haskellFP|
   |type Size = Int
   |]
 
-  [agdaFP|
+  [haskellFP|
   |size :: (a → Size) → Tm a → Size
   |size ρ (Var x)   = ρ x
   |size ρ (App t u) = 1 + size ρ t + size ρ u
@@ -1681,7 +1669,7 @@ s (f . g)
     Each binder is simply {|unpack|}ed.
     Using this technique, the size computation looks as follows:»
 
-  [agdaFP|
+  [haskellFP|
   |sizeEx :: (a → Size) → Tm a → Size
   |sizeEx ρ (Var x)   = ρ x
   |sizeEx ρ (App t u) = 1 + sizeEx ρ t + sizeEx ρ u
@@ -1698,7 +1686,7 @@ s (f . g)
     the following catamorphism over terms. Note that the algebra
     corresponds to the higher-order representation of λ-terms.»
 
-  [agdaFP|
+  [haskellFP|
   |data TmAlg a r = TmAlg { pVar :: a → r
   |                       , pLam :: (r → r) → r
   |                       , pApp :: r → r → r }
@@ -1719,7 +1707,7 @@ s (f . g)
   p"cataSize"
    «Finally, it is also possible to use {|cata|} to compute the size:»
 
-  [agdaFP|
+  [haskellFP|
   |sizeAlg :: (a → Size) → TmAlg a Size
   |sizeAlg ρ = TmAlg { pVar = ρ
   |                  , pLam = λ f → 1 + f 1
@@ -1756,7 +1744,7 @@ s (f . g)
    for every variable. The variable and application cases then offer no surprises.
    »
 
-  [agdaFP|
+  [haskellFP|
   |size1 :: Tm Size → Size
   |size1 (Var x) = x
   |size1 (Lam g) = 1 + size1 (fmap untag (g 1))
@@ -1777,7 +1765,7 @@ s (f . g)
       then we convert the structure of free variables {|Nat :> ()|} into {|Nat|}, using the {|toNat|} function.
       Additionally the environment is extended with the expected value for the new variable.»
 
-  [agdaFP|
+  [haskellFP|
   |size3 :: (Nat → Size) → Tm Nat → Size
   |size3 f (Var x) = f x
   |size3 f (Lam g) = 1 + size3 f' (fmap toNat (g ()))
@@ -1814,7 +1802,7 @@ s (f . g)
    Indeed, thanks to parametricity, the functions cannot inspect their argument at all, and therefore it is
    sufficient to test for equality at the unit type, as shown below:
   »
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |instance Eq a ⇒ Eq (Tm a) where
   |  Var x == Var x' = x == x'
   |  Lam g == Lam g' = g == g'
@@ -1828,7 +1816,7 @@ s (f . g)
     possibility of a mistake is real. In order to preempt errors, one should like to use the {|unpack|}
     combinator as below:»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |  Lam g == Lam g' = unpack g  $ λx  t  →
   |                    unpack g' $ λx' t' →
   |                    t == t'
@@ -1837,7 +1825,7 @@ s (f . g)
     in turn {|t|} and {|t'|} would not have the same type and cannot be compared. Hence we must use another variant
     of the {|unpack|} combinator, which maintains the correspondance between contexts in two different terms.»
 
-  [agdaFP|
+  [haskellFP|
   |unpack2 :: (∀ v. v → f (a ▹ v)) →
   |           (∀ v. v → g (a ▹ v)) →
   |
@@ -1850,12 +1838,12 @@ s (f . g)
 
   q«One can see {|unpack2|} as allocating a single fresh name {|x|} which is shared between {|t|} and {|t'|}.»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |  Lam g == Lam g' = unpack2 g g' $ λ x t t' →
   |                    t == t'
   |]
 
-  [agdaFP|
+  [haskellFP|
   |type Cmp a b = a → b → Bool
   |
   |cmpTm :: Cmp a b → Cmp (Tm a) (Tm b)
@@ -1888,7 +1876,7 @@ s (f . g)
     this definition we use an existential-based version of scopes, which
     we splice in the {|LamNo|} constructor.»
 
-  [agdaFP|
+  [haskellFP|
   |data No a where
   |  LamNo :: v → No (a ▹ v) → No a
   |  VarNo :: a → [No a] → No a
@@ -1899,7 +1887,7 @@ s (f . g)
     The function performing an hereditary substitution substitutes
     variables for their value, while reducing redexes on the fly.»
 
-  [agdaFP|
+  [haskellFP|
   |instance Monad No where
   |  return x = VarNo x []
   |  LamNo x t  >>= θ = LamNo x (t >>= liftSubst x θ)
@@ -1909,7 +1897,7 @@ s (f . g)
   q«The most notable feature of this substitution is the use of {|app|}
     to normalise redexes:»
 
-  [agdaFP|
+  [haskellFP|
   |app :: No a → No a → No a
   |app (LamNo x t)  u = substituteOut x u t
   |app (VarNo f ts) u = VarNo f (ts++[u])
@@ -1918,7 +1906,7 @@ s (f . g)
   q«The normaliser can then be written as a simple recursion on the term
     structure:»
 
-  [agdaFP|
+  [haskellFP|
   |norm :: Tm a → No a
   |norm (Var x)   = return x
   |norm (App t u) = app (norm t) (norm u)
@@ -1982,7 +1970,7 @@ s (f . g)
   -- JP: done at end of sec. 5.4
    
 
-  [agdaFP|
+  [haskellFP|
   |data LC a where
   |  VarLC :: a → LC a
   |  AppLC :: LC a → LC a → LC a
@@ -2000,13 +1988,13 @@ s (f . g)
 
     We give an infix alias for {|AppLC|}, namely {|$$|}.»
 
-  onlyInCode [agdaFP|
+  onlyInCode [haskellFP|
   |($$) = AppLC
   |infixl $$
   |]
 
   {-
-  [agdaFP|
+  [haskellFP|
   |closure :: (∀ vx venv. vx → venv →
   |              LC (Zero ▹ venv ▹ vx)) →
   |           LC a →
@@ -2033,7 +2021,7 @@ s (f . g)
     {|wk|}. Additionally, the subtitution performed {|wk|} is 
     inferred automatically by GHC.»
 
-  [agdaFP|
+  [haskellFP|
   |cc :: Eq a ⇒ Tm a → LC a
   |cc (Var x) = VarLC x
   |cc t0@(Lam b) =
@@ -2084,7 +2072,7 @@ s (f . g)
     argument and a continuation.»
 
 {-
-  [agdaFP|
+  [haskellFP|
   |data TmC a where
   |  HaltC :: a → TmC a
   |  AppC  :: a → a → TmC a
@@ -2098,7 +2086,7 @@ s (f . g)
   |]
 -}
 
-  [agdaFP|
+  [haskellFP|
   |data TmC a where
   |  HaltC :: Value a → TmC a
   |  AppC  :: Value a → Value a → TmC a
@@ -2116,7 +2104,7 @@ s (f . g)
    «We do not use {|Value|}s directly, but instead their composition with injection.»
 
   {-
-  [agdaFP|
+  [haskellFP|
   |type UnivScope f a = ∀ v. v → f (a ▹ v)
   |
   |haltC :: (v ∈ a) ⇒ v → TmC a
@@ -2130,7 +2118,7 @@ s (f . g)
   |]
   -}
 
-  [agdaFP|
+  [haskellFP|
   |varC :: (v ∈ a) ⇒ v → Value a
   |letC :: Value a → UnivScope TmC a → TmC a
   |lamC :: UnivScope TmC a → Value a
@@ -2191,7 +2179,7 @@ s (f . g)
     GHC is able to infer the substitution to perform.»
 
   {-
-  [agdaFP|
+  [haskellFP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = fmap untag (k x)
   |cps (App e1 e2) k =
@@ -2211,11 +2199,11 @@ s (f . g)
 
   -- |cps :: Tm a → Univ TmC a → TmC a
   -- NP: I put this one before for page layout reasons
-  [agdaFP|
+  [haskellFP|
   |cps0 :: Tm a → TmC a
   |cps0 t = cps t $ HaltC . varC
   |]
-  [agdaP|
+  [haskellP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
   |cps (App e1 e2) k =
@@ -2234,7 +2222,7 @@ s (f . g)
   |]
 {-
   -- This version departs from the mathematical notation and requires an explicit weakening
-  [agdaFP|
+  [haskellFP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
   |cps (App e1 e2) k =
@@ -2254,7 +2242,7 @@ s (f . g)
 
   -- I suggest inlining this so meaningful names can be used.
   -- |type UnivScope2 f a = forall v1 v2. v1 → v2 → f (a ▹ v1 ▹ v2)
-  [agdaFP|
+  [haskellFP|
   |lamPairC :: (forall v1 v2. v1 → 
   |             v2 → TmC (a ▹ v1 ▹ v2)) → Value a
   |lamPairC f = lamC $ λp →
@@ -2342,7 +2330,7 @@ s (f . g)
     monadSec}. Here we specialize the type {|Scope|} to a single binder
     to focus on the performance improvement.»
 
-  [agdaFP|
+  [haskellFP|
   |data TmK a where
   |  VarK :: a → TmK a
   |  LamK :: TmK (TmK a ▹ ()) → TmK a
@@ -2353,22 +2341,22 @@ s (f . g)
     do not require their lifting, as can be made explicit by the
     following {|Monad|} instance:»
 
-  [agdaFP|
+  [haskellFP|
   |instance Monad TmK where
   |  return = VarK
   |  VarK a >>= θ = θ a
   |  AppK a b >>= θ = AppK (a >>= θ) (b >>= θ) 
-  |  LamK t >>= θ = LamK (t >>= \x -> VarK $ case x of
-  |                   New b -> New b
-  |                   Old a -> Old (a >>= θ))
+  |  LamK t >>= θ = LamK (t >>= λ x → VarK $ case x of
+  |                   New b → New b
+  |                   Old a → Old (a >>= θ))
   |]
 
   q«Our interface can be adapted in a straightforward manner to take
     advantage of this feature:»
 
-  commentCode [agdaFP|
-  |type ExistScope' tm a = ∃v. v × tm (tm a ▹ v)
-  |type UnivScope'  tm a = ∀v. v → tm (tm a ▹ v)
+  commentCode [haskellFP|
+  |type UnivScope'  tm a = ∀ v.  v → tm (tm a ▹ v)
+  |type ExistScope' tm a = ∃ v. (v ,  tm (tm a ▹ v))
   |]
 
   -- TODO off-topic
@@ -2385,7 +2373,7 @@ s (f . g)
     bindings of the host language. One naive translation of this idea
     yields the following term representation:»
 
-  [agdaFP|
+  [haskellFP|
   |data TmH = LamH (TmH → TmH) | AppH TmH TmH
   |]
 
@@ -2415,7 +2403,7 @@ s (f . g)
     these functions cannot react to the shape of their argument and thus
     behave as substitutions. Here is this representation in {_Haskell}:»
 
-  [agdaFP|
+  [haskellFP|
   |type TmF = ∀ a. ((a → a) → a)  -- lam
   |              → (a → a → a)   -- app
   |              → a
@@ -2423,7 +2411,7 @@ s (f . g)
 
   q«And our familiar application function:»
 
-  [agdaFP|
+  [haskellFP|
   |apTmF :: TmF
   |apTmF lam app = lam $ λ f → lam $ λ x → f `app` x
   |]
@@ -2440,7 +2428,7 @@ s (f . g)
 
 {- NP: what about putting this in the catamorphism section with a forward ref
   - to here?
-  [agdaFP|
+  [haskellFP|
   |tmToTmF :: Tm Zero → TmF
   |tmToTmF t lam app = cata (TmAlg magic lam app)
   |]
@@ -2453,7 +2441,7 @@ s (f . g)
     Parametric Higher-Order Abstract Syntax (PHOAS), terms of the
     untyped λ-calculus are as represented follows:»
 
-  [agdaFP|
+  [haskellFP|
   |data TmP a where
   |  VarP :: a → TmP a
   |  LamP :: (a → TmP a) → TmP a
@@ -2472,10 +2460,10 @@ s (f . g)
     handle fresh variables specially. The corresponding implementation
     of the monadic {|join|} is as follows:»
 
-  onlyInCode [agdaP|
+  onlyInCode [haskellP|
   |joinP :: TmP (TmP a) → TmP a
   |]
-  [agdaFP|
+  [haskellFP|
   |joinP (VarP x)   = x
   |joinP (LamP f)   = LamP (λ x → joinP (f (VarP x)))
   |joinP (AppP t u) = AppP (joinP t) (joinP u)
@@ -2483,7 +2471,7 @@ s (f . g)
 
   q«On the minus side, all the variables (bound and free) have the
     same representation. This means that they cannot be told apart
-    within a term of type {|∀a. TmP a|}. Additionally, once the type
+    within a term of type {|∀ a. TmP a|}. Additionally, once the type
     variable {|a|} is instantiated to a closed type, one cannot recover
     the polymorphic version. Furthermore while {|Tm Zero|} denotes a
     closed term, {|TmP Zero|} denotes a term {emph«without»} variables, hence no
@@ -2520,7 +2508,7 @@ s (f . g)
         simpler, at the expense of {|lam|}:
         »
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |lam :: ((∀ n. (Leq (S m) n ⇒ Fin n)) → Tm (S m))
   |       → Tm m
   |var :: Fin n → Tm n
@@ -2608,7 +2596,7 @@ s (f . g)
     is indexed by {|World|}s: this ties occurences to the context where
     they make sense.»
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |World :: *
   |Binder :: *
   |Empty :: World
@@ -2621,7 +2609,7 @@ s (f . g)
   a {_Haskell}-like syntax for dependent types, similar to that of {_Idris}):
   »
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
   |data Tm α where
   |  Var :: Name α → Tm α
   |  App :: Tm α → Tm α → Tm α
@@ -2751,7 +2739,7 @@ s (f . g)
    so
       ⟦f⟧-refl = ⟦f⟧-fmap id -- provided fmap id = id
 
-  R-∃ : (p1 p2 : ∃a. f a) → ★
+  R-∃ : (p1 p2 : ∃ a. f a) → ★
   R-∃ (X1 , x1) (X2 , x2) = ⟦f⟧ Full x1 x2
 
   ∀ (t :: f ()) -> void t = t
@@ -2784,7 +2772,7 @@ s (f . g)
     requires a collaboration from the user. 
     Indeed, a malicious user can instantiate {|v|} 
     to a monotype either in the analysis of
-    {|∀ v. v → tm (a ▹ v)|} or the construction of {|∃ v. v × tm (a ▹ v)|}. This situation can be improved 
+    {|∀ v. v → tm (a ▹ v)|} or the construction of {|∃ v. (v, tm (a ▹ v))|}. This situation can be improved 
     by providing a quantifier which allows only substitution for type variables. This
     quantifier can be understood as being at the same time existential and universal, 
     and hence is self dual.
@@ -2792,7 +2780,7 @@ s (f . g)
     of the same name introduced by {citet[millerproof2003]}.
     We would then have the following definitions, and safety could not be compromised. »
 
-  commentCode [agdaFP|
+  commentCode [haskellFP|
    |type UnivScope  tm a = ∇ v.  v → tm (a ▹ v)
    |type ExistScope tm a = ∇ v. (v ,  tm (a ▹ v))
    |]
@@ -2851,14 +2839,14 @@ s (f . g)
 appendix = execWriter $ do
   section $ «Implementation details» `labeled` implementationExtras
   subsection «Traversable»
-  [agdaP|
+  [haskellP|
   |instance Foldable Tm where
   |  foldMap = foldMapDefault
   |]
 
 
   subsection «NbE»
-  [agdaP|
+  [haskellP|
   |instance Functor No where 
   |  fmap f (LamNo x t)  = 
   |     LamNo x (fmap (bimap f id) t)
@@ -2878,7 +2866,7 @@ appendix = execWriter $ do
   |  fmap f (AppC x y) = AppC (f x) (f y)
   |  fmap f (LetC p t) = LetC (fmap f p) (fmap (bimap f id) t)
   -}
-  [agdaP|
+  [haskellP|
   |instance Functor Value where
   |  fmap f (VarC x)      = VarC (f x)
   |  fmap f (FstC x)      = FstC (f x)
@@ -2896,7 +2884,7 @@ appendix = execWriter $ do
   |     LetC (fmap f p) (fmap (bimap f id) t)
   |]
 
-  [agdaP|
+  [haskellP|
   |letC p f = LetC p (f ())
   |varC = VarC . inj
   |lamC f = LamC (f ())
@@ -2916,7 +2904,7 @@ appendix = execWriter $ do
 
   subsection «Closure Conversion»
 
-  [agdaP|
+  [haskellP|
   |instance Functor LC where
   |  fmap f t = t >>= return . f
   |
@@ -2933,7 +2921,7 @@ appendix = execWriter $ do
   |]
 
   section $ «Bind and substitute an arbitrary name»
-  [agdaP|
+  [haskellP|
   |packGen _ t x = fmap (shuffle cx) t
   |  where cx :: v → w
   |        cx _ = x
@@ -2961,7 +2949,7 @@ appendix = execWriter $ do
   |]
 
   section $ «NomPa details»
-  [agdaP|
+  [haskellP|
   |-- ¬Nameø : ¬ (Name ø)
   |noEmptyName :: Zero → a
   |noEmptyName = magic
@@ -3004,14 +2992,14 @@ main = do
   args ← getArgs
   refresh_jp_bib
   case args of
-    ["--tex"]  → printLatexDocument (doc False)
-    ["--agda"] → printAgdaDocument  (doc True)
-    [] → do
+    ["--tex"]     → printLatexDocument (doc False)
+    ["--haskell"] → printComments      (doc True)
+    {-[] → do
       writeAgdaTo "PaperCode.hs" $ (doc True)
-      compile ["sigplanconf"] "paper" (doc False)
+      compile ["sigplanconf"] "paper" (doc False)-}
     _ → error "unexpected arguments"
 
-categ = Kit.ACM.cat «D.3.3» «Language Constructs and Features» «»
+categ = Kit.cat «D.3.3» «Language Constructs and Features» «»
 
 
 doc includeUglyCode = document title authors keywords abstract categ (body includeUglyCode) appendix

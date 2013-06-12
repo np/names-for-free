@@ -1,12 +1,6 @@
-module Kit.Haskell where
+module Kit.Haskell
+  (module Kit.Haskell.Verb
+  ,module Kit.Haskell.QQ) where
 
-haskellify :: String -> String
-haskellify = concatMap θ
-  where θ '☐' = " "
-        θ ' ' = " "
-        θ 'λ' = "\\"
-        θ '∈' = ":∈"
-        θ '⊆' = ":⊆"
-        θ '▹' = ":▹"
-        θ '‼' = ""
-        θ  x  = [x]
+import Kit.Haskell.Verb
+import Kit.Haskell.QQ

@@ -1,6 +1,12 @@
 {-# LANGUAGE QuasiQuotes, TemplateHaskell #-}
 {-# OPTIONS -Wall -fno-warn-missing-signatures #-}
-module Kit.QQ where
+module Kit.QQ
+  (module Kit.QQ
+  ,tex
+  ,texm
+  ,texFile
+  ,texmFile)
+  where
 
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH (Q, Exp, appE, varE, listE, tupE)
@@ -10,10 +16,16 @@ import Language.LaTeX
 import qualified Language.LaTeX.Builder as B
 import qualified Language.LaTeX.Builder.Internal as BI
 import qualified Language.LaTeX.Builder.QQ as QQ
-import Language.LaTeX.Builder.QQ (mkQQ, mkQQnoIndent, mkQQgen, stripIndentQQ)
+import Language.LaTeX.Builder.QQ
 
 import Kit.Basics
 import Kit.Verb (verb, verbatim, myHstring, mathW)
+
+-- maybe move it hlatex
+reifyQ :: Bool -> String -> Q Exp
+reifyQ indented
+  | indented  = (lift . dropWhile (=='\n') =<<) . stripIndentQQ
+  | otherwise = lift
 
 -- λ-calculus (also used for rawAgda)
 λCode = verb False True

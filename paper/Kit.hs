@@ -3,7 +3,17 @@
                NoMonomorphismRestriction #-}
 {-# OPTIONS_GHC -F -pgmF frquotes #-}
 {-# OPTIONS -Wall -fno-warn-missing-signatures -fno-warn-unused-imports #-}
-module Kit where
+module Kit
+  (module Kit
+  ,module Kit.Aliases
+  ,module Kit.Style
+  ,module Kit.QQ
+  ,module Kit.ACM
+  ,module Kit.Haskell.QQ
+  ,module Language.LaTeX
+  ,module Control.Monad.Writer
+  ,system,doesFileExist,getArgs
+  ) where
 
 import Prelude hiding (words)
 
@@ -14,7 +24,11 @@ import Data.String (fromString)
 import Data.Generics.Uniplate.Data (universeBi)
 import Data.Char
 
+import Control.Monad.Writer
 import Control.Applicative ((<$>),pure)
+import System.Cmd (system)
+import System.Directory (doesFileExist)
+import System.Environment (getArgs)
 
 import HSH
 
@@ -24,7 +38,6 @@ import qualified Language.LaTeX.Builder.Internal as BI
 import qualified Language.LaTeX.Types as T
 import qualified Language.LaTeX.Builder.Math as M
 import qualified Language.LaTeX.Length as L
-import Language.LaTeX.Builder.QQ
 import Language.LaTeX.Slicer (slice)
 
 import Kit.Char (mnsymbol)
@@ -32,9 +45,12 @@ import Kit.Preamble
 import Kit.ACM
 import Kit.Basics
 import Kit.IEEE
-import AgdaKit.QQ
+import Kit.Aliases
+import Kit.Style
+import Kit.QQ
+import Kit.Haskell.QQ
 
-defaultQQ = agda
+defaultQQ = haskell
 
 
 infix 8 `labeled`
@@ -112,9 +128,9 @@ stopComment  = tell . B.para $ B.comment "-- -}"
 indent       = tell . B.para . return $ T.LatexNote (T.MkKey "indent") emptyTextNote ø
 dedent       = tell . B.para . return $ T.LatexNote (T.MkKey "dedent") emptyTextNote ø
 
-showAgdaDocument = unlines . commentsOf
-printAgdaDocument = putStrLn . showAgdaDocument
-writeAgdaTo destFile = writeFile destFile . showAgdaDocument
+showDocumentComments = unlines . commentsOf
+printComments = putStrLn . showDocumentComments
+writeCommentsTo destFile = writeFile destFile . showDocumentComments
 
 document title authors keywords abstract categ body appendix = B.document docclass preamble body'
   where
@@ -136,7 +152,7 @@ document title authors keywords abstract categ body appendix = B.document doccla
                          [«../../local»,«../../npouillard»,«../../jp»]
           <> B.newpage
           <> mapNonEmpty (B.appendix <>) appendix
-
+{-
 compile :: [FilePath] -> FilePath -> LatexM Document -> IO ()
 compile input_dirs docName doc = do
   let texFile = docName++".tex"
@@ -148,3 +164,4 @@ compile input_dirs docName doc = do
   writeFile texFile =<< either error return (showLaTeX doc)
   runIO $ "mkdir -p " ++ builddir
   runIO $ "rubber --cache --into " ++ builddir ++ " --pdf " ++ opts ++ " " ++ texFile
+  -}

@@ -3,21 +3,7 @@
 -- VIM :source config.vim
 module Paper.NbE where
 
-import Language.LaTeX
-
-import System.Cmd (system)
-import System.Directory (doesFileExist)
-import System.Environment (getArgs)
-import Control.Monad.Writer
-
-import Language.LaTeX.Builder.QQ (texm, texFile)
-
 import Kit
-import Kit.Aliases
-import Kit.Style
-import Kit.QQ
-import Kit.ACM
-import AgdaKit.QQ
 
 docNbE label nbecites = do
   subsection $ «Normalisation by Evaluation» `labeled` label
@@ -33,7 +19,7 @@ docNbE label nbecites = do
     definition we use an existential-based version of scopes, which we
     splice in the {|LamNo|} constructor.»
 
-  [agdaP|
+  [haskellP|
   |lamNo :: (∀ v. v → No (a ▹ v)) → No a
   |lamNo f = LamNo () (f ())
   |]
@@ -42,7 +28,7 @@ docNbE label nbecites = do
   p"Sem"
    «Terms are first evaluated into semantic terms where name-abstraction TODO»
 
-  [agdaFP|
+  [haskellFP|
   |data Sem a where
   |  LamS :: (∀ b. (a → b) → Sem b → Sem b) → Sem a
   |  VarS :: a → [Sem a] → Sem a
@@ -78,7 +64,7 @@ docNbE label nbecites = do
   |nbe = reify . eval varS
   |]
 
-  [agdaP|
+  [haskellP|
   |data TmM a where
   |  LamM :: (∀ b. (a → TmM b) → TmM b → TmM b) → TmM a
   |  VarM :: a → [TmM a] → TmM a
