@@ -45,7 +45,7 @@ ref = B.ref
 begin = BI.latexCmdArg "begin"
 end = BI.latexCmdArg "end"
 
-acknowledgements x = tell $ B.para $ BI.latexCmdArg "acks" mempty <> x
+acknowledgments x = tell $ B.para $ BI.latexCmdArg "acks" mempty <> x
 
 p :: String -> LatexItem -> ParItemW
 p nam = put . namedPara nam
