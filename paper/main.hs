@@ -99,7 +99,7 @@ belugamu = cave12
 fincites = [altenkirch93, mcbridemckinna04]
 nestedcites = [bellegarde94, birdpaterson99, altenkirchreus99]
 nbecites = [bergernormalization1998, shinwell03, pitts06, licataharper09, belugamu, pouillardunified2012]
-parametricityIntegrationCites = [kellerparametricity2012, bernardytypetheory2013, bernardycomputational2012]
+parametricityIntegrationCites = [kellerparametricity2012, bernardycomputational2012, bernardytypetheory2013]
 hereditarycites = [nanevski08] -- we could cite more
 
 
@@ -1427,7 +1427,7 @@ s (f . g)
   substitutive structure by using standard type-classes, we can recapitulate and succintly describe
   the essence of our constructions.»
 
-  notetodo «NP: what about using a figure to collect some of the most crucial definitions?»
+  notetodo «NP: what about using a figure to collect some of the most crucial definitions? JP: good idea if there is space»
   q«In Nested Abstract Syntax, a binder introducing one variable in scope, for an arbitrary term structure {|tm|}
     is represented as follows:»
   [agdaFP|
@@ -1469,8 +1469,10 @@ s (f . g)
   q«For the above reason, we do not commit to either side, and use the
     suitable representation on a case-by-case basis. This flexibility is possible
     because these scope representations ({|SuccScope|}, {|UnivScope|}
-    and {|ExistScope|}) are all isomorphic to each other. In the
-    following we exhibit the conversion functions, and prove that
+    and {|ExistScope|}) are isomorphic. In the
+    following we exhibit the conversion functions between {|SuccScope|} one one side 
+    and either {|UnivScope|}
+    or {|ExistScope|}) on the other. We then prove that
     they form isomorphisms, assuming an idealised {_Haskell} lacking
     non-termination and {|seq|}.»
 
@@ -2387,8 +2389,8 @@ s (f . g)
     the performance gain can is compatible with our safe interface.»
 
   commentCode [agdaFP|
-  |type ExistScope' tm a = ∃v. v × tm (tm a ▹ v)
-  |type UnivScope'  tm a = ∀v. v → tm (tm a ▹ v)
+  |type ExistScope' tm a = ∃v. (v ,  tm (tm a ▹ v))
+  |type UnivScope'  tm a = ∀v. (v → tm (tm a ▹ v))
   |]
 
 {-
@@ -2725,11 +2727,22 @@ JP: Why? and how does this fit with our interfaces?
   -}
 
   
-  {-  
-    subsection $ «Multiple Binders, Recursion and Telescopes» 
-    JP: What we do seems to be focused mostly on static-level names; hence it
-        seems somewhat strange to try to bind multiple names at once
-  -}
+  
+  subsection «Multiple Binders» 
+  q«An other concern is the support for binding multiple names at once in a binder. 
+      In its simplest form, this means to use a more complicated type with multiple 
+      elements for the right-hand-side of the {|▹|} type. This technique has been
+      used for example by {citet[boundkmett12]}.»
+  [agdaFP|
+  |type NScope tm a = tm (a ▹ Int)
+  |]
+  q«Adapting the idea to our framework would mean to quantify on a telescope of type variables:»
+  [agdaFP|
+  |type NUnivScope  = ∀ v1, …, vn. (v1,…,vn) → Tm (a ▹ (v1,…,vn))
+  |]
+  q«Unfortunately, this is not allowed by {_Haskell}, at 
+      least without tedious type-level programming.»
+  
 
 {-
 
@@ -2856,17 +2869,16 @@ JP: Why? and how does this fit with our interfaces?
   be seen as the both sides of the ∇ quantifier of {citet [millerproof2003]}. 
   Essentially, we have deconstructed that flavour of quantification over names, 
   and implemented it in {_Haskell}. The result is a safe method to manipulate names
-  and binders, which is supported by today's Glasgow Haskell Compiler.
-
+  and binders, which is supported by today's Glasgow Haskell Compiler.»
+  q«
   The method preserves the good properties of de Bruijn indices, while providing
   a convenient interface to program with multiple open binders.
   »
 
 
   acknowledgements
-   «We thank Emil Axelsson, Daniel Gustafsson and Koen Claessen for
-    useful feedback.»
-
+   «We thank Emil Axelsson, Koen Claessen and Daniel Gustafsson for
+    useful feedback.»  -- In alphabetical order 
 
 appendix = execWriter $ do
   section $ «Implementation details» `labeled` implementationExtras
