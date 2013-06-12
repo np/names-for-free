@@ -635,12 +635,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"unicity of injections"
    «In general, in a closed context, if one considers the
     expression {|Var ((Old)ⁿ (New x))|}, only one possible value
-    of {|n|} is admissible. Indeed, anywhere in the formation of a
-    term using {|lam|}, the type of variables is {|a = a₀ ▹ v₀ ▹
-    v₁ ▹ ⋯ ▹ vₙ|} where {|v₀|}, {|v₁|}, … , {|vₙ|} are all distinct and
-    universally quantified, and none of them occurs as part of {|a₀|}.
-    Hence, there is only one injection function from a given {|vᵢ|}
-    to {|a|}.»
+    of {|n|} is admissible. Indeed, anywhere in the formation of a term
+    using {|lam|}, the type of variables is {|a = a₀ ▹ v₀ ▹ v₁ ▹ ⋯ ▹ vₙ|}
+    where {|v₀|}, {|v₁|}, … , {|vₙ|} are all distinct and universally
+    quantified, and none of them occurs as part of {|a₀|}. Hence, there
+    is only one injection function from a given {|vᵢ|} to {|a|}.»
 
   paragraph «Auto-inject»
 
