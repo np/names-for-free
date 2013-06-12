@@ -365,15 +365,15 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   -- NP: We can make this better.
   p"Nominal pros&cons"
    «In the nominal approach, one typically uses some atomic type to
-    represent names. Because a name is referred to by any variable
-    which contains the atom representing it, the nominal style is
+    represent names. Because a name is simply referred to
+    the atom representing it, the nominal style is
     natural. The main issues with this technique are that variables
     must sometimes be renamed in order to avoid name capture (that is,
     if a binder refers to an already used name, variables might end up
     referring to the wrong binder). The need for renaming demands a way
     to generate fresh atoms. This side effect can be resolved with a
     supply for unique atoms or using an abstraction such as a monad
-    but is eventually disturbing if one wishes to write functional code.
+    but is disturbing if one wishes to write functional code.
     Additionally, nominal representations are not canonical. (For instance, two α-equivalent 
     representations of the same term such as {|λx.x|} and {|λy.y|} may 
     be different). Hence special care has to be taken to prevent user code
@@ -404,7 +404,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «Finally, one can use the binders of the host language (in our case {_Haskell})
     to represent binders of the object language. This technique (called HOAS)
     does not suffer
-    from name-capture problems nor involves arithmetic. However the 
+    from name-capture problems nor does it involve arithmetic. However the 
     presence of functions in the term representation mean that it is difficult 
     to manipulate, and it may contain values which do not represent any term.»
 
@@ -426,17 +426,17 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"contribution continued"
    «All the while, neither do we require a
-    name supply, nor is there a chance of name capture.
+    name supply, nor is there a risk for name capture.
     Testing terms for α-equivalence remains straightforward and representable
     terms are exactly those intended.
     The cost of this
     achievement is the use of somewhat more involved types for binders,
-    and the use of {_Haskell} type-system extensions implemented in the Glasgow
-    Haskell Compiler. The new construction is informally described and
+    and the use of exentions of the {_Haskell} type-system. 
+    The new construction is informally described and
     motivated in sec. {ref overview}. In sections {ref contextSec} to {ref scopesSec}
     we present in detail the implementation of the technique as well
     as basic applications.
-    Larger applications (normalisation using hereditary substitutions, closure conversion, 
+    Larger applications (normalisation using hereditary substitutions, closure conversion and
     CPS transformation) are presented in sec. {ref examples}.
     »
 
@@ -446,7 +446,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"flow"
    «In this section we describe our interface, but before doing so we 
-    describe a simple implementation which can support it.»
+    describe a simple implementation which can support this interface.»
 
   subsection $ «de Bruijn Indices»
 
@@ -511,7 +511,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     variable.»
 
   p"flash-forward"
-   «Anticipating on the amendments we propose, we define the
+   «Anticipating the amendments we propose, we define the
     type {|Succ a|} as a proper sum of {|a|} and the unit type {|()|}
     instead of {|Maybe a|} as customary. Because the sum is used in an
     asymmetric fashion (the left-hand-side corresponds to variables
@@ -594,7 +594,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «That is, instead of adding a concrete unique type (namely {|()|}) in
     the recursive parameter of {|Tm|}, we quantify universally over a
     type variable {|v|} and add this type variable to the type of free
-    variables. The sub-term receives an arbitrary value of type {|v|},
+    variables. The body of the lambda-abstraction receives an arbitrary value of type {|v|},
     to be used at occurences of the variable bound by {|lam|}.»
 
   -- NP: "provide the sub-term" is one side of the coin, the other side
@@ -637,9 +637,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |]
 
   p"no mistakes at all"
-   «In fact, if all variables are introduced with the {|lam|} combinator,
+   «In fact, if all variables are introduced with the {|lam|} combinator
     the possibility of making a mistake in the
-    {emph«implementation»} is inexistent (if we ignore diverging terms).
+    {emph«implementation»} is inexistent, if we ignore obviously diverging terms.
     Indeed, because the type {|v|} corresponding to a bound variable is
     universally quantified, the only way to construct a value of its
     type is to use the variable bound by {|lam|}. (In {_Haskell}
@@ -780,7 +780,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   p"slogan"
    «Again, even though variables are represted by mere indices, the use
-    of polymorphism allows to refer to them by name, using the instance
+    of polymorphism allows the user to refer to them by name, using the instance
     search mechanism to fill in the details of implementation.»
 
   {-
@@ -846,7 +846,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
   |pack x = fmap (bimap id (const ()))
   |]
-  q«(The {|Functor|} constraint is harmless, as we see in sec. {ref termStructure}.)
+  q«(The {|Functor|} constraint is harmless, as we will see in sec. {ref termStructure}.)
 
     As we can see, the value {|x|} is not used by pack. However it
     statically helps as a specification of the user intention: it makes sure
@@ -854,7 +854,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   -- TODO
   q«A production-quality version of {|pack|} would allow to bind any 
-    free variable. Assuming that the constraint {|Insert v a b|} means
+    free variable. Writing the constraint {|Insert v a b|} to mean 
     that by removing the variable {|v|} 
     from the context {|b|} one obtains {|a|}, then a generic {|pack|} would have the 
     following type:»
@@ -918,11 +918,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |freeVars (App f a) = freeVars f ++ freeVars a
   |]
 
-  subsection $ «Equality between names»
+  subsection $ «Names are Polymorphic Indices»
 
 
   p"Eq Zero"
-   «Many useful functions depend on weather two names are equal.
+   «Many useful functions depend on whether two names are equal or not.
     To implement comparison between names, we provide the following two {|Eq|} instances.
     First, the {|Zero|} type is vaccuously equipped with equality:»
 
@@ -962,8 +962,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     a context different from the other, and thus an arbitrary adjustment might be required.
     With Nested Abstract Syntax, the situation improves: by requiring equality to be 
     performed between indices of the same type, a whole class of errors are prevented by
-    type-checking. Some mistakes are possible though: given two names of type {|a ▹ () ▹ ()|},
-    swapping the two first variables might be necessary, but one cannot decide if it is so 
+    type-checking. Some mistakes are possible though: given a index of type {|a ▹ () ▹ ()|},
+    a swap the last two variables might be the right thing to do, but one cannot decide if it is so 
     from the types only.
     By making the contexts fully
     polymorphic as we propose, no mistake is possible. 
@@ -982,7 +982,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     sole method performs the injection from a member of the context to
     the full context. The relation is defined by two inference rules,
     corresponding to finding the variable in the first position of the
-    context, or further away in it, with the obvious injections:»
+    context, or further away in it, with the necessary injections:»
 
   [agdaFP|
   |instance v ∈ (a ▹ v) where
@@ -995,7 +995,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"incoherent instances"
    «The cognoscenti will recognize the two above instances as
     {emph«incoherent»}, that is, if {|v|} and {|v'|} were instantiated
-    to the same type, both instances would apply equally. Fortunately,
+    to the same type, both instances would apply, but the injections would be different. Fortunately,
     this incoherence never triggers as long as one keeps the contexts
     maximally polymorphic contexts: {|v|} and {|v'|} will always be
     different.»
@@ -1031,10 +1031,11 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
   subsection «Inclusion»
   p"context inclusion, ⊆"
-   «Context inclusion is another useful relation between contexts, which we also
+   «Another useful relation is context inclusion between contexts, which we also
     represent by a type class, named {|⊆|}. The sole method of the
     typeclass is again an injection, from the small context to the
-    bigger one. The main application of {|⊆|} is presented at the end of sec. {ref functorSec}.»
+    bigger one. The main application of {|⊆|} is in term weakening, 
+    presented at the end of sec. {ref functorSec}.»
   [agdaFP|
   |class a ⊆ b where
   |  injMany :: a → b
@@ -1094,7 +1095,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     works well for any function {|f|}. The renaming operation then
     simply preserves the structure of the input term. At occurence
     sites it uses {|f|} to rename free variables. At binding sites,
-    {|f|} is upgraded form {|(a → b)|} to {|(a ▹ v → b ▹ v)|} using
+    {|f|} is upgraded from {|(a → b)|} to {|(a ▹ v → b ▹ v)|} using
     the functoriality of {|(▹ v)|} with {|bimap f id|}. Adapting the
     function {|f|} is necessary to protect the bound name from being
     altered by {|f|}, and thanks to our use of polymorphism, the
@@ -1112,9 +1113,9 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «As usual satisfying functor laws implies that the structure is
     preserved by the functor action ({|fmap|}). The type for terms being
     a functor therefore means that applying a renaming is going to only
-    affect the free variables and leave the structure untouched. Namely
-    that whatever the function {|f|} is doing, the bound names are not
-    going to change. The {|Functor|} laws are the following:»
+    affect the free variables and leave the structure untouched. That is,
+    whatever the function {|f|} is doing, the bound names are not
+    changing. The {|Functor|} laws are the following:»
 
   doComment
     [agdaFP|
@@ -1129,7 +1130,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     renaming operations.»
 
   q«Assuming only a functor structure, it is possible to write useful
-    functions on terms which involve only renaming. A couple examples
+    functions on terms which involve only renaming. A couple of examples
     follow.»
 
   q«First, let us assume an equality test on free variables. 
