@@ -1449,7 +1449,9 @@ s (f . g)
   subsection «{|UnivScope tm a ≅ SuccScope tm a|}»
   p"conversions"
    «The conversion functions witnessing the isomorphism are the following.»
-  [haskellFP|
+  -- if you remove this newpage put back [haskellFP|
+  newpage
+  [haskellP|
   |succToUniv :: Functor tm ⇒
   |              SuccScope tm a → UnivScope tm a
   |succToUniv t = λ x → bimap id (const x) <$> t
@@ -1528,10 +1530,13 @@ s (f . g)
    «The conversion functions witnessing the isomorphism are the
     following.»
 
-  [haskellFP|
+  -- if you remove this newpage put back [haskellFP|
+  newpage
+  [haskellP|
   |succToExist :: SuccScope tm a → ExistScope tm a
   |succToExist = E ()
-  |
+  |]
+  [haskellP|
   |existToSucc :: Functor tm ⇒ 
   |               ExistScope tm a → SuccScope tm a
   |existToSucc (E _ t) = bimap id (const ()) <$> t
@@ -2720,7 +2725,7 @@ s (f . g)
     indexed by a type {|n|} of the appropriate cardinality:»
   commentCode [haskellFP|
   |type NUnivScope  n tm a = ∀v. (n → v) → tm (a ▹ v)
-  |type NExistScope n tm a = ∃v. (n → v) ×   tm (a ▹ v)
+  |type NExistScope n tm a = ∃v.((n → v) , tm (a ▹ v))
   |]
 
   subsection $ «Delayed Substitutions»
@@ -2806,8 +2811,9 @@ JP: Why? and how does this fit with our interfaces?
    »
 
   subsection «Future Work: Improve Performance»
-  q«An apparent issue with our conversion functions between
-    {|ExistScope|} or {|UnivScope|} on one side and {|SuccScope|} on the
+  -- NP: univToSucc is cheap as well no?
+  q«An apparent issue with the presented conversion functions between
+    {|UnivScope|} or {|ExistScope|} on one side and {|SuccScope|} on the
     other side is that all but {|succToExist|} cost a time 
     proportional to the size of the term converted. In the current state of affairs, we 
     might be able to use a system of rewrite rules, such as that implemented in GHC, to 
