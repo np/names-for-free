@@ -1455,14 +1455,13 @@ s (f . g)
     of variable name is far-fetched.»
 
   q«For the above reason, we do not commit to either side, and use the
-    suitable representation on a case-by-case basis. This flexibility is possible
-    because these scope representations ({|SuccScope|}, {|UnivScope|}
-    and {|ExistScope|}) are isomorphic. In the
-    following we exhibit the conversion functions between {|SuccScope|} one one side 
-    and either {|UnivScope|}
-    or {|ExistScope|}) on the other. We then prove that
-    they form isomorphisms, assuming an idealized {_Haskell} lacking
-    non-termination and {|seq|}.»
+    suitable representation on a case-by-case basis. This flexibility
+    is possible because these scope representations ({|SuccScope|},
+    {|UnivScope|} and {|ExistScope|}) are isomorphic. In the following
+    we exhibit the conversion functions between {|SuccScope|} one side
+    and either {|UnivScope|} or {|ExistScope|}) on the other. We then
+    prove that they form isomorphisms, assuming an idealized {_Haskell}
+    lacking non-termination and {|seq|}.»
 
   -- NP: should we cite “Fast and loose reasoning is morally correct”
 
@@ -2738,7 +2737,7 @@ s (f . g)
   |]
   q«Adapting the idea to our framework would mean to quantify over a family of types,
     indexed by a type {|n|} of the appropriate cardinality:»
-  [haskellFP|
+  commentCode [haskellFP|
   |type NUnivScope  n tm a = ∀v. (n → v) → tm (a ▹ v)
   |type NExistScope n tm a = ∃v. (n → v) ×   tm (a ▹ v)
   |]
@@ -2781,7 +2780,7 @@ s (f . g)
 
   q«Because idea of delayed substitutions is concerned with free variables, and
     the concepts we present here is concerned with bound variables, one can
-    one can easily define define scopes which are both delayed and safe. Hence
+    one can easily define scopes which are both delayed and safe. Hence
     the performance gain can is compatible with our safe interface.»
 
   commentCode [haskellFP|
