@@ -2732,7 +2732,7 @@ s (f . g)
 
   subsection «Binding Many Variables» 
   q«
-    In {|SuccScope|}, there is exactly one more free variable available in the subterm.
+    In {|SuccScope|}, there is exactly one more free variable available in the sub-term.
     However, it might be useful to bind multiple names at once in a binder. This can 
     be done by using a type {|n|} of the appropriate cardinality instead of {|()|}.
     This technique has been used for example by {citet[boundkmett12]}.»
@@ -3137,7 +3137,7 @@ So it's easy to see that ∇ is a subtype of ∃ and ∀.
 --  LocalWords:  fmap isClosed Foldable Traversable untyped VarB AppB
 --  LocalWords:  representable debruijnlambda LamB apB naïve bimap vx
 --  LocalWords:  parameterizes onlyInCode cardinality untag Bifunctor
---  LocalWords:  apNested const unicity nabla natively
+--  LocalWords:  apNested const unicity nabla natively NExistScope
 --  LocalWords:  quantifing packGen lamP freeVars recurse occursIn vf
 --  LocalWords:  injMany functoriality functorial parameterized atVar
 --  LocalWords:  monadic injective Monads Kleisli liftSubst SuccScope
