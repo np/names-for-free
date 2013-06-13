@@ -46,10 +46,6 @@ instantiate k e = e >>= \v -> case v of
 instantiate1 :: Monad f => f a -> Scope n f a -> f a
 instantiate1 e = instantiate (const e)
 
-  -- TODO drop
-closed :: Traversable tm => tm a -> Maybe (tm b)
-closed = traverse (const Nothing)
-
 -- | A smart constructor for Lam
 --
 -- >>> lamE "y" (lamE "x" (V "x" :@ V "y"))
