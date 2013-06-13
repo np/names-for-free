@@ -18,6 +18,9 @@ open import Relation.Binary.Simple using (Const)
 -- Always : ∀ {a b c} {A : Set a} {B : Set b} → REL A B c
 Always : ∀ {A : ★} {B : ★} → REL A B _
 Always = Const 𝟙
+  
+const𝟙 : ∀ {A} → A → 𝟙 → A
+const𝟙 x _ = x
 
 {-
 
@@ -56,6 +59,7 @@ module RelOf {A B : ★} (Bᵣ : ⟦★⟧ B B) where
     <_> : (f : A → B) → A → B → ★
     < f > x y = Bᵣ (f x) y
 
+{-
 module F≡id
   (s  : ∀ {A} → A → A)
   (sᵣ : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Aᵣ ⟦→⟧ Aᵣ) s s)
@@ -127,6 +131,7 @@ module MaybeF
   final with lem' 
   final | inj₁ x = {!!}
   final | inj₂ y = {!!} 
+-}
 
 {-
 module Easy
@@ -212,10 +217,12 @@ substLeftId {A} f f-id refl = f-id refl
 -- f = g
 -- x1 = f x2
 -- x1 = g x2
+{-
 subst-left' : ∀ {A} (Aᵣ : ⟦★⟧ A A) → SubstLeft Aᵣ
 subst-left' Aᵣ f g f-g xᵣ = {!f-g xᵣ!}
   where fᵣ : (Aᵣ ⟦→⟧ Aᵣ) f f
         fᵣ = {!!}
+-}
 
 module Nat
          {F  : ★ → ★}
@@ -262,6 +269,7 @@ module Nat
   nat'' : (Xᵣ ⟦→⟧ Fᵣ Yᵣ) (mapF f ∘ α) (α ∘ f)
   nat'' xᵣ = subst-leftIdFY (mapF id) (mapF-id Yᵣ) (nat' xᵣ)
 
+  {-
 module NatMaybe where
   F : ★ → ★
   F = Maybe
@@ -323,7 +331,9 @@ module NatMaybe where
     open f≡suc
     nat : (Xᵣ ⟦→⟧ Fᵣ Yᵣ) (mapF f ∘ α) (α ∘ f)
     nat = Nat.nat Fᵣ mapF mapFᵣ mapF-id α αᵣ X Xᵣ Xᵣ-refl Y Yᵣ FᵣYᵣ-trans f fᵣ subst-leftIdFY
+-}
 
+    {-
 module _
          {F : ★ → ★}
          (Fᵣ : (⟦★⟧ ⟦→⟧ ⟦★⟧) F F)
@@ -332,7 +342,6 @@ module _
          (mapFᵣ : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ ∀⟨ Bᵣ ∶ ⟦★⟧ ⟩⟦→⟧ (Aᵣ ⟦→⟧ Bᵣ) ⟦→⟧ Fᵣ Aᵣ ⟦→⟧ Fᵣ Bᵣ) mapF mapF)
          (mapF-id : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Fᵣ Aᵣ ⟦→⟧ Fᵣ Aᵣ) (mapF id) id)
     where
-    {-
     {A B C : ★} (f : B → C) (g : A → B)
     (Aᵣ : ⟦★⟧ A A)
     (Bᵣ : ⟦★⟧ B B)
@@ -346,82 +355,68 @@ module _
     prop : ⟦FAFC⟧ f1 f2
     prop = {!!}
 -}
-module Iso
-         {F : ★ → ★}
-         (Fᵣ : (⟦★⟧ ⟦→⟧ ⟦★⟧) F F)
          -- (Fᵣ-refl : ∀ {A} {Aᵣ : Rel A _} → Reflexive Aᵣ → Reflexive (Fᵣ Aᵣ))
-         {mapF  : ∀ {A B} → (A → B) → F A → F B}
-         (mapFᵣ : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ ∀⟨ Bᵣ ∶ ⟦★⟧ ⟩⟦→⟧ (Aᵣ ⟦→⟧ Bᵣ) ⟦→⟧ Fᵣ Aᵣ ⟦→⟧ Fᵣ Bᵣ) mapF mapF)
-         (mapF-id : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Fᵣ Aᵣ ⟦→⟧ Fᵣ Aᵣ) (mapF id) id)
          {- unused
          (mapF-∘ : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ ∀⟨ Bᵣ ∶ ⟦★⟧ ⟩⟦→⟧ ∀⟨ Cᵣ ∶ ⟦★⟧ ⟩⟦→⟧ ((Bᵣ ⟦→⟧ Cᵣ) ⟦→⟧ (Aᵣ ⟦→⟧ Bᵣ) ⟦→⟧ (Fᵣ Aᵣ ⟦→⟧ Fᵣ Cᵣ)))
                    (λ f g → mapF (f ∘ g)) (λ f g → mapF f ∘ mapF g))
          -}
+         -- (mapF-id : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Fᵣ Aᵣ ⟦→⟧ Fᵣ Aᵣ) (mapF id) id)
+
+module Iso
+         {F : ★ → ★}
+         (Fᵣ : (⟦★⟧ ⟦→⟧ ⟦★⟧) F F)
+         {mapF  : ∀ {A B} → (A → B) → F A → F B}
+         (mapFᵣ : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ ∀⟨ Bᵣ ∶ ⟦★⟧ ⟩⟦→⟧ (Aᵣ ⟦→⟧ Bᵣ) ⟦→⟧ Fᵣ Aᵣ ⟦→⟧ Fᵣ Bᵣ) mapF mapF)
          where
   S = ∀ {B} → B → F B
-  ⟦S⟧ = ∀⟨ Bᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Bᵣ ⟦→⟧ Fᵣ Bᵣ
   T = F 𝟙
-  ⟦T⟧ = Fᵣ ⟦𝟙⟧
-  -- ⟦T⟧-refl : Reflexive ⟦T⟧
-  -- ⟦T⟧-refl = Fᵣ-refl _
   ST : S → T
   ST s = s tt
-  ⟦ST⟧ : (⟦S⟧ ⟦→⟧ ⟦T⟧) ST ST
-  ⟦ST⟧ sᵣ = sᵣ _ ⟦tt⟧
   TS : T → S
-  TS t b = mapF (const b) t
-  ⟦TS⟧ : (⟦T⟧ ⟦→⟧ ⟦S⟧) TS TS
-  ⟦TS⟧ tᵣ Bᵣ bᵣ = mapFᵣ _ _ (const bᵣ) tᵣ
+  TS t b = mapF (λ _ → b) t
 
- -- nat : (Xᵣ ⟦→⟧ Fᵣ Yᵣ) (mapF f ∘ α) (α ∘ f)
+  ST∘TS-id : ∀ {t : F 𝟙} (tᵣ : Fᵣ ⟦𝟙⟧ t t) → Fᵣ ⟦𝟙⟧ (ST (TS t)) (mapF id t)
+  ST∘TS-id = mapFᵣ _ _ _
+
   module _
          (α  : ∀ {X} → X → F X)
          (αᵣ : (∀⟨ Xᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Xᵣ ⟦→⟧ Fᵣ Xᵣ) α α)
-         (Y  : ★)
-         (Yᵣ : ⟦★⟧ Y Y)
-         (y  : Y)
-         (yᵣ : Yᵣ y y)
-         (FᵣYᵣ-trans : Transitive (Fᵣ Yᵣ))
-         (subst-leftIdFY : SubstLeftId (Fᵣ Yᵣ))
+         (X  : ★)
+         (Xᵣ : ⟦★⟧ X X)
+         (x  : X)
+         (xᵣ : Xᵣ x x)
          where
-    nat-direct : Fᵣ Yᵣ (mapF (const y) (α tt)) (mapF id (α y))
-    nat-direct = mapFᵣ (λ _ → Yᵣ y) Yᵣ id (αᵣ _ yᵣ)
 
-    open RelOf {𝟙} {Y} Yᵣ
-    f : 𝟙 → Y
-    f = const y
-    fᵣ : (⟦𝟙⟧ ⟦→⟧ Yᵣ) f f
-    fᵣ _ = yᵣ
-    nat : Fᵣ Yᵣ (mapF f (α tt)) (α y)
-    nat = Nat.nat Fᵣ mapF mapFᵣ mapF-id α αᵣ 𝟙 ⟦𝟙⟧ _ Y Yᵣ FᵣYᵣ-trans f fᵣ subst-leftIdFY ⟦tt⟧
+        TS∘ST-id : Fᵣ Xᵣ ((TS ∘ ST) α x) (mapF id (α x))
+        TS∘ST-id = mapFᵣ (λ _ → Xᵣ x) Xᵣ id (αᵣ _ xᵣ)
 
-  TST = ST ∘ TS
-  ⟦TST⟧ = λ {t₁ t₂} (tᵣ : ⟦T⟧ t₁ t₂) → ⟦ST⟧ (⟦TS⟧ tᵣ)
-  -- mapF id ≡ id
-  TST' : ∀ {t : F 𝟙} (tᵣ : Fᵣ ⟦𝟙⟧ t t) → Fᵣ ⟦𝟙⟧ (ST (TS t)) (mapF id t)
-  -- TST' = ⟦TST⟧ ⟦T⟧-refl
-  TST' = ⟦TST⟧
+ -- nat : (Xᵣ ⟦→⟧ Fᵣ Yᵣ) (mapF f ∘ α) (α ∘ f)
+ {-
+  module _
+         (X  : ★)
+         (Xᵣ : ⟦★⟧ X X)
+         (FᵣXᵣ-trans : Transitive (Fᵣ Xᵣ))
+         (subst-leftIdFX : SubstLeftId (Fᵣ Xᵣ))
+         (x  : X)
+         (xᵣ : Xᵣ x x)
+         (α  : ∀ {X} → X → F X)
+         (αᵣ : (∀⟨ Xᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Xᵣ ⟦→⟧ Fᵣ Xᵣ) α α)
+         where
 
+        open RelOf {𝟙} Xᵣ
+        f : 𝟙 → X
+        f = const x
+        fᵣ : (⟦𝟙⟧ ⟦→⟧ Xᵣ) f f
+        fᵣ _ = xᵣ
+
+        nat : Fᵣ Xᵣ (mapF f (α tt)) (α x)
+        nat = Nat.nat Fᵣ mapF mapFᵣ mapF-id α αᵣ 𝟙 ⟦𝟙⟧ _ X Xᵣ FᵣXᵣ-trans f fᵣ subst-leftIdFX ⟦tt⟧
+-}
+        {-
   STS : S → S
   STS = TS ∘ ST
   ⟦STS⟧ = λ {t₁ t₂ : S} (tᵣ : ⟦S⟧ t₁ t₂) → (λ {x} {y} → ⟦TS⟧ (⟦ST⟧ tᵣ) {x} {y})
-  
-  const𝟙 : ∀ {A} → A → 𝟙 → A
-  const𝟙 x _ = x
-
-  {-
-  STS-id : (⟦S⟧ ⟦→⟧ ⟦S⟧) STS id
-  STS-id {α₁} {α₂} αᵣ {X₁} {X₂} Xᵣ {x₁} {x₂} xᵣ = {!nat' α₁ αᵣ!}
   -}
-
-  SSR : (S → S) → (S → S) → ★
-  SSR f₁ f₂ = ∀ (α : S) (αᵣ : ⟦S⟧ α α) X (Xᵣ : ⟦★⟧ X X) x (xᵣ : Xᵣ x x) → Fᵣ Xᵣ (f₁ α x) (f₂ α x)
-
-  foo : (⟦S⟧ ⟦→⟧ ⟦S⟧) ⇒ SSR
-  foo f _ αᵣ _ Xᵣ _ = f αᵣ Xᵣ
-
-  STS-id' : SSR STS id
-  STS-id' α αᵣ X Xᵣ x xᵣ = nat α αᵣ X Xᵣ x xᵣ {!!} {!!}
 
   {-
   module _ (α : ∀ {X} → X → F X) {X Y : ★} (f : X → Y) (x : X) where
@@ -456,6 +451,7 @@ module Iso
   -}
   -}
 
+  {-
 module IsoMaybe where
   F : ★ → ★
   F = Maybe
@@ -468,7 +464,7 @@ module IsoMaybe where
   mapF-id : (∀⟨ Aᵣ ∶ ⟦★⟧ ⟩⟦→⟧ Fᵣ Aᵣ ⟦→⟧ Fᵣ Aᵣ) (mapF id) id
   mapF-id = ⟦map?-id⟧
   module M = Iso {F} Fᵣ {-?-} {mapF} mapFᵣ mapF-id
-
+-}
   {-
   {-
 module Iso

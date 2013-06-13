@@ -11,14 +11,26 @@ import Kit.QQ (reifyQ)
 import Kit.Haskell.Verb (haskellCode, haskellCodeP)
 
 haskellFPCode, haskellPCode :: String -> ParItemW
-haskellCodeI :: String -> LatexItem
+haskellCodeU {-,haskellCodeI-} :: String -> LatexItem
 haskell, haskellFP, haskellP :: QuasiQuoter
 
-haskellCodeI    = haskellCode True True False
+{-
+  unbreakable inline code:
+    nbsp are turned into normal spaces
+ -}
+haskellCodeU = haskellCode False True False True
+
+{-
+  breakable inline code
+    (it seems that the support for nbsp is broken so we temporarily
+     no longer use it)
+haskellCodeI    = haskellCode True True False False
+-}
+
 -- unbreakable & aligned agda code
 haskellFPCode x = nopagebreak >> haskellCodeP True True x
 haskellPCode    = haskellCodeP False False
 
-haskell   = mkQQgen (reifyQ False) "haskell"   'haskellCodeI
+haskell   = mkQQgen (reifyQ False) "haskell"   'haskellCodeU
 haskellFP = mkQQgen (reifyQ True)  "haskellFP" 'haskellFPCode
 haskellP  = mkQQgen (reifyQ True)  "haskellP"  'haskellPCode

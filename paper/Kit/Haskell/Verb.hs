@@ -60,15 +60,25 @@ overrideSplits p          = [p]
 -}
 overrideSplits (c, xs) = ((,)c) <$> tokenize c xs
 
-haskellCode :: Bool -> Bool -> Bool -> String -> LatexItem
-haskellCode wordBreakable mayAlign finalNewLine
-    = mc . map skipSpaces . concatMap overrideSplits . fnl . unlineS . highlightAsHaskell
+haskellCode :: Bool -> Bool -> Bool -> Bool -> String -> LatexItem
+haskellCode wordBreakable mayAlign finalNewLine doKillNbsp
+    = mc . map skipSpaces
+         . concatMap overrideSplits
+         . fnl
+         . unlineS
+         . highlightAsHaskell
+         . killNbsp
   where skipSpaces (c, xs)
           | wordBreakable && all (`elem` " \n") xs = B.space
           | otherwise
               = stylize (overrideStyle xs c) $ verb mayAlign wordBreakable xs
         fnl | finalNewLine = (++[nlTok])
             | otherwise    = id
+        killNbsp
+          | doKillNbsp = map killNbspMap
+          | otherwise  = id
+        killNbspMap ' ' = ' '
+        killNbspMap  x  =  x
 
 haskellify :: String -> String
 haskellify = concatMap θ
@@ -82,7 +92,7 @@ haskellify = concatMap θ
         θ  x  = [x]
 
 haskellCodeP :: Bool -> Bool -> String -> ParItemW
-haskellCodeP = qqP (haskellCode False True True) haskellify
+haskellCodeP = qqP (haskellCode False True True False) haskellify
 
 rgb :: Int -> Int -> Int -> C.Color
 rgb r g b = C.rgb (f r) (f g) (f b)
