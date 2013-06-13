@@ -47,7 +47,7 @@ myXchar mayAlign xchar = \x -> fromMaybe (defaultCase x) $ cache x
 
 -- The wordBreakable
 verb :: Bool -> Bool -> String -> LatexItem
-verb mayAlign wordBreakable = mayWordBreakCode $ B.texttt . B.spaceProtector verbChar
+verb mayAlign wordBreakable = mayWordBreakCode $ mapNonEmpty B.texttt . B.spaceProtector verbChar
   where verbChar = myXchar (if mayAlign && not (sloppyAligns config) then align else dontAlign)
                            (myMchar (M.mchar B.ttchar))
     -- B.spaceProtector is useful even in word breakable code because of

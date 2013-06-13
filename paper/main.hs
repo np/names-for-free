@@ -367,7 +367,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     be different). Hence special care has to be taken to prevent user code
     to violate the abstraction barrier. Furthermore fresh name
     generation is an observable effect breaking referential transparency
-    ({|fresh x in x ≠ fresh x in x|}). For instance a function
+    ({|fresh x in x ≢ fresh x in x|}). For instance a function
     generating fresh names and not properly using them to close
     abstractions becomes impure.»
 
@@ -496,10 +496,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"the type of Lam"
    «The recursive case {|Lam|} changes the type parameter, increasing
     its cardinality by one, since the body can refer to one more
-    variable.»
-
-  p"flash-forward"
-   «Anticipating the amendments we propose, we define the
+    variable. Anticipating the amendments we propose, we define the
     type {|Succ a|} as a proper sum of {|a|} and the unit type {|()|}
     instead of {|Maybe a|} as customary. Because the sum is used in an
     asymmetric fashion (the left-hand-side corresponds to variables
