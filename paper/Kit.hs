@@ -6,6 +6,7 @@
 module Kit
   (module Kit
   ,module Kit.Aliases
+  ,module Kit.Config
   ,module Kit.Style
   ,module Kit.QQ
   ,module Kit.ACM
@@ -44,6 +45,7 @@ import Language.LaTeX.Slicer (slice)
 import Kit.Char (mnsymbol)
 import Kit.Preamble
 import Kit.ACM
+import Kit.Config
 import Kit.Basics
 import Kit.IEEE
 import Kit.Aliases
@@ -80,6 +82,27 @@ paragraph = put . B.paragraph' (★) Nothing
 itemize block = B.itemize Nothing !$? block
 footnote = B.footnote
 newpage = tell B.newpage
+
+intodo
+  | displayNotes config = \ x -> red «(TODO: {x})»
+  | otherwise           = const ø
+{-# DEPRECATED intodo "You have something to do here" #-}
+
+notetodo
+  | displayNotes config = \ x -> p"" $ red «TODO {x}»
+  | otherwise           = const $ return ()
+{-# DEPRECATED notetodo "You have something to do here" #-}
+
+--notecomm x = p"" $ red «COMMENT {x}»
+
+doComment :: ParItemW -> ParItemW
+doComment x = startComment >> x >> stopComment
+
+commentWhen :: Bool -> ParItemW -> ParItemW
+commentWhen True  x = doComment x
+commentWhen False x = x
+
+commentCode = doComment
 
 mkabstract = BI.parEnv "abstract" [] . BI.latexItem
 

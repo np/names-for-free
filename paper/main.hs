@@ -108,29 +108,9 @@ abstract = [texFile|abstract|]
 keywords = [texFile|keywords|]
 _Agda's = «{_Agda}'s»
 
-
-intodo x = red «(TODO: {x})»
-{-# DEPRECATED intodo "You have something to do here" #-}
-
-notetodo x = p"" $ red «TODO {x}»
-{-# DEPRECATED notetodo "You have something to do here" #-}
-
---notecomm x = p"" $ red «COMMENT {x}»
--- notetodo _ = return ()
---notecomm _ = return ()
-
 long = False
 short = not long
 debug = False
-
-doComment :: ParItemW → ParItemW
-doComment x = startComment >> x >> stopComment
-
-commentWhen :: Bool → ParItemW → ParItemW
-commentWhen True  x = doComment x
-commentWhen False x = x
-
-commentCode = doComment
 
 unpackCode =  [haskellFP|
   |unpack :: f (Succ a) → 
@@ -2772,10 +2752,10 @@ s (f . g)
   |instance Monad TmD where
   |  return = VarD
   |  VarD a >>= θ = θ a
-  |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ) 
-  |  LamD t >>= θ = LamD (t >>= \x -> VarD $ case x of
-  |                   New b -> New b
-  |                   Old a -> Old (a >>= θ))
+  |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ)
+  |  LamD t >>= θ = LamD (t >>= λ x → VarD $ case x of
+  |                   New b → New b
+  |                   Old a → Old (a >>= θ))
   |]
 
   q«Because idea of delayed substitutions is concerned with free variables, and
