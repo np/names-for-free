@@ -1353,7 +1353,7 @@ then apply join inside the structure (using the other higher-order fmap)
   q«An example of a useful effect to apply is throwing an exception,
     implemented for example as the {|Maybe|} monad. If a term has no
     free variable, then it can be converted from the type {|Tm a|}
-    to {|Tm Zero|} or any {|Tm b|} actually, but this requires a dynamic
+    to {|Tm Zero|} (or equivalently {|∀ b. Tm b|}), but this requires a dynamic
     check. It may seem like a complicated implementation is necessary,
     but in fact it is a direct application of the {|traverse|}
     function.»
@@ -2635,7 +2635,7 @@ JP: Why? and how does this fit with our interfaces?
 
   p""«
   On top of these abstract notions, one can construct the following representation of terms (we use
-  a {_Haskell}-like syntax for dependent types, similar to that of {_Idris}):
+  a {_Haskell}-style syntax for dependent types, similar to that of {_Idris}):
   »
 
   commentCode [haskellFP|
@@ -2733,7 +2733,8 @@ JP: Why? and how does this fit with our interfaces?
   |]
   q«Adapting the idea to our framework would mean to quantify on a telescope of type variables:»
   commentCode [haskellFP|
-  |type NUnivScope  = ∀ v1, …, vn. (v1,…,vn) → Tm (a ▹ (v1,…,vn))
+  |type NUnivScope = 
+  |  ∀ v1,…, vn. (v1,…,vn) → Tm (a ▹ (v1,…,vn))
   |]
   q«Unfortunately, this is not allowed by {_Haskell}, at 
       least without tedious type-level programming.»
@@ -2988,6 +2989,7 @@ appendix = execWriter $ do
   |   substituteOut x t (fmap (shuffle id) u)
   |]
 
+  {- commented out until there is a reference to it from the body
   section $ «NomPa details»
   [haskellP|
   |-- ¬Nameø : ¬ (Name ø)
@@ -3019,7 +3021,7 @@ appendix = execWriter $ do
   |-- ⊆-ø : ∀ {α} → ø ⊆ α
   |-- magic :: Zero → a
   |]
-
+  -}
   stopComment
   stopComment
   stopComment
