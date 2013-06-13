@@ -25,7 +25,9 @@ unlineS = intercalate [nlTok]
 highlightAsHaskell :: String -> [SourceLine]
 highlightAsHaskell = highlightAs "haskell"
 
-typeList = ["Nat","Maybe","Value","No","Binder","World","Empty","Name","Succ","Zero","Bool","Insert","LC","Monoid","Monad","Functor","Fin","Leq","Either","Traversable","Foldable","S","Eq"]
+typeList = ["Nat","Maybe","Value","No","Binder","World","Empty","Name","Succ","Zero","Bool"
+           ,"Insert","LC","Monoid","Monad","Functor","Fin","Leq","Either","Traversable"
+           ,"Foldable","S","Eq","Applicative","Int"]
 
 isUpperIdent :: String -> Bool
 isUpperIdent []        = False
