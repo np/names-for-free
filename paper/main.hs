@@ -367,7 +367,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     be different). Hence special care has to be taken to prevent user code
     to violate the abstraction barrier. Furthermore fresh name
     generation is an observable effect breaking referential transparency
-    ({|fresh x in x ≠ fresh x in x|}). For instance a function
+    ({|fresh x in x ≢ fresh x in x|}). For instance a function
     generating fresh names and not properly using them to close
     abstractions becomes impure.»
 
@@ -496,10 +496,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   p"the type of Lam"
    «The recursive case {|Lam|} changes the type parameter, increasing
     its cardinality by one, since the body can refer to one more
-    variable.»
-
-  p"flash-forward"
-   «Anticipating the amendments we propose, we define the
+    variable. Anticipating the amendments we propose, we define the
     type {|Succ a|} as a proper sum of {|a|} and the unit type {|()|}
     instead of {|Maybe a|} as customary. Because the sum is used in an
     asymmetric fashion (the left-hand-side corresponds to variables
@@ -1459,14 +1456,13 @@ s (f . g)
     of variable name is far-fetched.»
 
   q«For the above reason, we do not commit to either side, and use the
-    suitable representation on a case-by-case basis. This flexibility is possible
-    because these scope representations ({|SuccScope|}, {|UnivScope|}
-    and {|ExistScope|}) are isomorphic. In the
-    following we exhibit the conversion functions between {|SuccScope|} one one side 
-    and either {|UnivScope|}
-    or {|ExistScope|}) on the other. We then prove that
-    they form isomorphisms, assuming an idealized {_Haskell} lacking
-    non-termination and {|seq|}.»
+    suitable representation on a case-by-case basis. This flexibility
+    is possible because these scope representations ({|SuccScope|},
+    {|UnivScope|} and {|ExistScope|}) are isomorphic. In the following
+    we exhibit the conversion functions between {|SuccScope|} one side
+    and either {|UnivScope|} or {|ExistScope|}) on the other. We then
+    prove that they form isomorphisms, assuming an idealized {_Haskell}
+    lacking non-termination and {|seq|}.»
 
   -- NP: should we cite “Fast and loose reasoning is morally correct”
 
@@ -2742,7 +2738,7 @@ s (f . g)
   |]
   q«Adapting the idea to our framework would mean to quantify over a family of types,
     indexed by a type {|n|} of the appropriate cardinality:»
-  [haskellFP|
+  commentCode [haskellFP|
   |type NUnivScope  n tm a = ∀v. (n → v) → tm (a ▹ v)
   |type NExistScope n tm a = ∃v. (n → v) ×   tm (a ▹ v)
   |]
@@ -2785,7 +2781,7 @@ s (f . g)
 
   q«Because idea of delayed substitutions is concerned with free variables, and
     the concepts we present here is concerned with bound variables, one can
-    one can easily define define scopes which are both delayed and safe. Hence
+    one can easily define scopes which are both delayed and safe. Hence
     the performance gain can is compatible with our safe interface.»
 
   commentCode [haskellFP|

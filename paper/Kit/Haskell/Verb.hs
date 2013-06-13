@@ -25,7 +25,14 @@ unlineS = intercalate [nlTok]
 highlightAsHaskell :: String -> [SourceLine]
 highlightAsHaskell = highlightAs "haskell"
 
-typeList = ["Nat","Maybe","Value","No","Binder","World","Empty","Name","Succ","Zero","Bool","Insert","LC","Monoid","Monad","Functor","Fin","Leq","Either","Traversable","Foldable","S","Eq"]
+typeList = ["Nat","Maybe","Value","No","Binder","World","Empty","Name","Succ","Zero","Bool"
+           ,"Insert","LC","Monoid","Monad","Functor","Fin","Leq","Either","Traversable"
+           ,"Foldable","S","Eq","Applicative","Int"]
+
+isUpperIdent :: String -> Bool
+isUpperIdent []        = False
+isUpperIdent ('`':x:_) = isUpper x
+isUpperIdent (x:_)     = isUpper x
 
 overrideStyle :: String -> TokenType -> TokenType
 overrideStyle s tok
@@ -35,18 +42,15 @@ overrideStyle s tok
     = NormalTok
   -- * parenthesis seems to not be well separated out
   -- * no effect: fresh, in, ','
-  | s `elem` ["→","←","∀","∃","λ","=","⇒","|",".",",","∇","fresh","in","≡","@","(",")","::","()","[","]","[]"]
+  | s `elem` ["→","←","∀","∃","λ","=","⇒","|",".",",","∇","fresh","in","≡","@","(",")","::","()","[","]","[]","≢"]
     = KeywordTok
-  | tok == KeywordTok && isUpper (head s) = DataTypeTok
+  | tok `elem` [KeywordTok,OtherTok] && isUpperIdent s = DataTypeTok
 overrideStyle _ tok = tok
 
 tokenize :: TokenType -> String -> [String]
 tokenize CommentTok = return
 tokenize StringTok  = return
-tokenize _          = \x -> case x of
-                              "()" -> return "()"
-                              "[]" -> return "[]"
-                              x    -> (split $ whenElt (`elem`"  ()[]λ")) x
+tokenize _          = split $ whenElt (`elem`"  ()[]λ")
 
 {-
 overrideSplits (c, 'λ':x) = [(KeywordTok,"λ"),(c,x)]
@@ -105,7 +109,7 @@ purple = rgb 0xA0A0 0x2020 0xF0F0
 gray25 = rgb 0x4040 0x4040 0x4040
 mediumBlue = rgb 0x0000 0x0000 0xCDCD
 
-color = C.textcolor
+color = mapNonEmpty . C.textcolor
 
 stylize :: TokenType -> (LatexItem -> LatexItem)
 stylize tok
