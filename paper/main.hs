@@ -909,7 +909,8 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
 
 
   p"Eq Zero"
-   «Many useful functions depend on whether two names are equal or not.
+   «Checking whether two names are equal or not is necessary to implement a large 
+    class of term manipulation functions.
     To implement comparison between names, we provide the following two {|Eq|} instances.
     First, the {|Zero|} type is vacuously equipped with equality:»
 
