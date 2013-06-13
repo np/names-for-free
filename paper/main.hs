@@ -2742,7 +2742,8 @@ s (f . g)
   q«Adapting the idea to our framework would mean to quantify over a family of types,
     indexed by a type {|n|} of the appropriate cardinality:»
   [haskellFP|
-  |type NUnivScope n tm a = ∀ v. (n → v) → tm (a ▹ v)
+  |type NUnivScope  n tm a = ∀v. (n → v) → tm (a ▹ v)
+  |type NExistScope n tm a = ∃v. (n → v) ×   tm (a ▹ v)
   |]
 
   subsection $ «Delayed Substitutions»
