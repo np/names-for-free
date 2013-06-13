@@ -3035,6 +3035,33 @@ doc includeUglyCode = document title authors keywords abstract categ (body inclu
 
 {-
 
+∇ in F2:
+
+Typing:
+
+  Γ,β ⊢ x : ∇α. T(α) 
+---------------------    ∇-elim
+   Γ ⊢ x @ β : T(β)
+
+note: to make sure that a single variable is not used twice it's eaten
+up.  (Technically β should be marked 'eaten' in the context instead of
+being summarily removed)
+
+
+   Γ,α ⊢ x : T(α)
+----------------------   ∇-intro
+  Γ ⊢ (α,x) : ∇α. T(α) 
+
+
+Computation:
+
+
+(α,x) @ β  ---> x[β/α]
+(α,x @ β)  ---> (β,x)
+
+
+
+
 Pie in the sky:
 ---------------
 
