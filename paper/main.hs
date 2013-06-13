@@ -332,7 +332,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
          * A context is where a name makes sense
          * A free variable makes reference to somewhere in a term (the Var constructor)
    -}
-  section $ «Intro» `labeled` intro
+  section $ «Introduction» `labeled` intro
 
   p"the line of work where we belong"
    «One of the main application areas of functional programming
@@ -554,7 +554,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
    «However the main drawback of using de Bruijn indices remains: one must still
     count the number of binders between the declaration of a variable and its occurrences.»
 
-  subsection «Referring to bound variables by name»
+  subsection «Referring to Bound Variables by Name»
 
   p"flow"
    «To address the issues just touched upon, we
@@ -640,7 +640,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     quantified, and none of them occurs as part of {|a₀|}. Hence, there
     is only one injection function from a given {|vᵢ|} to {|a|}.»
 
-  paragraph «Auto-inject»
+  paragraph «Auto-Inject»
 
   p"auto-inject"
    «Knowing that the injection functions are uniquely determined by
@@ -684,7 +684,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
     to use the same idea to provide the same advantages for the analysis
     and manipulation of terms.»
 
-  subsection «Referring to free variables by name»
+  subsection «Referring to Free Variables by Name»
 
   p"unpack"
    «Often, one wants to be able to check if an
@@ -902,7 +902,7 @@ body includeUglyCode = {-slice .-} execWriter $ do -- {{{
   |freeVars (App f a) = freeVars f ++ freeVars a
   |]
 
-  subsection $ «Names are Polymorphic Indices»
+  subsection $ «Names Are Polymorphic Indices»
 
 
   p"Eq Zero"
@@ -1639,7 +1639,7 @@ s (f . g)
   |succToFun = existToFun . E ()
   |]
 
-  subsection $ «A matter of style» `labeled` styleSec
+  subsection $ «A Matter of Style» `labeled` styleSec
   
   q«We have seen that {|ExistScope|} is well-suited for term analysis, while 
   {|UnivScope|} is well-suited for term construction. What about term {emph«transformations»},
@@ -1662,7 +1662,7 @@ s (f . g)
   |atVar = succToUniv
   |]
 
-  subsection $ «Scope representations and term representations»
+  subsection $ «Scope Representations and Term Representations»
   
   q«By using an interface such as ours, term representations can be made agnostic to the
     particular scope representation one might choose. In other words, if some interface appears
@@ -2307,7 +2307,7 @@ s (f . g)
   -- JP: I did not do this because all I know has been already said in
   -- the intro.
 
-  subsection $ «Fin»
+  subsection $ «{|Fin|}»
 
   p"Fin approach description"
    «Another approach already used and described by {citet fincites} is
@@ -2339,61 +2339,7 @@ s (f . g)
   {- There might even be ways to get a similar interface for Fin,
      it might get closer McBride approach, tough -}
 
-  subsection $ «Delayed Substitutions»
-
-  q«The main performance issue with de Brujn indices comes from the cost of importing
-    terms into scopes without capture, which requires to increment
-    free-variables in the substituted term (see {|fmap Old|} in the definition of {|liftSubst|}). 
-    This transformation incurs not only a direct cost proportional to the size of terms,
-    but also an indirect cost in the form of loss of sharing.»
-
-  q«{_Citet[birdpaterson99]} propose a solution to this issue, which can be expressed
-     simply as another implementation of binders, where free variables of the inner term stand for 
-     whole terms with one less free variables:»
-
-  [haskellFP|
-  |type DelayedScope tm a = tm (tm a ▹ ())
-  |]
-
-  q«This means that the parallel substitution for a term representation 
-    based on {|DelayedScope|} does not require lifting of substitutions.»
-
-  [haskellFP|
-  |data TmD a where
-  |  VarD :: a → TmD a
-  |  LamD :: DelayedScope TmD a  → TmD a
-  |  AppD :: TmD a → TmD a → TmD a
-  |]
-
-  [haskellFP|
-  |instance Monad TmD where
-  |  return = VarD
-  |  VarD a >>= θ = θ a
-  |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ) 
-  |  LamD t >>= θ = LamD (t >>= \x -> VarD $ case x of
-  |                   New b -> New b
-  |                   Old a -> Old (a >>= θ))
-  |]
-
-  q«Because idea of delayed substitutions is concerned with free variables, and
-    the concepts we present here is concerned with bound variables, one can
-    one can easily define define scopes which are both delayed and safe. Hence
-    the performance gain can is compatible with our safe interface.»
-
-  commentCode [haskellFP|
-  |type UnivScope'  tm a = ∀v. (v → tm (tm a ▹ v))
-  |type ExistScope' tm a = ∃v. (v ,  tm (tm a ▹ v))
-  |]
-
-{-
-    Kmett's
-    type {|Scope|} not only help improving performances but supports
-    multiple binders and enjoys a structure of monad transformers.
-    
-JP: Why? and how does this fit with our interfaces?
-
--}
-  subsection $ «HOAS: Higher-Order Abstract Syntax»
+  subsection $ «Higher-Order Abstract Syntax (HOAS)»
 
   q«A way to represent bindings of an object language is via the
     bindings of the host language. One naive translation of this idea
@@ -2460,7 +2406,7 @@ JP: Why? and how does this fit with our interfaces?
   |]
   -}
 
-  subsection «PHOAS: Parametric Higher-Order Abstract Syntax» 
+  subsection «Parametric Higher-Order Abstract Syntax (PHOAS)» 
 
   q«{citet[chlipalaparametric2008]} describes a way to represent binders
     using polymorphism and functions. Using that technique, called
@@ -2720,22 +2666,6 @@ JP: Why? and how does this fit with our interfaces?
 
   
   
-  subsection «Multiple Binders» 
-  q«An other concern is the support for binding multiple names at once in a binder. 
-      In its simplest form, this means to use a more complicated type with multiple 
-      elements for the right-hand-side of the {|▹|} type. This technique has been
-      used for example by {citet[boundkmett12]}.»
-  [haskellFP|
-  |type NScope tm a = tm (a ▹ Int)
-  |]
-  q«Adapting the idea to our framework would mean to quantify on a telescope of type variables:»
-  commentCode [haskellFP|
-  |type NUnivScope = 
-  |  ∀ v1,…, vn. (v1,…,vn) → Tm (a ▹ (v1,…,vn))
-  |]
-  q«Unfortunately, this is not allowed by {_Haskell}, at 
-      least without tedious type-level programming.»
-  
 
 {-
 
@@ -2797,15 +2727,79 @@ JP: Why? and how does this fit with our interfaces?
   -- JP
   section $ «Discussion» `labeled` discussion
 
+  subsection «Binding Many Variables» 
+  q«
+    In {|SuccScope|}, there is exactly one more free variable available in the subterm.
+    However, it might be useful to bind multiple names at once in a binder. This can 
+    be done by using a type {|n|} of the appropriate cardinality instead of {|()|}.
+    This technique has been used for example by {citet[boundkmett12]}.»
+  [haskellFP|
+  |type NScope n tm a = tm (a ▹ n)
+  |]
+  q«Adapting the idea to our framework would mean to quantify over a family of types,
+    indexed by a type {|n|} of the appropriate cardinality:»
+  [haskellFP|
+  |type NUnivScope  n tm a = ∀v. (n → v) → tm (a ▹ v)
+  |type NExistScope n tm a = ∃v. (n → v) ×   tm (a ▹ v)
+  |]
+
+  subsection $ «Delayed Substitutions»
+
+  q«The main performance issue with de Brujn indices comes from the cost of importing
+    terms into scopes without capture, which requires to increment
+    free-variables in the substituted term (see {|fmap Old|} in the definition of {|liftSubst|}). 
+    This transformation incurs not only a direct cost proportional to the size of terms,
+    but also an indirect cost in the form of loss of sharing.»
+
+  q«{_Citet[birdpaterson99]} propose a solution to this issue, which can be expressed
+     simply as another implementation of binders, where free variables of the inner term stand for 
+     whole terms with one less free variables:»
+
+  [haskellFP|
+  |type DelayedScope tm a = tm (tm a ▹ ())
+  |]
+
+  q«This means that the parallel substitution for a term representation 
+    based on {|DelayedScope|} does not require lifting of substitutions.»
+
+  [haskellFP|
+  |data TmD a where
+  |  VarD :: a → TmD a
+  |  LamD :: DelayedScope TmD a  → TmD a
+  |  AppD :: TmD a → TmD a → TmD a
+  |]
+
+  [haskellFP|
+  |instance Monad TmD where
+  |  return = VarD
+  |  VarD a >>= θ = θ a
+  |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ) 
+  |  LamD t >>= θ = LamD (t >>= \x -> VarD $ case x of
+  |                   New b -> New b
+  |                   Old a -> Old (a >>= θ))
+  |]
+
+  q«Because idea of delayed substitutions is concerned with free variables, and
+    the concepts we present here is concerned with bound variables, one can
+    one can easily define define scopes which are both delayed and safe. Hence
+    the performance gain can is compatible with our safe interface.»
+
+  commentCode [haskellFP|
+  |type UnivScope'  tm a = ∀v. (v → tm (tm a ▹ v))
+  |type ExistScope' tm a = ∃v. (v ,  tm (tm a ▹ v))
+  |]
+
 {-
-  subsection «Power of the representation»
-  p"" «{citet[guillemettetypepreserving2008]}
-     change representation from HOAS to de Bruijn indices, arguing that HOAS is more suitable for
-     CPS transform, while de Bruijn indices are more suitable for closure conversion.
-     Our representation supports a natural implementation of both transformations.
-     »
+    Kmett's
+    type {|Scope|} not only help improving performances but supports
+    multiple binders and enjoys a structure of monad transformers.
+    
+JP: Why? and how does this fit with our interfaces?
+
 -}
-  subsection «Future work: Improving safety»
+
+
+  subsection «Future Work: Improving Safety»
   q«As it stands our interface prevents mistakes in the manipulation of de Bruijn indices, but
     requires a collaboration from the user. 
     Indeed, a malicious user can instantiate {|v|} 
@@ -2831,7 +2825,7 @@ JP: Why? and how does this fit with our interfaces?
    therefore we wish to investigate how some future version of GHC could support it.
    »
 
-  subsection «Future work: improve performance»
+  subsection «Future Work: Improve Performance»
   q«An apparent issue with our conversion functions between
     {|ExistScope|} or {|UnivScope|} on one side and {|SuccScope|} on the
     other side is that all but {|succToExist|} cost a time 
@@ -2839,11 +2833,12 @@ JP: Why? and how does this fit with our interfaces?
     might be able to use a system of rewrite rules, such as that implemented in GHC, to 
     eliminate the conversions to and from the safe interfaces. However, within
     a system which supports ∇-quantification, a better option offers itself:
-    the machine-representation of the type {|v|} where {|v|} is ∇-bound should be
-    nil (nothing at all); therefore the machine-implementation of the conversions
+    the machine-representation of the type {|v|} should be
+    nil (nothing at all) if {|v|} is a ∇-bound variable; 
+    therefore the machine-implementation of the conversions
     can be the identity.»
 
-  subsection «Future work: no injections»
+  subsection «Future Work: No Injections»
 
   p "getting rid of the injections by using a stronger type system" «
     We use the instance search of GHC in a very specific way: only to discover in injections.
@@ -2866,7 +2861,8 @@ JP: Why? and how does this fit with our interfaces?
   and binders, which is supported by today's Glasgow Haskell Compiler.»
   q«
   The method preserves the good properties of de Bruijn indices, while providing
-  a convenient interface to program with multiple open binders.
+  a convenient interface to program with multiple open binders. We have illustrated 
+  these properties by exhibiting the implementation of a number of examples.
   »
 
 
