@@ -3057,17 +3057,32 @@ used as an index in some type family (a subterm of T))
 
    Γ,α ⊢ t : T[α]
 ----------------------   ∇-intro
-  Γ ⊢ (α,t) : ∇α. T[α]
+  Γ ⊢ ∇α.t : ∇α. T[α]
 
 
 Computation:
 
+(∇α.t) @ β  ---> t[β/α]
+∇α.(t @ β)  ---> ∇β.t
 
-(α,t) @ β  ---> t[β/α]
-(α,t @ β)  ---> (β,t)
+-- not sure about the rule above, what about this:
+∇α.(t @ α)  ---> t
 
+fresh :: ∇v.v
+fresh = ∇v.v
 
+var :: ∇v. Tm v
+var = ∇v. Var v
 
+Lam :: (∇v. Tm (a ▹ v)) → Tm a
+
+apTm = Lam (α, Lam (β, App (Old (New (var @ α))) (New (var @ β))))
+
+case t of
+  Lam (b :: ∇v.Tm(a▹v)) ->
+    Lam (∇α. App (b @ α) (b @ α)) -- ill typed because α is used twice
+    -- but
+    Lam (∇α. let t = b @ α in App t t) -- is fine
 
 Pie in the sky:
 ---------------
