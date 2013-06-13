@@ -2794,7 +2794,7 @@ JP: Why? and how does this fit with our interfaces?
     This
     quantifier can be understood as being at the same time existential and universal, 
     and hence is self dual.
-    We the notation {|∇|} (pronounced nabla) for it, due to the similarity with the quantifier
+    We use the notation {|∇|} (pronounced nabla) for it, due to the similarity with the quantifier
     of the same name introduced by {citet[millerproof2003]}.
     We would then have the following definitions, and safety could not be compromised. »
 
