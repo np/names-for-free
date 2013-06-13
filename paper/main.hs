@@ -3039,25 +3039,26 @@ doc includeUglyCode = document title authors keywords abstract categ (body inclu
 
 Typing:
 
-  Γ,β ⊢ x : ∇α. T(α) 
+  Γ,β ⊢ t : ∇α. T[α] 
 ---------------------    ∇-elim
-   Γ ⊢ x @ β : T(β)
+   Γ ⊢ t @ β : T[β]
 
-note: to make sure that a single variable is not used twice it's eaten
-up.  (Technically β should be marked 'eaten' in the context instead of
-being summarily removed)
+note: to make sure that a single variable is not used twice /by the
+∇-elim rule/ it's eaten up.  (Technically β should be marked 'eaten'
+in the context instead of being summarily removed, since it can be
+used as an index in some type family (a subterm of T))
 
 
-   Γ,α ⊢ x : T(α)
+   Γ,α ⊢ t : T[α]
 ----------------------   ∇-intro
-  Γ ⊢ (α,x) : ∇α. T(α) 
+  Γ ⊢ (α,t) : ∇α. T[α]
 
 
 Computation:
 
 
-(α,x) @ β  ---> x[β/α]
-(α,x @ β)  ---> (β,x)
+(α,t) @ β  ---> t[β/α]
+(α,t @ β)  ---> (β,t)
 
 
 
