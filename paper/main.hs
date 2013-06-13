@@ -2733,7 +2733,8 @@ JP: Why? and how does this fit with our interfaces?
   |]
   q«Adapting the idea to our framework would mean to quantify on a telescope of type variables:»
   commentCode [haskellFP|
-  |type NUnivScope  = ∀ v1, …, vn. (v1,…,vn) → Tm (a ▹ (v1,…,vn))
+  |type NUnivScope  = ∀ v1, …, vn. (v1,…,vn) →
+  |                     Tm (a ▹ (v1,…,vn))
   |]
   q«Unfortunately, this is not allowed by {_Haskell}, at 
       least without tedious type-level programming.»
