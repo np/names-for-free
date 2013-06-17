@@ -1955,8 +1955,7 @@ s (f . g)
    |                                                                  e_\mathnormal{body} & = \llbracket e \rrbracket[x_{env}.i/y_i] \\
    |                                                                  e_\mathnormal{env} & = \langle y_1,\ldots,y_n \rangle
    |                                                               \end{array}\\
-   |  \llbracket e_1@e_2 \rrbracket &= \mathsf{let}~(x_f,x_\mathnormal{env}) = \mathsf{open}~\llbracket e_1 \rrbracket \\
-   |                                &\quad \mathsf{in}~ x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
+   |  \llbracket e_1@e_2 \rrbracket &= \mathsf{let}~(x_f,x_\mathnormal{env}) = \mathsf{open}~\llbracket e_1 \rrbracket \, \mathsf{in}~ x_f \langle \llbracket e_2 \rrbracket , x_\mathnormal{env} \rangle
    |\end{array}
    |]
 
@@ -2044,10 +2043,6 @@ s (f . g)
   |cc (App e1 e2) =
   |  LetOpen (cc e1)
   |          (λ f x → var f $$ wk (cc e2) $$ var x)
-  |
-  |idxFrom :: Eq a ⇒ [a] → v → a → LC (Zero ▹ v)
-  |idxFrom yn env z = Index (var env) $
-  |                   fromJust (elemIndex z yn)
   |]
 
 {-
@@ -2164,9 +2159,9 @@ s (f . g)
    [texm|
    |\begin{array}{r@{\,}l}
    | \llbracket x \rrbracket\,\kappa &= \kappa\,x \\
-   | \llbracket e_1 \,@\, e_2 \rrbracket\,\kappa &= \llbracket e_1 \rrbracket (\lambda f. \\
-   |                                       &\quad \llbracket e_2 \rrbracket (\lambda x. \\
-   |                                       &\quad f \, @ \, \langle x, \kappa \rangle ) ) \\
+   | \llbracket e_1 \,@\, e_2 \rrbracket\,\kappa &= \llbracket e_1 \rrbracket (\lambda f. \,
+   |                                       \llbracket e_2 \rrbracket (\lambda x. \,
+   |                                       f \, @ \, \langle x, \kappa \rangle ) ) \\
    | \llbracket \hat\lambda x. e \rrbracket \kappa &= \mathsf{let}\, f = \hat\lambda p. \begin{array}[t]{l}
    |                                       \mathsf{let}\, x_1 = \mathsf{fst}\, p \,\mathsf{in}\\
    |                                       \mathsf{let}\, x_2  = \mathsf{snd}\, p \,\mathsf{in} \\
@@ -2210,27 +2205,21 @@ s (f . g)
   -}
 
   -- |cps :: Tm a → Univ TmC a → TmC a
-  -- NP: I put this one before for page layout reasons
   [haskellFP|
-  |cps0 :: Tm a → TmC a
-  |cps0 t = cps t $ HaltC . varC
-  |]
-  [haskellP|
   |cps :: Tm a → (∀ v. v → TmC (a ▹ v)) → TmC a
   |cps (Var x)     k = untag <$> k x
   |cps (App e1 e2) k =
   |  cps e1 $ λ x1 →
   |  cps (wk e2) $ λ x2 →
-  |  AppC (varC x1)
-  |       (PairC (varC x2)
-  |              (lamC (λ x → wk $ k x)))
+  |  varC x1 `AppC` (varC x2 `PairC`
+  |                  lamC (λ x → wk $ k x))
   |cps (Lam e)    k =
   |  letC
   |    (lamC $ λp →
   |       letC (fstC p) $ λ x1 →
   |       letC (sndC p) $ λ x2 →
   |       cps (wk $ e `atVar` x1) $ λr →
-  |       AppC (varC x2) (varC r)) k
+  |       varC x2 `AppC` varC r) k
   |]
 {-
   -- This version departs from the mathematical notation and requires an explicit weakening
@@ -2361,9 +2350,8 @@ s (f . g)
     behave as substitutions. Here is this representation in {_Haskell}:»
 
   [haskellFP|
-  |type TmF = ∀ a. ((a → a) → a)  -- lam
-  |              → (a → a → a)   -- app
-  |              → a
+  |type TmF = ∀ a. ({-lam:-} (a → a) → a)
+  |             → ({-app:-}  a → a  → a) → a
   |]
 
   q«And our familiar application function:»
@@ -2759,9 +2747,7 @@ s (f . g)
   |  return = VarD
   |  VarD a >>= θ = θ a
   |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ)
-  |  LamD t >>= θ = LamD (t >>= λ x → VarD $ case x of
-  |                   New b → New b
-  |                   Old a → Old (a >>= θ))
+  |  LamD t >>= θ = LamD (bimap (>>= θ) id <$> t)
   |]
 
   q«Because idea of delayed substitutions is concerned with free variables, and
@@ -2865,13 +2851,16 @@ appendix = execWriter $ do
   |]
 
 
-  subsection «NbE»
+  subsection «Normalization»
   [haskellP|
   |instance Functor No where 
   |  fmap f (LamNo x t)  = 
   |     LamNo x (fmap (bimap f id) t)
   |  fmap f (Neutr x ts) =
   |     Neutr (f x) (fmap (fmap f) ts)
+  |
+  |lamNo :: (∀ v. v → No (a ▹ v)) → No a
+  |lamNo f = LamNo () (f ())
   |]
 
   subsection «CPS»
@@ -2922,9 +2911,18 @@ appendix = execWriter $ do
   |haltC     = HaltC . inj
   -}
 
+  [haskellP|
+  |cps0 :: Tm a → TmC a
+  |cps0 t = cps t $ HaltC . varC
+  |]
+
   subsection «Closure Conversion»
 
   [haskellP|
+  |idxFrom :: Eq a ⇒ [a] → v → a → LC (Zero ▹ v)
+  |idxFrom yn env z = Index (var env) $
+  |                   fromJust (elemIndex z yn)
+  |
   |instance Functor LC where
   |  fmap f t = t >>= return . f
   |
