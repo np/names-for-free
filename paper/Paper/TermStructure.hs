@@ -13,9 +13,9 @@ termStructureDoc = do
    «It is well-known that every term representation parameterized
     on the type of free variables should exhibit monadic structure,
     with substitution corresponding to the binding operator {cite
-    nestedcites}. That is, a {|Monad tm|} constraint means that a that
-    a term representation {|tm|} is stable under substitution. In
-    this section we review this structure, as well as other standard
+    nestedcites}. That is, a {|Monad tm|} constraint means that a
+    term representation {|tm|} is stable under substitution. In this
+    section we review this structure, as well as other standard
     related structures on terms. These structures are perhaps easier
     to implement directly on a concrete term representation, rather
     than our interface. However, we give an implementation solely based

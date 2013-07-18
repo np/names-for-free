@@ -63,7 +63,7 @@ scopesDoc onlyInCode = do
     is possible because these scope representations ({|SuccScope|},
     {|UnivScope|} and {|ExistScope|}) are isomorphic. In the following
     we exhibit the conversion functions between {|SuccScope|} one side
-    and either {|UnivScope|} or {|ExistScope|}) on the other. We then
+    and either {|UnivScope|} or {|ExistScope|} on the other. We then
     prove that they form isomorphisms, assuming an idealized {_Haskell}
     lacking non-termination and {|seq|}.»
 
@@ -111,7 +111,7 @@ scopesDoc onlyInCode = do
   q«The second property ({|succToUniv . univToSucc ≡ id|}) means that
     there is no ``junk'' in the representation: one cannot represent
     more terms in {|UnivScope|} than in {|SuccScope|}. It is more
-    difficult to prove, as it and relies on parametricity and in turn
+    difficult to prove, as it relies on parametricity and in turn
     on the lack of junk (non-termination or {|seq|}) in the host
     language. Hence we need to use the free theorem for a value {|f|}
     of type {|UnivScope tm a|}. Transcoding {|UnivScope tm a|} to a

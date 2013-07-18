@@ -212,7 +212,7 @@ relatedDoc onlyInCode = do
   -- situation for us.
 
   q«However, because McBride represents variables as {|Fin|}, the types
-    of his combinators are less precise ours. Notably, the {|Leq|}
+    of his combinators are less precise than ours. Notably, the {|Leq|}
     class captures only one aspect of context inclusion (captured
     by the class {|⊆|} in our development), namely that one context
     should be smaller than another. This means, for example, that the

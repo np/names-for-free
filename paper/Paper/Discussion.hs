@@ -37,7 +37,7 @@ discussionDoc onlyInCode = do
   q«{_Citet[birdpaterson99]} propose a solution to this issue, which can
     be expressed simply as another implementation of binders, where free
     variables of the inner term stand for whole terms with one less free
-    variables:»
+    variable:»
 
   [haskellFP|
   |type DelayedScope tm a = tm (tm a ▹ ())
@@ -66,10 +66,11 @@ discussionDoc onlyInCode = do
   |  fmap = liftM
   |]
 
-  q«Because idea of delayed substitutions is concerned with free variables, and
-    the concepts we present here is concerned with bound variables, one can
-    one can easily define scopes which are both delayed and safe. Hence
-    the performance gain can is compatible with our safe interface.»
+  q«Because idea of delayed substitutions is concerned with free
+    variables, and the concepts we present here is concerned with bound
+    variables, one can easily define scopes which are both delayed
+    and safe. Hence the performance gain is compatible with our safe
+    interface.»
 
   commentCode [haskellFP|
   |type UnivScope'  tm a = ∀v. (v → tm (tm a ▹ v))

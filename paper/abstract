@@ -5,7 +5,7 @@ variables conviently, using Haskell-level lambdas and variables. The
 key idea is to use rich types: a subterm with an additional free variable
 is viewed either as $\forall v. v \rightarrow \mathsf{Term} (a + v)$
 or $\exists v. v \times \mathsf{Term} (a + v)$ depending on weather it
-is constructed or analysed.  We demonstrate on a number of examples
-how this approach permits to express terms construction and 
-manipulation in a natural way, while retaining the good properties of
-representations based on de Bruijn indices.
+is constructed or analysed. We demonstrate on a number of examples how
+this approach permits to express term construction and manipulation in
+a natural way, while retaining the good properties of representations
+based on de Bruijn indices.
