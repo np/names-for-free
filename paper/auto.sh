@@ -4,5 +4,6 @@
 redo all
 while : ; do
   inotifywait -e delete "${ALLSOURCES[@]}" || :
+  . ./config.sh
   redo all
 done
