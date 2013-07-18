@@ -9,11 +9,11 @@ import Paper.Keys
 relatedDoc onlyInCode = do
   section $ «Related Work» `labeled` comparison
 
-  q«Representing names and binders in a safe and convenient manner is
-   along-standing issue, with an extensive body of work devoted to it.
-   Asurvey is far beyond the scope of this paper. ence, we limit our
-   Hcomparison the work that we judge most relevant, r whose contrasts
-   owith our proposal is the most revealing.»
+  q«Representing names and binders in a safe and convenient manner is a
+    long-standing issue, with an extensive body of work devoted to it.
+    A survey is far beyond the scope of this paper. Hence, we limit our
+    comparison the work that we judge most relevant, or whose contrasts
+    with our proposal is the most revealing.»
 
   q«However, we do not limit our comparison to interfaces for names and
     binders, but also look at terms representations. Indeed, we have
