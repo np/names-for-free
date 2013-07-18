@@ -200,6 +200,7 @@ body onlyInCode = execWriter $ do -- {{{
      |main = putStrLn "It works!"
      |]
 
+  notetodo «Hybrid! mapOld mapNew»
   {-
   notetodo «unify the terminology names/context/free variables (when the rest is ready)»
      NP: All these three notions names/context/free variables have to

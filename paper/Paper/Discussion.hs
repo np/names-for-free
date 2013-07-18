@@ -27,15 +27,17 @@ discussionDoc onlyInCode = do
 
   subsection $ «Delayed Substitutions»
 
-  q«The main performance issue with de Brujn indices comes from the cost of importing
-    terms into scopes without capture, which requires to increment
-    free-variables in the substituted term (see {|fmap Old|} in the definition of {|liftSubst|}). 
-    This transformation incurs not only a direct cost proportional to the size of terms,
-    but also an indirect cost in the form of loss of sharing.»
+  q«The main performance issue with de Brujn indices comes from the cost
+    of importing terms into scopes without capture, which requires to
+    increment free variables in the substituted term (see {|fmap Old|}
+    in the definition of {|liftSubst|}). This transformation incurs not
+    only a direct cost proportional to the size of terms, but also an
+    indirect cost in the form of loss of sharing.»
 
-  q«{_Citet[birdpaterson99]} propose a solution to this issue, which can be expressed
-     simply as another implementation of binders, where free variables of the inner term stand for 
-     whole terms with one less free variables:»
+  q«{_Citet[birdpaterson99]} propose a solution to this issue, which can
+    be expressed simply as another implementation of binders, where free
+    variables of the inner term stand for whole terms with one less free
+    variables:»
 
   [haskellFP|
   |type DelayedScope tm a = tm (tm a ▹ ())

@@ -51,8 +51,8 @@ scopesDoc onlyInCode = do
 
   q«As we have observed on a number of examples, these representations
     are dual from a usage perspective: the universal-based
-    representation allows safe the construction of terms, while
-    the existential-based representation allows safe analysis of
+    representation allows safe construction of terms, while the
+    existential-based representation allows safe analysis of
     terms. Strictly speaking, safety holds only if one disregards
     non-termination and {|seq|}, but because the values of type {|v|}
     are never used for computation, mistakenly using a diverging term in
@@ -262,9 +262,9 @@ scopesDoc onlyInCode = do
 
   commentCode [haskellFP|
   |fmap' f (Lam b)
-  |   = unpack b $ λ x t → lamP x (fmap (bimap f id) t)
+  |   = unpack b $ λ x t → lamP x (bimap f id <$> t)
   |fmap' f (Lam b)
-  |   = lam (λ x → fmap (bimap f id) (b `atVar` x))
+  |   = lam (λ x → bimap f id <$> (b `atVar` x))
   |]
 
   q«When using {|succToUniv|}, the type of the second argument of
