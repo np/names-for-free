@@ -6,26 +6,26 @@ OVERALL EVALUATION: 2 (accept)
 REVIEWER'S CONFIDENCE: 3 (medium)
 
 ----------- REVIEW -----------
-The paper presents a technique for representing names and binders,
-enriching de Bruijn indices with types that encode the context in which
-they are valid. Although the general underlying idea is not new (e.g.
-the authors acknowledge the similarity of their technique to McBrides
-approach -- a connection that could be worth elaborating a bit more), I
-think the particular approach using rich types is very elegant, and the
-implementation of the interface seems fit for publication.
+> The paper presents a technique for representing names and binders,
+> enriching de Bruijn indices with types that encode the context in which
+> they are valid. Although the general underlying idea is not new (e.g.
+> the authors acknowledge the similarity of their technique to McBrides
+> approach -- a connection that could be worth elaborating a bit more), I
+> think the particular approach using rich types is very elegant, and the
+> implementation of the interface seems fit for publication.
 
-A small note: Instead of the appendix (which violates the page
-restriction anyway), it would be nice to have a link to the code, if
-available.
+> A small note: Instead of the appendix (which violates the page
+> restriction anyway), it would be nice to have a link to the code, if
+> available.
 
-Typos:
-[Abstract] terms construction -> term construction
-[5]  that a that a term representation -> that a term representation
-[6]  or ExistScope) -> or ExistScope
-[7]  as it and relies -> as it relies
-[10] are less precise ours -> are less precise than ours
-[11] with one less free variables -> with one less free variable
-[11] one can one can easily -> one can easily
-[11] gain can is -> gain is
-[11] We the notation -> We use the notation
+> Typos:
+> [Abstract] terms construction -> term construction
+> [5]  that a that a term representation -> that a term representation
+> [6]  or ExistScope) -> or ExistScope
+> [7]  as it and relies -> as it relies
+> [10] are less precise ours -> are less precise than ours
+> [11] with one less free variables -> with one less free variable
+> [11] one can one can easily -> one can easily
+> [11] gain can is -> gain is
+> [11] We the notation -> We use the notation
 

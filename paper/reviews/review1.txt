@@ -6,60 +6,60 @@ OVERALL EVALUATION: -2 (reject)
 REVIEWER'S CONFIDENCE: 5 (expert)
 
 ----------- REVIEW -----------
-This paper is about how to represent names and binders in terms. This
-issue is important for compiler implementation, program transformation,
-and domain-specific languages. The paper proposes to enrich de Bruijn
-indices by representing each bound name using a different rigid type
-variable. This way, the type system would statically detect and prevent
-the mistake of confusing two bound names with each other. It is valuable
-to prevent this kind of mistake because practitioners actually make
-it (in my experience) and it causes erroneous output to be generated
-without warning.
+> This paper is about how to represent names and binders in terms. This
+> issue is important for compiler implementation, program transformation,
+> and domain-specific languages. The paper proposes to enrich de Bruijn
+> indices by representing each bound name using a different rigid type
+> variable. This way, the type system would statically detect and prevent
+> the mistake of confusing two bound names with each other. It is valuable
+> to prevent this kind of mistake because practitioners actually make
+> it (in my experience) and it causes erroneous output to be generated
+> without warning.
 
-The main claim of this paper is that the new programming interface for
-binders prevents mistakes in de Bruijn indexing. Although the idea seems
-intuitive, I find this claim hard to assess or believe because it's not
-clear where the interface ends and the implementation begins in the
-paper, and because the safety guarantee provided is never defined or
-illustrated, much less proven. On the one hand, the interface seems to
-include the basic de Bruijn representation (Tm (a :> v), not just its
-enriched variants (UnivScope Tm a) and (ExistScope Tm a)) and "pack"
-and "lamP", because "pack" and "lamP" are used in application examples
-such as >>>= (Section 4.2) and fmap' (Section 5.3). On the other hand,
-the type v in the types of "pack" and "lamP" is not rank-2-universally
-quantified or existentially quantified, so "pack" and "lamP" *can*
-be used to circumvent the enriched de Bruijn indices and allow the
-mistake of confusing two bound names. For example, one could write "b
-`atVar` x! " and "b `atVar` y" without getting any warning from the type
-checker. As the paper puts it, safety "requires a collaboration from the
-user". The authors seem to believe that a programmer who uses "pack" and
-"lamP" incorrectly must be "malicious", but unintentional mistakes seem
-perfectly possible to me.
+> The main claim of this paper is that the new programming interface for
+> binders prevents mistakes in de Bruijn indexing. Although the idea seems
+> intuitive, I find this claim hard to assess or believe because it's not
+> clear where the interface ends and the implementation begins in the
+> paper, and because the safety guarantee provided is never defined or
+> illustrated, much less proven. On the one hand, the interface seems to
+> include the basic de Bruijn representation (Tm (a :> v), not just its
+> enriched variants (UnivScope Tm a) and (ExistScope Tm a)) and "pack"
+> and "lamP", because "pack" and "lamP" are used in application examples
+> such as >>>= (Section 4.2) and fmap' (Section 5.3). On the other hand,
+> the type v in the types of "pack" and "lamP" is not rank-2-universally
+> quantified or existentially quantified, so "pack" and "lamP" *can*
+> be used to circumvent the enriched de Bruijn indices and allow the
+> mistake of confusing two bound names. For example, one could write "b
+> `atVar` x! " and "b `atVar` y" without getting any warning from the type
+> checker. As the paper puts it, safety "requires a collaboration from the
+> user". The authors seem to believe that a programmer who uses "pack" and
+> "lamP" incorrectly must be "malicious", but unintentional mistakes seem
+> perfectly possible to me.
 
-Minor comments:
+> Minor comments:
 
-In the code for "recognize", please rename the inner bound "y" to
-something like "z" to avoid shadowing the outer bound "y". Then,
-shouldn't the test "x `freshFor` e1" be conjoined with "y `freshFor`
-e1"?
+> In the code for "recognize", please rename the inner bound "y" to
+> something like "z" to avoid shadowing the outer bound "y". Then,
+> shouldn't the test "x `freshFor` e1" be conjoined with "y `freshFor`
+> e1"?
 
-Is the first instance of $\subseteq$ (namely "instance a $\subseteq$ a")
-necessary? Please explain.
+> Is the first instance of $\subseteq$ (namely "instance a $\subseteq$ a")
+> necessary? Please explain.
 
-The type of your "cps" function seems to require generating a new
-binder "v". For example, it seems that the "cps (Lam e) k" case can't
-just apply k to a lamC value. Please discuss this limitation and how
-fundamental it is to your approach.
+> The type of your "cps" function seems to require generating a new
+> binder "v". For example, it seems that the "cps (Lam e) k" case can't
+> just apply k to a lamC value. Please discuss this limitation and how
+> fundamental it is to your approach.
 
-In Section 7.6 you write that "our interfaces are concrete (code using
-it always evaluates)". Is the definition of the Tm data type part of
-your interface?
+> In Section 7.6 you write that "our interfaces are concrete (code using
+> it always evaluates)". Is the definition of the Tm data type part of
+> your interface?
 
-In Section 8.3 you opine that "Supporting our version of nabla in a
-type-checker seems a rather modest extension". It doesn't seem so to me.
-Rather, it seems to me that the core of the work in really achieving
-binder safety (in the face of unintentional programmer mistakes) is to
-formulate (then implement) a type system that includes nabla (and the
-rest of Haskell).
+> In Section 8.3 you opine that "Supporting our version of nabla in a
+> type-checker seems a rather modest extension". It doesn't seem so to me.
+> Rather, it seems to me that the core of the work in really achieving
+> binder safety (in the face of unintentional programmer mistakes) is to
+> formulate (then implement) a type system that includes nabla (and the
+> rest of Haskell).
 
-Please spell "occurrence" with two "r"s.
+> Please spell "occurrence" with two "r"s.
