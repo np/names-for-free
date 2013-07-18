@@ -51,7 +51,7 @@ discussionDoc onlyInCode = do
   |  AppD :: TmD a → TmD a → TmD a
   |]
 
-  [haskellFP|
+  [haskellP|
   |instance Monad TmD where
   |  return = VarD
   |  VarD a   >>= θ = θ a
