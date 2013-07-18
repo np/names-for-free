@@ -46,6 +46,11 @@ REVIEWER'S CONFIDENCE: 5 (expert)
 > Is the first instance of $\subseteq$ (namely "instance a $\subseteq$ a")
 > necessary? Please explain.
 
+Here is our paragraph about:
+   «This time we have four instances: inclusion is reflexive; the empty
+    context is the smallest one; adding a variable makes the context
+    larger; and variable append {|(▹ v)|} is monotonic for inclusion.»
+
 > The type of your "cps" function seems to require generating a new
 > binder "v". For example, it seems that the "cps (Lam e) k" case can't
 > just apply k to a lamC value. Please discuss this limitation and how
@@ -55,6 +60,9 @@ REVIEWER'S CONFIDENCE: 5 (expert)
 > it always evaluates)". Is the definition of the Tm data type part of
 > your interface?
 
+No, the user starts by defining the terms relevant to his/her specific
+task.
+
 > In Section 8.3 you opine that "Supporting our version of nabla in a
 > type-checker seems a rather modest extension". It doesn't seem so to me.
 > Rather, it seems to me that the core of the work in really achieving
@@ -62,4 +70,8 @@ REVIEWER'S CONFIDENCE: 5 (expert)
 > formulate (then implement) a type system that includes nabla (and the
 > rest of Haskell).
 
+Agreed
+
 > Please spell "occurrence" with two "r"s.
+
+OK

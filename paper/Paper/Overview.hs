@@ -316,12 +316,13 @@ overviewDoc onlyInCode = do
     code which recognizes the pattern {|λ x y → e x|} is as follows:»
 
   [haskellFP|
-  |recognize :: Tm Zero → Bool
-  |recognize t0 = case t0 of
+  |recognizeExample :: Tm Zero → Bool
+  |recognizeExample t0 = case t0 of
   |    Lam f → unpack f $ λ x t1 → case t1 of
   |      Lam g → unpack g $ λ y t2 → case t2 of
-  |        App e1 (Var y) → y `isOccurenceOf` x &&
+  |        App e1 (Var z) → z `isOccurenceOf` x &&
   |                          x `freshFor` e1
+  |                          y `freshFor` e1
   |        _ → False
   |      _ → False
   |    _ → False
