@@ -2665,12 +2665,17 @@ s (f . g)
   |  AppD :: TmD a → TmD a → TmD a
   |]
 
-  [haskellFP|
+  [haskellP|
   |instance Monad TmD where
   |  return = VarD
   |  VarD a >>= θ = θ a
   |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ)
   |  LamD t >>= θ = LamD (bimap (>>= θ) id <$> t)
+  |]
+
+  onlyInCode [haskellP|
+  |instance Functor TmD where
+  |  fmap = liftM
   |]
 
   q«Because idea of delayed substitutions is concerned with free variables, and
