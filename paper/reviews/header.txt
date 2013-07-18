@@ -1,0 +1,19 @@
+To: Nicolas Pouillard <npou@itu.dk>
+From: Haskell 2013 <haskell2013@easychair.org>
+Subject: Haskell 2013 notification for paper 2
+
+Dear Nicolas Pouillard,
+
+I'm happy to inform you that your contribution to the 2013 Haskell Symposium
+
+    Names For Free --- Polymorphic Views of Names and Binders
+
+was accepted by the program committee for presentation.  Congratulations!
+
+Our reviews are enclosed below.  The final version of your paper is due on July 25, only two weeks from today, so please take the reviewers' feedback to heart and use this time to improve your paper as much as you can.  We'll send more information shortly about supplemental materials, extra pages, and formatting.
+
+Of course, please also plan to present your work at the symposium, in Boston on September 23-24, directly before ICFP.  See you there!
+
+Thank you for your work and participation.
+
+Chung-chieh Shan, on behalf of the program committee

@@ -1,0 +1,54 @@
+PAPER: 2
+TITLE: Names For Free --- Polymorphic Views of Names and Binders
+AUTHORS: Jean-Philippe Bernardy and Nicolas Pouillard
+
+OVERALL EVALUATION: 2 (accept)
+REVIEWER'S CONFIDENCE: 4 (high)
+
+----------- REVIEW -----------
+This paper explains how to build a HOAS term view on top of a de Bruijn
+implementation. This idea is not new, it has been implemented on top
+of Isabelle and Coq under the name "Hybrid", and there are several
+publications about it, including some case studies. While Hybrid seems
+to implement strong HOAS, where meta level (host language) variables
+stand for object level terms, the present paper implements weak HOAS,
+where meta variables stand for object variables.
+
+The novelty of the present paper is that it build the HOAS layer on
+top of the so-called "nested abstract syntax" implementation of de
+Bruijn levels, where the set of free vars is a type parameter to the
+type of terms, and abstraction extends this set by one more element,
+typically by applying the "Maybe" type constructor. The authors depart
+here and use "Either a" instead, where "a" is a type variable that is
+quantified over. This way they achieve non-confusion of free variables
+(they are like named variables now) and can exploit the Haskell instance
+resolution to automatically construct de Bruijn indices from variable
+"names".
+
+The authors argue convincingly for the soundness of their approach by
+appealing to parametricity. Further they present a number of examples to
+demonstrate the usefulness of their approach.
+
+I think this is an interesting idea that should be further pursued
+and deserves presentation at the Haskell symposium. However, before I
+bet my life on it, I would like to see a larger case study, like the
+implementation of a small functional language with pattern matching and
+explicit substitutions---I found the argumentation given in 8.1 and 8.2
+not convincing enough, yet.
+
+COMMENTS
+
+p6 Sec5 "allows safe the construction of terms"  delete "the"
+
+p7 5.2 Spacing gone wrong in
+
+  fmap (bimap id (const ())) <excessive white space + new line> t
+
+  Instead of using "bimap id", a custom "mapNew"
+  would increase readability.
+
+  Similarly, define "mapOld"
+
+p11 Sec8.2 "free-variables" --> free variables
+
+Related work should discuss Hybrid!
