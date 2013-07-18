@@ -50,7 +50,9 @@ case "$TARGET" in
   (main.pdf)
     rubberopts=(-I sigplanconf)
     find sigplanconf -type f -print0 | xargs -0 redo-ifchange
-  ;;
+    ;;
+  (TestPaperCode.runghc)
+    redo-ifchange PaperCode.hs;;
 esac
 
 copy(){
