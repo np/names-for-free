@@ -90,17 +90,17 @@ contextDoc onlyInCode = do
   |  Old x == Old y = x == y
   |  _     == _     = False
   |]
-  q«
-    Comparing naked de Bruijn indices for equality is an error prone operation, 
-    because one index might be valid in
-    a context different from the other, and thus an arbitrary adjustment might be required.
-    With Nested Abstract Syntax, the situation improves: by requiring equality to be 
-    performed between indices of the same type, a whole class of errors are prevented by
-    type-checking. Some mistakes are possible though: given a index of type {|a ▹ () ▹ ()|},
-    a swap the last two variables might be the right thing to do, but one cannot decide if it is so 
-    from the types only.
-    By making the contexts fully
-    polymorphic as we propose, no mistake is possible. 
+
+  q«Comparing naked de Bruijn indices for equality is an error prone
+    operation, because one index might be valid in a context different
+    from the other, and thus an arbitrary adjustment might be required.
+    With Nested Abstract Syntax, the situation improves: by requiring
+    equality to be performed between indices of the same type, a whole
+    class of errors are prevented by type-checking. Some mistakes are
+    possible though: given a index of type {|a ▹ () ▹ ()|}, a swap
+    of the last two variables might be the right thing to do, but
+    one cannot decide if it is so from the types only. By making the
+    contexts fully polymorphic as we propose, no mistake is possible.
     Hence the slogan: names are polymorphic indices.»
 
   q«Consequently, the derived equality instance of {|Tm|} gives
