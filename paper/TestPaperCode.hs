@@ -139,7 +139,7 @@ prettyPrec (v:vs) d n (Lam b)     = showParen d $
   showString v . showString ". " . prettyPrec vs False n (instantiate1 (Var v) b)
 
 prettyWith :: [String] -> Tm String -> String
-prettyWith vs t = prettyPrec (filter (`notElem` toList t) vs) False 0 t ""
+prettyWith vs t = prettyPrec (filter (`notElem` t) vs) False 0 t ""
 
 pretty :: Tm String -> String
 pretty = prettyWith $ [ [i] | i <- ['a'..'z']] ++ [i : show j | j <- [1..], i <- ['a'..'z'] ]
