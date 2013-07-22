@@ -321,7 +321,7 @@ overviewDoc onlyInCode = do
   |    Lam f → unpack f $ λ x t1 → case t1 of
   |      Lam g → unpack g $ λ y t2 → case t2 of
   |        App e1 (Var z) → z `isOccurenceOf` x &&
-  |                          x `freshFor` e1
+  |                          x `freshFor` e1 &&
   |                          y `freshFor` e1
   |        _ → False
   |      _ → False
