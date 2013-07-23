@@ -93,7 +93,7 @@ JP: Why? and how does this fit with our interfaces?
     Indeed, a malicious user can instantiate {|v|} 
     to a monotype either in the analysis of
     {|∀ v. v → tm (a ▹ v)|} or in the construction of {|∃ v. (v, tm (a ▹ v))|}. This situation can be improved 
-    by providing a quantifier which allows to substitute for type variables only other type variables.
+    by providing a quantifier which allows to substitute for type variables other type variables only.
     This
     quantifier can be understood as being at the same time existential and universal, 
     and hence is self dual.
