@@ -202,7 +202,6 @@ body onlyInCode = execWriter $ do -- {{{
 
   notetodo «Hybrid! mapOld mapNew»
   notetodo «more related work with McBride»
-  notetodo «Remove appendix»
   notetodo «Ack Demtech fundings»
   {-
   notetodo «unify the terminology names/context/free variables (when the rest is ready)»
@@ -230,7 +229,7 @@ body onlyInCode = execWriter $ do -- {{{
   relatedDoc onlyInCode
   discussionDoc onlyInCode
 
-appendix = execWriter $ do
+appendix onlyInCode = execWriter . onlyInCode{-this hiddes the whole appendix-} $ do
   section $ «Implementation details» `labeled` implementationExtras
   subsection «Traversable»
   [haskellP|
@@ -320,7 +319,7 @@ main = do
 categ = Kit.cat «D.3.3» «Language Constructs and Features» «»
 
 
-doc onlyInCode = document title authors keywords abstract categ (body onlyInCode) appendix
+doc onlyInCode = document title authors keywords abstract categ (body onlyInCode) (appendix onlyInCode)
 -- }}}
 
 -- vim: foldmarker

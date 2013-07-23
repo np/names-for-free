@@ -424,8 +424,9 @@ overviewDoc onlyInCode = do
   |]
 
   q«The implementation of {|packGen|} and {|Insert|} is a
-    straightforward extension of {|inj|} and {|(∈)|}, but it does not
-    fit here, so we defer it to the appendix.»
+    straightforward extension of {|inj|} and {|(∈)|}, but
+    it does not fit here, so we defer it to the development
+    online {cite[namesforfreerepo]}.»
 
   p"lamP"
    «In sum, the {|pack|} combinator makes it possible to give a
