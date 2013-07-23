@@ -129,7 +129,7 @@ relatedDoc onlyInCode = do
   q«{citet[chlipalaparametric2008]} describes a way to represent binders
     using polymorphism and functions. Using that technique, called
     Parametric Higher-Order Abstract Syntax (PHOAS), terms of the
-    untyped λ-calculus are as represented follows:»
+    untyped λ-calculus are represented as follows:»
 
   [haskellFP|
   |data TmP a where
