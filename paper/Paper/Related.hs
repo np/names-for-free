@@ -12,7 +12,7 @@ relatedDoc onlyInCode = do
   q«Representing names and binders in a safe and convenient manner is a
     long-standing issue, with an extensive body of work devoted to it.
     A survey is far beyond the scope of this paper. Hence, we limit our
-    comparison the work that we judge most relevant, or whose contrasts
+    comparison to the work that we judge most relevant, or whose contrasts
     with our proposal is the most revealing.»
 
   q«However, we do not limit our comparison to interfaces for names and
