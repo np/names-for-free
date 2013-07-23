@@ -105,11 +105,11 @@ ccDoc onlyInCode = do
     must open the closure, explicitly applying the argument and the
     environment.»
 
-  q«The implementation closely follows the mathematical definition given
-    above. The work to manage variables explicitly is limited to the
-    lifting of the substitution {tm|[x_{env}.i/y_i]|}, and an application of
-    {|wk|}. Additionally, the substitution performed for {|wk|} is 
-    inferred automatically by GHC.»
+  q«The implementation closely follows the mathematical definition
+    given above. The work to manage variables explicitly is limited
+    to the lifting of the substitution {tm|[x_{env}.i/y_i]|}, and an
+    application of {|wk|}. Additionally, the substitution performed
+    by {|wk|} is inferred automatically by GHC.»
 
   [haskellFP|
   |cc :: Eq a ⇒ Tm a → LC a
