@@ -288,7 +288,7 @@ overviewDoc onlyInCode = do
     variable in {|t|}.
 
     Using {|unpack|}, one can write a function which can recognize an
-    eta-contractible term as follows: (Recall that an a eta-contractible
+    eta-contractible term as follows: (Recall that an eta-contractible
     term has the form {|λ x → e x|}, where {|x|} does not occur free
     in {|e|}.)»
 

@@ -85,7 +85,7 @@ cpsDoc = do
 
   p"Functor TmC"
    «Free variables in {|TmC|} can be renamed, thus it enjoys a functor
-    structure, with a straightforward implementation found in appendix.
+    structure, with a straightforward implementation found in the appendix.
     However, this new syntax {|TmC|} is not stable under substitution.
     Building a monadic structure would be more involved, and is directly
     tied to the transformation we perform and the operational semantics

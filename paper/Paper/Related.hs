@@ -12,7 +12,7 @@ relatedDoc onlyInCode = do
   q«Representing names and binders in a safe and convenient manner is a
     long-standing issue, with an extensive body of work devoted to it.
     A survey is far beyond the scope of this paper. Hence, we limit our
-    comparison the work that we judge most relevant, or whose contrasts
+    comparison to the work that we judge most relevant, or whose contrasts
     with our proposal is the most revealing.»
 
   q«However, we do not limit our comparison to interfaces for names and
@@ -129,7 +129,7 @@ relatedDoc onlyInCode = do
   q«{citet[chlipalaparametric2008]} describes a way to represent binders
     using polymorphism and functions. Using that technique, called
     Parametric Higher-Order Abstract Syntax (PHOAS), terms of the
-    untyped λ-calculus are as represented follows:»
+    untyped λ-calculus are represented as follows:»
 
   [haskellFP|
   |data TmP a where
