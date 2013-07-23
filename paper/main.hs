@@ -202,6 +202,8 @@ body onlyInCode = execWriter $ do -- {{{
 
   notetodo «Hybrid! mapOld mapNew»
   notetodo «more related work with McBride»
+  notetodo «Remove appendix»
+  notetodo «Ack Demtech fundings»
   {-
   notetodo «unify the terminology names/context/free variables (when the rest is ready)»
      NP: All these three notions names/context/free variables have to
