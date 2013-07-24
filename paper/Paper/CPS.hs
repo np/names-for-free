@@ -125,9 +125,10 @@ cpsDoc = do
     continuation. Doing so yields a value of type {|TmC (a ▹ a)|}.
     To obtain a result of the right type it suffices to remove the
     extra tagging introduced by {|a ▹ a|} everywhere in the term,
-    using {|(untag <$>)|}. Besides, we use a number of instances of {|wk|}, 
-    and for each of them
-    GHC is able to infer the substitution to perform.»
+    using {|(untag <$>)|}. The function {|untag|} simply removes
+    the {|Old|}/{|New|} tags and thus has type {|a ▹ a → a|}. Besides,
+    we use a number of instances of {|wk|}, and for each of them GHC is
+    able to infer the substitution to perform.»
 
   {-
   [haskellFP|

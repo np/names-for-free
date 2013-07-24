@@ -89,13 +89,13 @@ overviewDoc onlyInCode = do
   |mapNew :: (v → v') → (a ▹ v) → (a ▹ v')
   |mapNew _ (Old x) = Old x
   |mapNew f (New x) = New (f x)
-  |
-  |untag :: a ▹ a → a
-  |untag (Old x) = x
-  |untag (New x) = x
   |]
 
   onlyInCode [haskellP|
+  |untag :: a ▹ a → a
+  |untag (Old x) = x
+  |untag (New x) = x
+  |
   |bimap :: (a → a') → (v → v') →
   |         (a ▹ v) → (a' ▹ v')
   |bimap f _ (Old x) = Old (f x)
