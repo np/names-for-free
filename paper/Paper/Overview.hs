@@ -80,7 +80,7 @@ overviewDoc onlyInCode = do
   [haskellFP|
   |type Succ a = a ▹ ()
   |
-  |data a ▹ v = Old a | New v
+  |data a ▹ v  = Old a | New v
   |
   |mapOld :: (a → a') → (a ▹ v) → (a' ▹ v)
   |mapOld f (Old x) = Old (f x)
@@ -164,8 +164,8 @@ overviewDoc onlyInCode = do
 
   [haskellFP|
   |apTm_ :: Tm Zero
-  |apTm_ = lam $ λ f → lam $ λ x → Var (Old (New f))
-  |                  ☐        `App` Var (New x)
+  |apTm_ = lam $ λ f → lam $ λ x →
+  |          Var (Old (New f)) `App` Var (New x)
   |]
 
   p"still the same elephant"
@@ -190,8 +190,8 @@ overviewDoc onlyInCode = do
     rejects the definition.»
 
   commentCode [haskellFP|
-  |oops_ = lam $ λ f → lam $ λ x → Var (New f)
-  |                  ☐        `App` Var (New x)
+  |oops_ = lam $ λ f → lam $ λ x →
+  |          Var (New f) `App` Var (New x)
   |-- Couldn't match expected type `v1'
   |--             with actual type `v'
   |]
