@@ -82,14 +82,24 @@ overviewDoc onlyInCode = do
   |
   |data a ▹ v = Old a | New v
   |
-  |bimap :: (a → a') → (v → v') →
-  |         (a ▹ v) → (a' ▹ v')
-  |bimap f _ (Old x) = Old (f x)
-  |bimap _ g (New x) = New (g x)
+  |mapOld :: (a → a') → (a ▹ v) → (a' ▹ v)
+  |mapOld f (Old x) = Old (f x)
+  |mapOld _ (New x) = New x
+  |
+  |mapNew :: (v → v') → (a ▹ v) → (a ▹ v')
+  |mapNew _ (Old x) = Old x
+  |mapNew f (New x) = New (f x)
   |
   |untag :: a ▹ a → a
   |untag (Old x) = x
   |untag (New x) = x
+  |]
+
+  onlyInCode [haskellP|
+  |bimap :: (a → a') → (v → v') →
+  |         (a ▹ v) → (a' ▹ v')
+  |bimap f _ (Old x) = Old (f x)
+  |bimap _ g (New x) = New (g x)
   |]
 
 --  |instance Bifunctor (▹) where
@@ -402,7 +412,7 @@ overviewDoc onlyInCode = do
 
   [haskellFP|
   |pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
-  |pack x = fmap (bimap id (const ()))
+  |pack x = fmap (mapNew (const ()))
   |]
 
   q«(The {|Functor|} constraint is harmless, as we will see in sec.

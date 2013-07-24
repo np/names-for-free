@@ -262,8 +262,7 @@ relatedDoc onlyInCode = do
     ⊆-◅     : ∀ {α β} b → α ⊆ β → (b ◅ α) ⊆ (b ◅ β)
     ⊆-#     : ∀ {α b} → b # α → α ⊆ (b ◅ α)
 
-    In Haskell respectively (->), id, id, (.), magic, λf -> bimap f id,
-      const Old.
+    In Haskell respectively (->), id, id, (.), magic, mapOld, const Old.
 
   zeroᴮ : Binder
   zeroᴮ = Zero

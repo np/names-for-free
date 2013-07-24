@@ -90,7 +90,7 @@ On top of Bound:
   unpack e k = k () e
 
   pack :: Functor tm ⇒ v → tm (a ▹ v) → tm (Succ a)
-  pack x = fmap (bimap id (const ()))
+  pack x = fmap (mapNew (const ()))
 
   lam :: ∀ a. (∀ v. v → Tm (a ▹ v)) → Tm a
   lam k = Lam (abs k)
@@ -111,7 +111,7 @@ On top of Bound:
   instance Zero ⊆ a where injMany = magic
 
   instance (γ ⊆ δ) ⇒ (γ ▹ v) ⊆ (δ ▹ v) where
-    injMany = bimap injMany id
+    injMany = mapOld injMany
 
   instance (a ⊆ c) ⇒ a ⊆ (c ▹ b) where
     injMany = F . injMany

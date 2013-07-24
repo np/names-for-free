@@ -58,7 +58,7 @@ discussionDoc onlyInCode = do
   |  return = VarD
   |  VarD a   >>= θ = θ a
   |  AppD a b >>= θ = AppD (a >>= θ) (b >>= θ)
-  |  LamD t   >>= θ = LamD (bimap (>>= θ) id <$> t)
+  |  LamD t   >>= θ = LamD (mapOld (>>= θ) <$> t)
   |]
 
   onlyInCode [haskellP|

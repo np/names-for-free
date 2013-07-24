@@ -80,7 +80,7 @@ scopesDoc onlyInCode = do
   [haskellP|
   |succToUniv :: Functor tm ⇒
   |              SuccScope tm a → UnivScope tm a
-  |succToUniv t = λ x → bimap id (const x) <$> t
+  |succToUniv t = λ x → mapNew (const x) <$> t
   |]
   [haskellP|
   |univToSucc :: UnivScope tm a → SuccScope tm a
@@ -99,11 +99,11 @@ scopesDoc onlyInCode = do
   commentCode [haskellFP|
   |   univToSucc (succToUniv t)
   | ≡ {- by def -}
-  |   univToSucc (λ x → bimap id (const x) <$> t)
+  |   univToSucc (λ x → mapNew (const x) <$> t)
   | ≡ {- by def -}
-  |   bimap id (const ()) <$> t
+  |   mapNew (const ()) <$> t
   | ≡ {- by () having just one element -}
-  |   bimap id id <$> t
+  |   mapNew id <$> t
   | ≡ {- by (bi)functor laws -}
   |   t
   |]
@@ -130,11 +130,11 @@ scopesDoc onlyInCode = do
   |]
 
   q«We can then specialize {|v₁|} and {|x₁|} to {|()|}, {|v|}
-    to {|const x₂|}, and {|g|} to {|bimap id v|}. By definition, {|g|}
+    to {|const x₂|}, and {|g|} to {|mapNew v|}. By definition, {|g|}
     satisfies the conditions of the lemma and we get:»
 
   commentCode [haskellFP|
-  |f x ≡ bimap id (const x) <$> f ()
+  |f x ≡ mapNew (const x) <$> f ()
   |]
 
   q«We can then reason equationally:»
@@ -142,7 +142,7 @@ scopesDoc onlyInCode = do
   commentCode [haskellFP|
   |   f
   | ≡ {- by the above -}
-  |   λ x → bimap id (const x) <$> f ()
+  |   λ x → mapNew (const x) <$> f ()
   | ≡ {- by def -}
   |   succToUniv (f ())
   | ≡ {- by def -}
@@ -164,7 +164,7 @@ scopesDoc onlyInCode = do
   [haskellP|
   |existToSucc :: Functor tm ⇒
   |               ExistScope tm a → SuccScope tm a
-  |existToSucc (E _ t) = bimap id (const ()) <$> t
+  |existToSucc (E _ t) = mapNew (const ()) <$> t
   |]
 
   q«One can recognise the functions {|pack|} and {|unpack|} as CPS
@@ -177,14 +177,14 @@ scopesDoc onlyInCode = do
 
   commentCode [haskellFP|
   |succToExist (existToSucc (E y t)) ≡
-  |  E () (fmap (bimap id (const ())) t)
+  |  E () (fmap (mapNew (const ())) t)
   |]
 
   q«It remains to show that {|E y t|} is equivalent to the right-hand
     side of the above equation. To do so, we consider any observation
     function {|o|} of type {|∀ v. v → tm (a ▹ v) → K|} for some constant
     type {|K|}, and show that it returns the same result if applied
-    to {|y|} and {|t|} or {|()|} and {|fmap (bimap id (const ()))
+    to {|y|} and {|t|} or {|()|} and {|fmap (mapNew (const ()))
     t|}. This fact is a consequence of the free theorem associated
     with {|o|}:»
 
@@ -201,7 +201,7 @@ scopesDoc onlyInCode = do
 
   q«Indeed, after specializing {|x₂|} to {|()|} and {|v|}
     to {|const ()|}, the last condition amounts
-    to {|t₂ ≡ fmap (bimap id (const ())) t₁|}, and we get the desired
+    to {|t₂ ≡ fmap (mapNew (const ())) t₁|}, and we get the desired
     result.»
 
   -- subsection «{|FunScope|}»
@@ -262,9 +262,9 @@ scopesDoc onlyInCode = do
 
   commentCode [haskellFP|
   |fmap' f (Lam b)
-  |   = unpack b $ λ x t → lamP x (bimap f id <$> t)
+  |   = unpack b $ λ x t → lamP x (mapOld f <$> t)
   |fmap' f (Lam b)
-  |   = lam (λ x → bimap f id <$> (b `atVar` x))
+  |   = lam (λ x → mapOld f <$> (b `atVar` x))
   |]
 
   q«When using {|succToUniv|}, the type of the second argument of

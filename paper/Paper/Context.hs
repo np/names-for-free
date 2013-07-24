@@ -189,7 +189,7 @@ contextDoc onlyInCode = do
   |  injMany = Old . injMany
   |
   |instance (a ⊆ b) ⇒ (a ▹ v) ⊆ (b ▹ v) where
-  |  injMany = bimap injMany id
+  |  injMany = mapOld injMany
   |]
 
   p"(▹) functoriality"

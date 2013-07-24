@@ -209,11 +209,11 @@ cpsAppendix = do
   |  fmap f (FstC x)    = FstC (f x)
   |  fmap f (SndC x)    = SndC (f x)
   |  fmap f (PairC x y) = PairC (f x) (f y)
-  |  fmap f (LamC t)    = LamC (fmap (bimap f id) t)
+  |  fmap f (LamC t)    = LamC (fmap (mapOld f) t)
 
   |  fmap f (HaltC x)  = HaltC (f x)
   |  fmap f (AppC x y) = AppC (f x) (f y)
-  |  fmap f (LetC p t) = LetC (fmap f p) (fmap (bimap f id) t)
+  |  fmap f (LetC p t) = LetC (fmap f p) (fmap (mapOld f) t)
   -}
   [haskellP|
   |instance Functor Value where
@@ -223,14 +223,14 @@ cpsAppendix = do
   |  fmap f (PairC v1 v2) = 
   |     PairC (fmap f v1) (fmap f v2)
   |  fmap f (LamC t)      =
-  |     LamC (fmap (bimap f id) t)
+  |     LamC (fmap (mapOld f) t)
   |
   |instance Functor TmC where
   |  fmap f (HaltC v)    = HaltC (fmap f v)
   |  fmap f (AppC v1 v2) = 
   |     AppC  (fmap f v1) (fmap f v2)
   |  fmap f (LetC p t)   = 
-  |     LetC (fmap f p) (fmap (bimap f id) t)
+  |     LetC (fmap f p) (fmap (mapOld f) t)
   |]
 
   [haskellP|

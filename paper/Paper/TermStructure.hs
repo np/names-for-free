@@ -40,7 +40,7 @@ termStructureDoc = do
     simply preserves the structure of the input term. At occurrence
     sites it uses {|f|} to rename free variables. At binding sites,
     {|f|} is upgraded from {|(a → b)|} to {|(a ▹ v → b ▹ v)|} using
-    the functoriality of {|(▹ v)|} with {|bimap f id|}. Adapting the
+    the functoriality of {|(▹ v)|} with {|mapOld f|}. Adapting the
     function {|f|} is necessary to protect the bound name from being
     altered by {|f|}, and thanks to our use of polymorphism, the
     type-checker ensures that we make no mistake in doing so.»
@@ -49,7 +49,7 @@ termStructureDoc = do
   |instance Functor Tm where
   |  fmap f (Var x)   = Var (f x)
   |  fmap f (Lam b)   = unpack b $ λ x t →
-  |                       lamP x $ fmap (bimap f id) t
+  |                       lamP x $ fmap (mapOld f) t
   |  fmap f (App t u) = App (fmap f t) (fmap f u)
   |]
 
@@ -104,14 +104,14 @@ termStructureDoc = do
 
     {-
   -- "proofs", appendix, long version, useless...
-  -- using: fmap f (Lam g) = Lam (fmap (bimap f id) . g)
+  -- using: fmap f (Lam g) = Lam (fmap (mapOld f) . g)
   doComment
     [haskellFP|
     |fmap id (Var x)
     |  = Var (id x) = Var x
     |
     |fmap id (Lam g)
-    |  = Lam (fmap (bimap id id) . g)
+    |  = Lam (fmap (mapOld id) . g)
     |  = Lam (fmap id . g)
     |  = Lam (id . g)
     |  = Lam g
@@ -123,10 +123,10 @@ termStructureDoc = do
     |  = fmap f (fmap g (Var x))
     |
     |fmap (f . g) (Lam h)
-    |  = Lam (fmap (bimap (f . g) id) . h)
-    |  = Lam (fmap (bimap f id . bimap g id) . h)
-    |  = Lam (fmap (bimap f id) . fmap (bimap g id) . h)
-    |  = fmap f (Lam (fmap (bimap g id) . h))
+    |  = Lam (fmap (mapOld (f . g)) . h)
+    |  = Lam (fmap (mapOld f . mapOld g) . h)
+    |  = Lam (fmap (mapOld f) . fmap (mapOld g) . h)
+    |  = fmap f (Lam (fmap (mapOld g) . h))
     |  = fmap f (fmap g (Lam h))
     |]
   -}

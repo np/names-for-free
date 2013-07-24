@@ -59,7 +59,7 @@ normAppendix =
   [haskellP|
   |instance Functor No where 
   |  fmap f (LamNo x t)  = 
-  |     LamNo x (fmap (bimap f id) t)
+  |     LamNo x (fmap (mapOld f) t)
   |  fmap f (Neutr x ts) =
   |     Neutr (f x) (fmap (fmap f) ts)
   |
