@@ -43,13 +43,16 @@ REVIEWER'S CONFIDENCE: 5 (expert)
 > shouldn't the test "x `freshFor` e1" be conjoined with "y `freshFor`
 > e1"?
 
+You are right about using 'z'. For the "y `freshFor` e1", this is subject
+to what was meant in this example. Still we add this extra freshness
+constraint.
+
 > Is the first instance of $\subseteq$ (namely "instance a $\subseteq$ a")
 > necessary? Please explain.
 
-Here is our paragraph about:
-   «This time we have four instances: inclusion is reflexive; the empty
-    context is the smallest one; adding a variable makes the context
-    larger; and variable append {|(▹ v)|} is monotonic for inclusion.»
+Not all contexts are concrete (only made of the empty context and context
+extension), in case of context variables one need rules like Γ ⊆ Γ. For
+instance this enables to prove Γ ⊆ Γ▹v.
 
 > The type of your "cps" function seems to require generating a new
 > binder "v". For example, it seems that the "cps (Lam e) k" case can't
