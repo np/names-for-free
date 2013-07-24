@@ -36,17 +36,17 @@ contextDoc onlyInCode = do
   |remove _ xs = [x | Old x ← xs]
   |]
 
-  p"explain freeVars"
+  p"explain freeVars_"
    «The function which computes the list of occurrences of free variables in a term can
     be directly transcribed from its nominal-style definition, thanks
     to the {|unpack|} combinator.»
 
   [haskellFP|
-  |freeVars :: Tm a → [a]
-  |freeVars (Var x) = [x]
-  |freeVars (Lam b) = unpack b $ λ x t →
-  |   remove x (freeVars t)
-  |freeVars (App f a) = freeVars f ++ freeVars a
+  |freeVars_ :: Tm a → [a]
+  |freeVars_ (Var x) = [x]
+  |freeVars_ (Lam b) = unpack b $ λ x t →
+  |   remove x (freeVars_ t)
+  |freeVars_ (App f a) = freeVars_ f ++ freeVars_ a
   |]
 
   subsection $ «Names Are Polymorphic Indices»
@@ -158,8 +158,8 @@ contextDoc onlyInCode = do
   -- Foldable instance yet.  At this point the cosmetic benefit is
   -- outweighed by the cost of the dangling (future) references.
   [haskellFP|
-  |freshFor :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
-  |x `freshFor` t = not (inj x `elem` freeVars t)
+  |freshFor_ :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
+  |x `freshFor_` t = not (inj x `elem` freeVars_ t)
   |]
 
 

@@ -328,11 +328,11 @@ then apply join inside the structure (using the other higher-order fmap)
     build {|freshFor|}:»
 
   [haskellFP|
-  |freeVars' :: Tm a → [a]
-  |freeVars' = toList
+  |freeVars :: Tm a → [a]
+  |freeVars = toList
   |
-  |freshFor' :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
-  |x `freshFor'` t = not (inj x `elem` t)
+  |freshFor :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
+  |x `freshFor` t = not (inj x `elem` t)
   |]
 
 {- NP: cut off-topic?
