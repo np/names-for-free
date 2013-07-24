@@ -298,7 +298,7 @@ overviewDoc onlyInCode = do
     variable in {|t|}.
 
     Using {|unpack|}, one can write a function which can recognize an
-    eta-contractible term as follows: (Recall that an a eta-contractible
+    eta-contractible term as follows: (Recall that an eta-contractible
     term has the form {|λ x → e x|}, where {|x|} does not occur free
     in {|e|}.)»
 
@@ -331,7 +331,7 @@ overviewDoc onlyInCode = do
   |    Lam f → unpack f $ λ x t1 → case t1 of
   |      Lam g → unpack g $ λ y t2 → case t2 of
   |        App e1 (Var z) → z `isOccurenceOf` x &&
-  |                          x `freshFor` e1
+  |                          x `freshFor` e1 &&
   |                          y `freshFor` e1
   |        _ → False
   |      _ → False
@@ -434,8 +434,9 @@ overviewDoc onlyInCode = do
   |]
 
   q«The implementation of {|packGen|} and {|Insert|} is a
-    straightforward extension of {|inj|} and {|(∈)|}, but it does not
-    fit here, so we defer it to the appendix.»
+    straightforward extension of {|inj|} and {|(∈)|}, but
+    it does not fit here, so we defer it to the development
+    online {cite[namesforfreerepo]}.»
 
   p"lamP"
    «In sum, the {|pack|} combinator makes it possible to give a

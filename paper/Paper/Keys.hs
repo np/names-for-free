@@ -63,6 +63,7 @@ import Kit
 
       nanevski-08
       bound-kmett-12
+      namesforfreerepo
      |]
 
 {-

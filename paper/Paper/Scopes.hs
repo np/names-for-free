@@ -109,7 +109,7 @@ scopesDoc onlyInCode = do
   |]
 
   q«The second property ({|succToUniv . univToSucc ≡ id|}) means that
-    there is no ``junk'' in the representation: one cannot represent
+    there is no “junk” in the representation: one cannot represent
     more terms in {|UnivScope|} than in {|SuccScope|}. It is more
     difficult to prove, as it relies on parametricity and in turn
     on the lack of junk (non-termination or {|seq|}) in the host

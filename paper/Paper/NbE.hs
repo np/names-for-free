@@ -23,12 +23,12 @@ docNbE = do
     continue normalizing with the received argument. More precisely,
     since terms are indexed by their context this “substitution as a
     function” should be ready to work in any extension of the current
-    context. This forms of abstraction has been studied before in the
-    context of NbE {cite nbecites}. Our implementation of NbE for Nested
-    Abstract Syntax closely follows the implementation in {_NomPa} {cite
-    [pouillardunified2012]}. By lack of space we only highlight part
-    of the definitions and leave the details to the appendix and the
-    development online.»
+    context. This forms of abstraction has been studied before in
+    the context of NbE {cite nbecites}. Our implementation of NbE
+    for Nested Abstract Syntax closely follows the implementation
+    in {_NomPa} {cite [pouillardunified2012]}. By lack of space we only
+    highlight part of the definitions and leave the details to the
+    development online {cite[namesforfreerepo]}.»
 
 {-
   [haskellFP|
