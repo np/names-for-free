@@ -156,5 +156,9 @@ JP: Why? and how does this fit with our interfaces?
 
 
   acknowledgments
-   «We thank Emil Axelsson, Koen Claessen, Daniel Gustafsson and Patrik Jansson for
-    useful feedback.»  -- In alphabetical order 
+   «The second author was supported in part by grant 10-092309 from
+    the Danish Council for Strategic Research, Programme Commission
+    on Strategic Growth Technologies. We thank Emil Axelsson, Koen
+    Claessen, Daniel Gustafsson and Patrik Jansson for useful feedback.»
+
+    -- In alphabetical order
