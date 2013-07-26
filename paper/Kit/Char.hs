@@ -80,6 +80,7 @@ textsymbols :: [(Char, LatexItem)]
 textsymbols =
   [ c '∷' $ fromString "::"
   , c 'ƛ' $ BI.texCmdNoArg "nptextcrlambda"
+  , c '−' $ [tex|--|]
   , c ' ' $ B.nbsp
   , c '“' $ B.ldq
   , c '”' $ B.rdq
