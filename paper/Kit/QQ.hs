@@ -3,6 +3,7 @@
 module Kit.QQ
   (module Kit.QQ
   ,tex
+  ,qp
   ,texm
   ,texFile
   ,texmFile)
