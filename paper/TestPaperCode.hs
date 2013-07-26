@@ -3,8 +3,9 @@ module TestPaperCode where
 
 -- mostly based from bound sources and examples/Simple.hs
 
+import Prelude hiding (notElem, foldl)
 import Data.String
-import Data.Foldable hiding (notElem, foldl)
+import Data.Foldable
 import Data.Traversable
 import Data.Functor
 import Data.List (elemIndex,(!!))
@@ -165,9 +166,10 @@ norm_vs_nbe n = do
   let t = cooked n
   putStrLn $ "level " ++ show n
   pp t
-  test "norm" . noToTm . norm $ t
   test "nbe " . noToTm . nbe  $ t
+  test "nbeM" . noToTm . nbeM $ t
+  test "norm" . noToTm . norm $ t
 
 main = do
   norm_vs_nbe 3
-  norm_vs_nbe 4
+  --norm_vs_nbe 4 -- the last test takes forever

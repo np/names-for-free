@@ -51,7 +51,7 @@ case "$TARGET" in
     rubberopts=(-I sigplanconf)
     find sigplanconf -type f -print0 | xargs -0 redo-ifchange
     ;;
-  (TestPaperCode.runghc)
+  (TestPaperCode.hs.runghc)
     redo-ifchange PaperCode.hs;;
 esac
 
