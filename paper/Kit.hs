@@ -161,13 +161,23 @@ writeCommentsTo destFile = writeFile destFile . showDocumentComments
 document title authors keywords abstract categ body appendix = B.document docclass preamble body'
   where
     docclass = sigplanconf (Just (L.pt 9)) Nothing
-                  (fmap BI.latexItem [«preprint»,«authoryear»])
+                  (fmap BI.latexItem [«authoryear»])
     preamble =
         usepackage [] "color" <>
         fonts <>
         B.title title <>
+        [qp|
+        |\special{papersize=8.5in,11in}
+        |\setlength{\pdfpageheight}{\paperheight}
+        |\setlength{\pdfpagewidth}{\paperwidth}
+        |] <>
         hyphs <>
-        mconcat (map authorinfo authors) 
+        exclusivelicense <>
+        conferenceinfo «Haskell '13» «September 23−24 2013, Boston, MA, USA» <>
+        copyrightyear 2013 <>
+        copyrightdata «978-1-4503-2383-3/13/09» <>
+        doi «2503778.2503780» <>
+        mconcat (map authorinfo authors)
     body' = B.maketitle
           <> mkabstract abstract 
           <> categ
