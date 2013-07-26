@@ -307,8 +307,14 @@ main = do
 
 categ = Kit.cat «D.3.3» «Language Constructs and Features» «»
 
+licenseinfo =
+  exclusivelicense <>
+  conferenceinfo «Haskell '13» «September 23−24 2013, Boston, MA, USA» <>
+  copyrightyear 2013 <>
+  copyrightdata «978-1-4503-2383-3/13/09» <>
+  doi «2503778.2503780»
 
-doc onlyInCode = document title authors keywords abstract categ (body onlyInCode) (appendix onlyInCode)
+doc onlyInCode = document title authors keywords abstract categ (body onlyInCode) (appendix onlyInCode) licenseinfo
 -- }}}
 
 -- vim: foldmarker
