@@ -183,6 +183,21 @@ relatedDoc onlyInCode = do
     type-level computation in {_Haskell} --- Chlipala uses {_Coq} for
     his development.»
 
+  subsection «{_Hybrid}»
+
+  q«In {_Hybrid}, Ambler et al. define a way to define and reason about
+    higher-order abstract syntax in the {_Isabelle} {cite[ambler02]} and
+    {_Coq} {cite[capretta06]} proof assistants. To do so, as a first
+    level they build a representation for λ-terms (plus constructors)
+    using de Brujin indices. Then as a second level they represent HOAS
+    terms using the λ-terms of the first level. In this second level
+    name abstraction is represented using λ-abstractions of the first
+    level. Finally HOAS terms can be built using λ-abstractions from the
+    host language ({_Isabelle} or {_Coq}) as long as these functions are
+    accompanied with uniformity proofs. These uniformity proofs rule out
+    the exotic terms. Using our approach, parametricity would discharge
+    these uniformity proofs.»
+
   subsection $ «McBride's “Classy Hack”»
 
   -- the point of types isn’t the crap you’re not allowed to write,

@@ -57,6 +57,8 @@ import Kit
       atkey-lindley-yallop-09 weirich-yorgey-sheard-11
       wadler-views-87
 
+      ambler-02 capretta-06
+
       taha-99 engler-96 norell-07 hutton-07 tapl attapl pottier-alphacaml
       fresh-ocaml pollack-sato-ricciotti-11 sato-pollack-10
       chargueraud-11-ln aydemir-08 cave-12
