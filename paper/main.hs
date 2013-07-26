@@ -38,7 +38,7 @@ title =  «Names For Free --- Polymorphic Views of Names and Binders»
 
 
 authors = [ («Jean-Philippe Bernardy» , «bernardy@chalmers.se» , «Chalmers University of Technology and University of Gothenburg»)
-           ,(«Nicolas Pouillard»      , «npou@itu.dk»          , «IT University Copenhagen»)
+           ,(«Nicolas Pouillard»      , «npou@itu.dk»          , «IT University of Copenhagen»)
           ]
 abstract = [texFile|abstract|]
 keywords = [texFile|keywords|]
