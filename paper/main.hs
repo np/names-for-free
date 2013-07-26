@@ -212,7 +212,7 @@ body onlyInCode = execWriter $ do -- {{{
   when False termCmpDoc
 
   normDoc
-  when False docNbE
+  onlyInCode docNbE
   ccDoc onlyInCode
   cpsDoc
   relatedDoc onlyInCode

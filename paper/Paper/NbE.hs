@@ -30,7 +30,6 @@ docNbE = do
     highlight part of the definitions and leave the details to the
     development online {cite[namesforfreerepo]}.»
 
-{-
   [haskellFP|
   |data TmS a where
   |  LamS :: (∀ b. (a → b) → TmS b → TmS b) → TmS a
@@ -42,7 +41,7 @@ docNbE = do
   |                    LamS $ λ g u →
   |                      evalS (extend (x, u) (fmap g . f)) t
   |evalS f (App t u) = appS (evalS f t) (evalS f u)
-  |]
+  |
   |instance Functor TmS where
   |  fmap f (LamS g)    = LamS $ λ h x → g (h . f) x
   |  fmap f (VarS x ts) = VarS (f x) (map (fmap f) ts)
@@ -53,10 +52,6 @@ docNbE = do
   |appS :: TmS a → TmS a → TmS a
   |appS (LamS f)    u = f id u
   |appS (VarS x ts) u = VarS x (ts++[u])
-  |
-  |extend :: (v, r) → (a → r) → (a ▹ v) → r
-  |extend (_, r) _ (New _) = r
-  |extend (_, _) f (Old x) = f x
   |
   |reify :: TmS a → No a
   |reify (VarS x ts) = Neutr x (map reify ts)
@@ -109,4 +104,3 @@ docNbE = do
   |nbeM :: Tm a → No a
   |nbeM = reifyM . evalM return
   |]
-  -}
