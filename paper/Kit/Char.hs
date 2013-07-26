@@ -150,7 +150,6 @@ mathsymbols =
   , c '∼' $ M.mathCmd "sim"
   , c '≈' $ M.mathCmd "approx"
   -- , c '≋' $ mathCmdIn mnsymbol "triplesim"
-  , c '≋' $ [texm|TODOTRIPPLESIM|]
   , c '⊔' $ M.mathCmd "sqcup"
   , c '⊓' $ M.mathCmd "sqcap"
   , c '⅁' $ M.mathcal M._G

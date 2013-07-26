@@ -279,9 +279,6 @@ overviewDoc onlyInCode = do
     this combinator is not specific to our type {|Tm|} we generalize it
     to any type constructor {|f|}:»
 
-  --    (See section TODO FORWARD REFERENCE for another solution
-  --  based on view patterns.) 
-
   unpackCode
 
   -- NP: removed “occurs only positively in∼{|f|} (or∼{|Tm|})”
@@ -421,7 +418,6 @@ overviewDoc onlyInCode = do
     user intention: it makes sure the programmer relies on host-level
     variable names, and not indices.»
 
-  -- TODO
   q«A production-quality version of {|pack|} would allow to bind any
     free variable. Writing the constraint {|Insert v a b|} to mean
     that by removing the variable {|v|} from the context {|b|} one

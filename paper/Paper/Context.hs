@@ -70,9 +70,7 @@ contextDoc onlyInCode = do
    «Second, if two indices refer to the first variable they are equal;
     otherwise we recurse. We stress that this equality inspects only the
     {emph«indices»}, not the values contained in the type. For
-    example {|New 0 == New 1|} is {|True|}:»
-
-  -- NP: TODO nbsp are messed up by the highlighter
+    example {|New 0 == New 1|} is {|True|}:»
 
   {-
   instance (Eq a, Eq v) ⇒ Eq (a ▹ v) where

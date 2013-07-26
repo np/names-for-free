@@ -24,7 +24,7 @@ import Kit
      |]
 
 -- figures
--- [keys|TODO|]
+-- [keys|...|]
 
 -- citations
 [keys|pouillard_unified_2012

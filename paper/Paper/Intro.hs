@@ -97,8 +97,5 @@ introDoc = do
     motivated in sec. {ref overview}. In sections {ref contextSec} to
     {ref scopesSec} we present in detail the implementation of the
     technique as well as basic applications. Larger applications such as
-    normalization (using hereditary substitutions and normalization by
-    evaluation), closure conversion and CPS transformation are presented
-    in sec. {ref examples}.»
-
-    -- TODO: normalization by evaluation => restore it, put in appendix?
+    normalization (using hereditary substitutions), closure conversion
+    and CPS transformation are presented in sec. {ref examples}.»

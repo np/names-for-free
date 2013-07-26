@@ -177,7 +177,7 @@ termStructureDoc = do
     term structure: we only “rename” with {|fmap|} and inject variables
     with {|return|}.»
 
-  -- TODO we under use the monadic structure of tm∘(▹v)
+  -- NOTE here we under use the monadic structure of tm∘(▹v)
   [haskellFP|
   |liftSubst :: (Functor tm, Monad tm) ⇒
   |          v → (a → tm b) → (a ▹ v) → tm (b ▹ v)
@@ -207,7 +207,7 @@ then apply join inside the structure (using the other higher-order fmap)
     of {|liftSubst|} between {|unpack|} and {|pack|}. It is uniform as
     well, and thus can be reused for every structure with binders.»
 
-  -- TODO NP: SuccScope/UnivScope/... are monad transformers
+  -- NOTE NP: SuccScope/UnivScope/... are monad transformers
 
   [haskellFP|
   |(>>>=) :: (Functor tm, Monad tm) ⇒
@@ -336,7 +336,6 @@ then apply join inside the structure (using the other higher-order fmap)
   |]
 
 {- NP: cut off-topic?
-  -- TODO flow
   p""
    «New the function {|size|} takes as an argument how to assign
     a size to each free variable (the type {|a|}). An alternative
@@ -345,7 +344,6 @@ then apply join inside the structure (using the other higher-order fmap)
     passing the identity function as first argument. However the other
     way around requires to traverse the term.»
 
-  -- TODO maybe too much
   [haskellFP|
   |type S f b = forall a. (a -> b) -> f a -> b
   |type T f b = f b -> b

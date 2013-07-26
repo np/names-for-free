@@ -236,7 +236,7 @@ relatedDoc onlyInCode = do
     more useful in practice. Additionally, our {|unpack|} and {|pack|}
     combinators extend the technique to term analysis and manipulation.»
 
-  subsection $ «{_NomPa} (nominal fragment)» -- TODO: NP (revise -- optional eq. tests.) 
+  subsection $ «{_NomPa} (nominal fragment)»
 
 {-
     -- minimal kit to define types

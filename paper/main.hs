@@ -200,17 +200,6 @@ body onlyInCode = execWriter $ do -- {{{
      |main = putStrLn "It works!"
      |]
 
-  notetodo «Hybrid! mapOld mapNew»
-  notetodo «more related work with McBride»
-  notetodo «Ack Demtech fundings»
-  {-
-  notetodo «unify the terminology names/context/free variables (when the rest is ready)»
-     NP: All these three notions names/context/free variables have to
-         be used appropriately. I would not "unify" them.
-         * A name is either bound or free
-         * A context is where a name makes sense
-         * A free variable makes reference to somewhere in a term (the Var constructor)
-   -}
   introDoc
   overviewDoc onlyInCode
   contextDoc onlyInCode
@@ -237,7 +226,7 @@ appendix onlyInCode = execWriter . onlyInCode{-this hiddes the whole appendix-} 
   |  foldMap = foldMapDefault
   |]
 
-  subsection «Extend» -- TODO
+  subsection «Extend»
   [haskellP|
   |extend :: (v, r) → (a → r) → (a ▹ v → r)
   |extend (_, x) _ (New _) = x

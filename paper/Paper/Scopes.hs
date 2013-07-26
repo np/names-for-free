@@ -16,8 +16,6 @@ scopesDoc onlyInCode = do
     type-classes, we can recapitulate and succinctly describe the
     essence of our constructions.»
 
-  notetodo «use a figure to collect some of the most crucial definitions»
-
   q«In Nested Abstract Syntax, a binder introducing one variable in
     scope, for an arbitrary term structure {|tm|} is represented as
     follows:»
