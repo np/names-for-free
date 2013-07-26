@@ -1,0 +1,197 @@
+\begin{thebibliography}{25}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Altenkirch(1993)]{altenkirch-93}
+T.~Altenkirch.
+\newblock A formalization of the strong normalization proof for {System~F} in
+  {LEGO}.
+\newblock In J.~G. M.~Bezem, editor, \emph{Typed Lambda Calculi and
+  Applications}, LNCS 664, pages 13 -- 28, 1993.
+\newblock URL \url{http://www.cs.nott.ac.uk/~txa/publ/tlca93.pdf}.
+
+\bibitem[Altenkirch and Reus(1999)]{altenkirch-reus-99}
+T.~Altenkirch and B.~Reus.
+\newblock Monadic presentations of lambda terms using generalized inductive
+  types.
+\newblock In \emph{Computer Science Logic}, volume 1683 of \emph{Lecture Notes
+  in Computer Science}, pages 453--468. Springer, 1999.
+\newblock URL \url{http://www.cs.nott.ac.uk/~txa/publ/csl99.pdf}.
+
+\bibitem[Ambler et~al.(2002)Ambler, Crole, and Momigliano]{ambler-02}
+S.~Ambler, R.~L. Crole, and A.~Momigliano.
+\newblock Combining higher order abstract syntax with tactical theorem proving
+  and (co)induction.
+\newblock In \emph{Proceedings of the 15th International Conference on Theorem
+  Proving in Higher Order Logics}, TPHOLs '02, pages 13--30, London, UK, UK,
+  2002. Springer-Verlag.
+\newblock ISBN 3-540-44039-9.
+\newblock URL \url{http://dl.acm.org/citation.cfm?id=646529.695204}.
+
+\bibitem[Atkey(2009)]{atkey-hoas-09}
+R.~Atkey.
+\newblock Syntax for free: representing syntax with binding using
+  parametricity.
+\newblock In \emph{International Conference on Typed Lambda Calculi and
+  Applications ({TLCA})}, volume 5608 of \emph{Lecture Notes in Computer
+  Science}, pages 35--49. Springer, July 2009.
+
+\bibitem[Bellegarde and Hook(1994)]{bellegarde-94}
+F.~Bellegarde and J.~Hook.
+\newblock Substitution: A formal methods case study using monads and
+  transformations.
+\newblock \emph{Sci. Comput. Program.}, 23\penalty0 (2-3):\penalty0 287--311,
+  1994.
+\newblock \doi{http://dx.doi.org/10.1016/0167-6423(94)00022-0}.
+
+\bibitem[Bernardy and Moulin(2012)]{bernardy_computational_2012}
+J.-P. Bernardy and G.~Moulin.
+\newblock A computational interpretation of parametricity.
+\newblock In \emph{Proceedings of the Symposium on Logic in Computer Science}.
+  IEEE Computer Society, 2012.
+
+\bibitem[Bernardy and Moulin(2013)]{bernardy_type-theory_2013}
+J.-P. Bernardy and G.~Moulin.
+\newblock Type-theory in color.
+\newblock In \emph{Proceeding of the 18th {ACM} {SIGPLAN} international
+  conference on Functional Programming}, 2013.
+\newblock To appear.
+
+\bibitem[Bernardy et~al.(2012)Bernardy, Jansson, and
+  Paterson]{bernardy_proofs_2012}
+J.-P. Bernardy, P.~Jansson, and R.~Paterson.
+\newblock Proofs for free --- parametricity for dependent types.
+\newblock \emph{Journal of Functional Programming}, 22\penalty0 (02):\penalty0
+  107--152, 2012.
+\newblock \doi{10.1017/S0956796812000056}.
+
+\bibitem[Bird and Paterson(1999)]{bird-paterson-99}
+R.~Bird and R.~Paterson.
+\newblock {de Bruijn} notation as a nested datatype.
+\newblock \emph{Journal of Functional Programming}, 9\penalty0 (1):\penalty0
+  77--91, Jan. 1999.
+\newblock URL \url{http://dx.doi.org/10.1017/S0956796899003366}.
+
+\bibitem[Capretta and Felty(2007)]{capretta-06}
+V.~Capretta and A.~P. Felty.
+\newblock Combining de bruijn indices and higher-order abstract syntax in coq.
+\newblock In \emph{Proceedings of the 2006 international conference on Types
+  for proofs and programs}, TYPES'06, pages 63--77, Berlin, Heidelberg, 2007.
+  Springer-Verlag.
+\newblock ISBN 3-540-74463-0, 978-3-540-74463-4.
+\newblock URL \url{http://dl.acm.org/citation.cfm?id=1789277.1789282}.
+
+\bibitem[Chlipala(2008)]{chlipala_parametric_2008}
+A.~Chlipala.
+\newblock Parametric higher-order abstract syntax for mechanized semantics.
+\newblock In \emph{Proceedings of the 13th {ACM} {SIGPLAN} international
+  conference on Functional programming}, pages 143--156, New York, NY, USA,
+  2008. ACM.
+\newblock ISBN 978-1-59593-919-7.
+\newblock \doi{http://doi.acm.org/10.1145/1411204.1411226}.
+
+\bibitem[{de Bruijn}(1972)]{de_bruijn_lambda_1972}
+N.~G. {de Bruijn}.
+\newblock Lambda calculus notation with nameless dummies.
+\newblock In \emph{Indagationes Mathematicae}, volume~34. Elsevier, 1972.
+
+\bibitem[Fegaras and Sheard(1996)]{fegaras_revisiting_1996}
+L.~Fegaras and T.~Sheard.
+\newblock Revisiting catamorphisms over datatypes with embedded functions (or,
+  programs from outer space).
+\newblock In \emph{Proceedings of the 23rd {ACM} {SIGPLAN-SIGACT} symposium on
+  Principles of programming languages}, pages 284--294, St. Petersburg Beach,
+  Florida, United States, 1996. {ACM}.
+\newblock ISBN 0-89791-769-3.
+\newblock \doi{10.1145/237721.237792}.
+\newblock URL \url{http://portal.acm.org/citation.cfm?id=237792}.
+
+\bibitem[Guillemette and Monnier(2007)]{guillemette_type-preserving_2007}
+L.-J. Guillemette and S.~Monnier.
+\newblock A type-preserving closure conversion in haskell.
+\newblock In \emph{Proceedings of the ACM SIGPLAN workshop on Haskell}, pages
+  83--92. ACM, 2007.
+
+\bibitem[Guillemette and Monnier(2008)]{guillemette_type-preserving_2008}
+L.-J. Guillemette and S.~Monnier.
+\newblock A type-preserving compiler in haskell.
+\newblock In \emph{Proceedings of the 13th {ACM} {SIGPLAN} international
+  conference on Functional Programming}, pages 75--86. ACM, 2008.
+
+\bibitem[Keller and Lasson(2012)]{keller_parametricity_2012}
+C.~Keller and M.~Lasson.
+\newblock Parametricity in an impredicative sort.
+\newblock In \emph{CSL}, pages 381--395, 2012.
+
+\bibitem[Kmett(2012)]{bound-kmett-12}
+E.~Kmett.
+\newblock Bound: Making {de~Bruijn} {Succ} less, 2012.
+\newblock URL \url{http://hackage.haskell.org/package/bound}.
+\newblock {Haskell} package.
+
+\bibitem[{McBride}(2010)]{mcbride_not_2010}
+C.~{McBride}.
+\newblock I am not a number, i am a classy hack, 2010.
+\newblock URL \url{http://www.e-pig.org/epilogue/?p=773}.
+\newblock Weblog entry.
+
+\bibitem[McBride and McKinna(2004)]{mcbride-mckinna-04}
+C.~McBride and J.~McKinna.
+\newblock The view from the left.
+\newblock \emph{J. Funct. Program.}, 14:\penalty0 69--111, January 2004.
+\newblock ISSN 0956-7968.
+\newblock \doi{10.1017/S0956796803004829}.
+\newblock URL \url{http://www.cs.ru.nl/~james/RESEARCH/view-final2004.pdf}.
+
+\bibitem[{McBride} and Paterson(2007)]{mcbride_applicative_2007}
+C.~{McBride} and R.~Paterson.
+\newblock Applicative programming with effects.
+\newblock \emph{Journal of Functional Programming}, 18\penalty0 (01):\penalty0
+  1--13, 2007.
+\newblock \doi{10.1017/S0956796807006326}.
+\newblock URL
+  \url{http://www.journals.cambridge.org/abstract\_S0956796807006326}.
+
+\bibitem[Miller and Tiu(2003)]{miller_proof_2003}
+D.~A. Miller and A.~F. Tiu.
+\newblock A proof theory for generic judgments: An extended abstract.
+\newblock In \emph{Proceedings of the 18th Annual IEEE Symposium on Logic in
+  Computer Science}, pages 118--127. IEEE Computer Society, June 2003.
+
+\bibitem[Nanevski et~al.(2008)Nanevski, Pfenning, and Pientka]{nanevski-08}
+A.~Nanevski, F.~Pfenning, and B.~Pientka.
+\newblock Contextual modal type theory.
+\newblock \emph{ACM Trans. Comput. Logic}, 9\penalty0 (3):\penalty0
+  23:1--23:49, June 2008.
+\newblock ISSN 1529-3785.
+\newblock \doi{10.1145/1352582.1352591}.
+\newblock URL \url{http://doi.acm.org/10.1145/1352582.1352591}.
+
+\bibitem[Pouillard and Pottier(2012)]{pouillard_unified_2012}
+N.~Pouillard and F.~Pottier.
+\newblock A unified treatment of syntax with binders.
+\newblock \emph{Journal of Functional Programming}, 22\penalty0
+  (4--5):\penalty0 614--704, 2012.
+
+\bibitem[Reynolds(1983)]{reynolds-83}
+J.~C. Reynolds.
+\newblock Types, abstraction and parametric polymorphism.
+\newblock In \emph{Information Processing 83}, pages 513--523. Elsevier
+  Science, 1983.
+\newblock URL \url{ftp://ftp.cs.cmu.edu/user/jcr/typesabpara.pdf}.
+
+\bibitem[Washburn and Weirich(2003)]{washburn_boxes_2003}
+G.~Washburn and S.~Weirich.
+\newblock Boxes go bananas: encoding higher-order abstract syntax with
+  parametric polymorphism.
+\newblock In \emph{Proceedings of the eighth {ACM} {SIGPLAN} international
+  conference on Functional programming}, pages 249--262, Uppsala, Sweden, 2003.
+  {ACM}.
+\newblock ISBN 1-58113-756-7.
+\newblock \doi{10.1145/944705.944728}.
+\newblock URL \url{http://portal.acm.org/citation.cfm?id=944728}.
+
+\end{thebibliography}
