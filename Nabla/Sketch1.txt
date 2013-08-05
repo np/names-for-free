@@ -1,0 +1,86 @@
+Syntax:
+ - types:
+     □                          the 'type' introduced by ∇ and ν
+     Context
+     ▹
+ - terms: 
+       t @ α
+       να. t
+       let (να. x) = z in k 
+
+Typings:
+
+
+
+   Γ,α:□ ⊢ T[α] : ⋆
+---------------------    ∇-form
+   Γ ⊢ ∇α. T[α] : ⋆
+
+
+   Γ,α:□ ⊢ t : T[α]
+-------------------------   ∇-intro. 
+  Γ ⊢ να. t : ∇α. T[α]
+
+Note that this abstraction cannot be used in types, otherwise linearity (in contexts) is broken.
+
+
+  Γ ⊢ t : ∇α. T[α]     Γ ⊢ β:□
+---------------------------------    ∇-elim (1)
+   Γ ⊢ t @ β : T[β]
+
+
+  Γ, α:□, x:T[α] ⊢  t : T[α] 
+--------------------------------------------    ∇-elim (2)
+   Γ, z : ∇α. T[α] ⊢ let (να. x) = z in k
+
+-- is there a problem destroying a ∇ like this? (I know that this
+-- works for linear things, but it seems strange to have ν linear)
+
+
+-- Linearity is enforced here only, so that contexts are not ambiguous.
+
+  Γ ⊢ a:⋆
+-------------------------- Context nil
+  Γ ⊢ base a : Context
+
+
+  Γ ⊢ t : Context
+-------------------------- Context cons
+  Γ,v:□ ⊢ t ▹ v : Context
+
+
+New : v -> a ▹ v
+Old : a -> a ▹ v
+
+
+­- We can have extra 'goodies' on Contexts if so desired.
+
+Reduction:
+
+(να.t[α]) @ β  ---> t[β]
+let (να.x) = (νβ.t) in k[α,x] --> k[β,t]  
+
+In the second equation, there's a bit of a problem,
+because β is not bound anywhere! So maybe we need a "fresh" construct,
+extending scopes and evaluating outwards:
+
+(fresh α in f) x --> fresh α in (f x)
+
+Or: does it hurt to replace β by a unit type?
+
+Examples:
+
+data Tm : Context -> ⋆ where
+  var : a -> Tm a
+  app : Tm a -> Tm a -> Tm a
+  lam : (∇v. Tm (a ▹ v)) → Tm a
+
+apTm = Lam (να. Lam (νβ. App (Old (New (var @ α))) (New (var @ β))))
+
+
+
+Remarks:
+
+  - Linearity is a rather brittle property; trying to have it only in
+    some places is tricky. This seems to indicate that the system should
+    be based on linear logic (also self-duality is quite cool 
