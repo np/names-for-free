@@ -125,14 +125,14 @@ var = Var . inj
 
 canEta :: Tm Zero → Bool
 canEta (Lam (toExist -> N x (App e1 (Var y)))) = 
-  y `isOccurenceOf` x && not (x `occursIn` e1)
+  y `isOccurrenceOf` x && not (x `occursIn` e1)
 
 {-
 recognize :: Tm Zero → Bool
 recognize t0 = case t0 of 
     Lam f → unpack f $ \x t1 → case t1 of
       Lam g → unpack g $ \y t2 → case t2 of
-        App e1 (Var y) → y `isOccurenceOf` x && 
+        App e1 (Var y) → y `isOccurrenceOf` x &&
                          not (x `occursIn` e1)
         _ → False   
       _ → False   

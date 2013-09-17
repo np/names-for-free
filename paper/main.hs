@@ -441,7 +441,7 @@ So it's easy to see that ∇ is a subtype of ∃ and ∀.
 --  LocalWords:  hereditarycites polymorphism intodo notetodo haskellFP
 --  LocalWords:  notecomm doComment ParItemW startComment stopComment
 --  LocalWords:  commentWhen commentCode unpackCode canEta freshFor
---  LocalWords:  isOccurenceOf canEtaWithSig haskellP Nompa morphism TmB
+--  LocalWords:  isOccurrenceOf canEtaWithSig haskellP Nompa morphism TmB
 --  LocalWords:  fmap isClosed Foldable Traversable untyped VarB AppB
 --  LocalWords:  representable debruijnlambda LamB apB naïve bimap vx
 --  LocalWords:  parameterizes onlyInCode cardinality untag Bifunctor

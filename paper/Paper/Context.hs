@@ -140,14 +140,14 @@ contextDoc onlyInCode = do
     reference to a term into a properly tagged de Bruijn index, namely
     the function {|var|}.»
 
-  p"explain isOccurenceOf"
+  p"explain isOccurrenceOf"
    «Conversely, one can implement occurrence-check by combining  {|inj|} with {|(==)|}:
     one first lifts the bound variable to the context of the chosen occurrence and
     then tests for equality.»
 
   [haskellFP|
-  |isOccurenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
-  |x `isOccurenceOf` y = x == inj y
+  |isOccurrenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
+  |x `isOccurrenceOf` y = x == inj y
   |]
 
   p"occursIn"

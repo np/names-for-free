@@ -396,8 +396,8 @@ memberOf x t = x `elem` freeVars t
 occursIn :: (Eq w, v :∈ w) => v -> Term w -> Bool
 occursIn x t = lk x `elem` freeVars t
 
-isOccurenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
-isOccurenceOf x y = x == lk y
+isOccurrenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
+isOccurrenceOf x y = x == lk y
 
 rm :: [v :▹ a] -> [v]
 rm xs = [x | There x <- xs]

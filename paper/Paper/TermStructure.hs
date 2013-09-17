@@ -238,7 +238,7 @@ then apply join inside the structure (using the other higher-order fmap)
   |substitute :: (Monad tm, Eq a, v ∈ a) ⇒
   |              v → tm a → tm a → tm a
   |substitute x t u = u >>= λ y →
-  |     if y `isOccurenceOf` x then t else return y
+  |     if y `isOccurrenceOf` x then t else return y
   |]
 
   -- NP: I changed the names again, I agree that this often the function

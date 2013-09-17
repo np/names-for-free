@@ -20,7 +20,7 @@ apTm =
 canEta =
   [haskellFP|
   |canEta (Lam e) = unpack e $ λ x t → case t of
-  |  App e1 (Var y) → y `isOccurenceOf` x &&
+  |  App e1 (Var y) → y `isOccurrenceOf` x &&
   |                    x `freshFor` e1
   |  _ → False
   |canEta _ = False
@@ -34,7 +34,7 @@ canEtaWithSig =
   [haskellFP|
   |canEta :: Tm Zero → Bool
   |canEta (Lam e) = unpack e $ λ x t → case t of
-  |  App e1 (Var y) → y `isOccurenceOf` x &&
+  |  App e1 (Var y) → y `isOccurrenceOf` x &&
   |                    x `freshFor` e1
   |  _ → False
   |canEta _ = False

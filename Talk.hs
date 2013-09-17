@@ -78,16 +78,16 @@ rm :: [a :> v] → [a]
 rm xs = [x | There x <- xs]
 
 occursIn :: (Eq a, v :∈ a) ⇒ v → Tm a → Bool
-occursIn x t = any (`isOccurenceOf` x) (freeVars t)
+occursIn x t = any (`isOccurrenceOf` x) (freeVars t)
 
-isOccurenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
-isOccurenceOf x y = x == inj y
+isOccurrenceOf :: (Eq w, v :∈ w) => w -> v -> Bool
+isOccurrenceOf x y = x == inj y
 
 -- }}}
 -- {{{ η-contract?
 canEta :: Tm Zero → Bool
 canEta (Lam e) = unpack e $ \x t → case t of
-  App e1 (Var y) → y `isOccurenceOf` x && 
+  App e1 (Var y) → y `isOccurrenceOf` x &&
                    not (x `occursIn` e1)
   _ → False
 canEta _ = False

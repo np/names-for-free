@@ -315,7 +315,7 @@ overviewDoc onlyInCode = do
   -}
 
   p"canEta"
-   «In the above example, the two functions {|isOccurenceOf|}
+   «In the above example, the two functions {|isOccurrenceOf|}
     and {|freshFor|} use the {|inj|} function to lift {|x|} to
     a reference in the right context before comparing it to the
     occurrences. The calls to these functions do not get more
@@ -327,7 +327,7 @@ overviewDoc onlyInCode = do
   |recognizeExample t0 = case t0 of
   |    Lam f → unpack f $ λ x t1 → case t1 of
   |      Lam g → unpack g $ λ y t2 → case t2 of
-  |        App e1 (Var z) → z `isOccurenceOf` x &&
+  |        App e1 (Var z) → z `isOccurrenceOf` x &&
   |                          x `freshFor` e1 &&
   |                          y `freshFor` e1
   |        _ → False
