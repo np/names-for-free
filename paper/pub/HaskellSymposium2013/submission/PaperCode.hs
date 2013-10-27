@@ -25,7 +25,7 @@ apTm = lam $ \ f → lam $ \ x → var f `App` var x
 {- --
 
 canEta (Lam e) = unpack e $ \ x t → case t of
-  App e1 (Var y) → y `isOccurenceOf` x &&
+  App e1 (Var y) → y `isOccurrenceOf` x &&
                     x `freshFor` e1
   _ → False
 canEta _ = False
@@ -104,7 +104,7 @@ unpack e k = k () e
 
 canEta :: Tm Zero → Bool
 canEta (Lam e) = unpack e $ \ x t → case t of
-  App e1 (Var y) → y `isOccurenceOf` x &&
+  App e1 (Var y) → y `isOccurrenceOf` x &&
                     x `freshFor` e1
   _ → False
 canEta _ = False
@@ -113,7 +113,7 @@ recognize :: Tm Zero → Bool
 recognize t0 = case t0 of
     Lam f → unpack f $ \ x t1 → case t1 of
       Lam g → unpack g $ \ y t2 → case t2 of
-        App e1 (Var y) → y `isOccurenceOf` x &&
+        App e1 (Var y) → y `isOccurrenceOf` x &&
                           x `freshFor` e1
         _ → False
       _ → False
@@ -156,8 +156,8 @@ instance v :∈ (a :▹ v) where
 instance (v :∈ a) ⇒ v :∈ (a :▹ v') where
   inj = Old . inj
 
-isOccurenceOf :: (Eq a, v :∈ a) ⇒ a → v → Bool
-x `isOccurenceOf` y = x == inj y
+isOccurrenceOf :: (Eq a, v :∈ a) ⇒ a → v → Bool
+x `isOccurrenceOf` y = x == inj y
 
 freshFor :: (Eq a, v :∈ a) ⇒ v → Tm a → Bool
 x `freshFor` t = not (inj x `elem` freeVars t)
@@ -228,7 +228,7 @@ var = return . inj
 substitute :: (Monad tm, Eq a, v :∈ a) ⇒
               v → tm a → tm a → tm a
 substitute x t u = u >>= \ y →
-     if y `isOccurenceOf` x then t else return y
+     if y `isOccurrenceOf` x then t else return y
 
 substituteOut :: Monad tm ⇒
                  v → tm a → tm (a :▹ v) → tm a

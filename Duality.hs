@@ -333,8 +333,8 @@ instance Eq w ⇒ Eq (w ▹ v) where
   There x == There y = x == y
   _       == _       = False
 
-isOccurenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
-x `isOccurenceOf` y = x == inj y
+isOccurrenceOf :: (Eq a, v ∈ a) ⇒ a → v → Bool
+x `isOccurrenceOf` y = x == inj y
 
 occursIn :: (Eq a, v ∈ a) ⇒ v → Tm a → Bool
 x `occursIn` t = inj x `elem` t 
