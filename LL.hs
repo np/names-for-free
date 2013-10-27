@@ -18,10 +18,6 @@ type family (:<>) a b
 type instance (:<>) a Zero = a
 type instance (:<>) a (b :> v) = (a :<> b) :> b
 
-elim :: (γ -> a) -> (v -> a) -> γ :> v -> a
-elim f g (There x) = f x
-elim f g (Here x) = g x
-  
 mapu :: (u -> u') -> (v -> v') -> (u :> v) -> (u' :> v')
 mapu f g (There x) = There (f x)
 mapu f g (Here x) = Here (g x)                    
@@ -48,53 +44,27 @@ instance IsString Name where
   fromString = Name . fromString
 
 ----------------------------------------
--- Term representation and examples
 
-data Term v where
-  Var :: v → Term v
-  Lam :: Name → (forall w. w → Term (v :> w)) → Term v
-  App :: Term v → Term v → Term v
+{-
+  NP: extracted somehow from the LL type below
+
+  Ax  :: --------
+         ⊢ A , B
+
+  One :: ⊢ Γ ♦ Δ
+         -------------
+         ⊢ (Γ , A) ♦ Δ
+
+  Cut :: ⊢ Γ , A
+         ⊢ Δ , B
+         -----------
+         ⊢ Γ ♦ Δ
+-}
 
 data LL v where
   Ax :: LL (Zero :> v :> w)
   One :: LL (γ :<> δ) -> LL ((γ :> v) :<> δ)
   Cut :: (forall w. w → LL (γ :> w)) -> (forall w. w → LL (δ :> w)) -> LL (γ :<> δ)
-
-var :: forall a γ. (a :∈ γ) => a → Term γ
-var = Var . lk
-
-lam = Lam
-
-id' :: Term Zero
-id' = lam "x" (\x → var x)
-
-const' :: Term Zero
-const' = lam "x" (\x → lam "y" (\y → var x))
-
----------------------
--- Display code
-
-instance Show x => Show (Term x) where
-  show = disp
-
-disp :: Show x => Term x → String
-disp (Var x)    = show x
-disp (App a b)  = "(" ++ disp a ++ ")" ++ disp b
-disp (Lam nm f) = "λ" ++ unName nm ++ "." ++ disp (f nm)
-
----------------------
--- Catamorphism
-
-cata :: (b -> a) -> ((a -> a) -> a) -> (a -> a -> a) -> Term b -> a
-cata fv fl fa (Var x)   = fv x
-cata fv fl fa (App f a) = fa (cata fv fl fa f) (cata fv fl fa a)
-cata fv fl fa (Lam _ f) = fl (cata (extend fv) fl fa . f)
-  
-extend g (Here a) = a
-extend g (There b) = g b
-        
-size :: Term Zero -> Int
-size = cata magic (\f -> 1 + f 1) (\a b -> 1 + a + b)
 
 -----------------------------------------------------------
 -- Terms are monads
