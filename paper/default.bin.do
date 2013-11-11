@@ -4,7 +4,7 @@ case "$BASE" in
   (main)
     redo-ifchange "$BASE".hs "${LIBSOURCES[@]}"
     # side productions *.hi *.o
-    ghc --make "${ghcopts[@]}" "${PACKAGES[@]}" "$BASE".hs -o "$3" >>/dev/stderr
+    ghc --make "${ghcopts[@]}" "$BASE".hs -o "$3" >>/dev/stderr
     ;;
   (PaperCode)
     redo-ifchange "$BASE".hs

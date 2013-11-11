@@ -16,3 +16,6 @@ executable paper
       build-depends: HSH>=2.0.4 && <2.1
     main-is: main.hs
     ghc-options: -Wall
+
+--executable PaperCode
+--    main-is: PaperCode.hs

@@ -6,4 +6,5 @@
 /main.outline
 
 /PaperCode.hs
+/ghc-opts.sh
 *.runghc

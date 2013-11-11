@@ -14,3 +14,4 @@ cabal-dev
 .redo/
 .do_built
 .do_built.dir/
+/cabal.sandbox.config

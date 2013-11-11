@@ -1,4 +1,4 @@
 . ./config.sh
-# Here we over approx deps&pkgs with LIBSOURCES&PACKAGES
+# Here we over approx deps&pkgs with LIBSOURCES&ghcopts
 redo-ifchange "$BASE" "${LIBSOURCES[@]}"
-runghc "${ghcopts[@]}" "${PACKAGES[@]}" "$BASE" -- "${runghcprgargs[@]}" >"$3"
+runghc "${ghcopts[@]}" "$BASE" -- "${runghcprgargs[@]}" >"$3"
