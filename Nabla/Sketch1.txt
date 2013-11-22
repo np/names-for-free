@@ -3,7 +3,7 @@ Syntax:
      □                          the 'type' introduced by ∇ and ν
      Context
      ▹
- - terms: 
+ - terms:
        t @ α
        να. t
        let (να. x) = z in k 
@@ -29,9 +29,13 @@ Note that this abstraction cannot be used in types, otherwise linearity (in cont
    Γ ⊢ t @ β : T[β]
 
 
-  Γ, α:□, x:T[α] ⊢  t : T[α] 
---------------------------------------------    ∇-elim (2)
-   Γ, z : ∇α. T[α] ⊢ let (να. x) = z in k
+This rule is probably needed only for comparison of terms; where we
+need to instanciate names to the "same" thing.
+
+
+  Γ, α:□, x:T[α] ⊢  k : C
+-----------------------------------------------    ∇-elim (2)
+   Γ, z : ∇α. T[α] ⊢ let (να. x) = z in k : C
 
 -- is there a problem destroying a ∇ like this? (I know that this
 -- works for linear things, but it seems strange to have ν linear)
@@ -49,8 +53,16 @@ Note that this abstraction cannot be used in types, otherwise linearity (in cont
   Γ,v:□ ⊢ t ▹ v : Context
 
 
-New : v -> a ▹ v
-Old : a -> a ▹ v
+
+   v : Context   a : □   x : a
+---------------------------------
+       New x : a ▹ v
+
+
+   v : Context   x : v   a : □
+------------------------
+  Old x : a ▹ v
+
 
 
 ­- We can have extra 'goodies' on Contexts if so desired.
@@ -58,7 +70,7 @@ Old : a -> a ▹ v
 Reduction:
 
 (να.t[α]) @ β  ---> t[β]
-let (να.x) = (νβ.t) in k[α,x] --> k[β,t]  
+let (να.x) = (νβ.t) in k[α,x] --> k[β,t]
 
 In the second equation, there's a bit of a problem,
 because β is not bound anywhere! So maybe we need a "fresh" construct,
@@ -66,7 +78,16 @@ extending scopes and evaluating outwards:
 
 (fresh α in f) x --> fresh α in (f x)
 
+(If we use ν for fresh, the reduction does not conserve the type)
+
 Or: does it hurt to replace β by a unit type?
+
+Or: the variable just becomes free! That's obviously fine if we do
+reduction from the outside only; but also fine within
+subterms. Indeed, we can always bind the variable at the top level.
+
+We could add a rule, which works only in an empty context and binds
+variables of type □.
 
 Examples:
 
@@ -75,12 +96,21 @@ data Tm : Context -> ⋆ where
   app : Tm a -> Tm a -> Tm a
   lam : (∇v. Tm (a ▹ v)) → Tm a
 
-apTm = Lam (να. Lam (νβ. App (Old (New (var @ α))) (New (var @ β))))
+apTm = Lam (να. Lam (νβ. App (var (Old (New α))) (var (New β))))
 
 
+
+
+To make this (much) nicer we'd want subtyping (on Contexts)
+and an automatic lifter:
+ Γ ⊢ c : Context   Γ ⊢ a ∈ c   Γ ⊢ x : a
+------------------------------------------
+     Γ ⊢ mk x : c
+
+But we can leave that for a second step.
 
 Remarks:
 
   - Linearity is a rather brittle property; trying to have it only in
     some places is tricky. This seems to indicate that the system should
-    be based on linear logic (also self-duality is quite cool 
+    be based on linear logic 
