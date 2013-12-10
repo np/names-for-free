@@ -78,9 +78,6 @@ open import Text.Parser
             ⟪_·_·_·_⟫ to ⟪_∙_∙_∙_⟫)
 open import Text.Printer
 import Level as L
-open M? L.zero using ()
-  renaming (_>>=_ to _>>=?_;
-            _=<<_ to _=<<?_)
 -- }}}
 
 -- {{{
@@ -349,7 +346,7 @@ module Tmˢ⇒ᴮ where
 
     _,,_ : String → Ren → Ren
     -- {{{
-    (b ,, ρ) s = [ ?? ?] if b ==ˢ s then 0 else 1 + ρ s
+    (b ,, ρ) s = case b ==ˢ s 0: 1 + ρ s 1: 0
     -- }}}
 
     [_] : Ren → Tmˢ → Tmᴮ
@@ -960,3 +957,7 @@ test : 1-β-redᴾ Ωˢ ≡ Ωˢ
 test = ≡.refl
 
 -- }}}
+-- -}
+-- -}
+-- -}
+-- -}
