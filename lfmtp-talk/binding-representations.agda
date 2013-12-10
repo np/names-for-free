@@ -27,9 +27,9 @@ module binding-representations where
 -- {{{
 module intro where
 
-    data Bool : Set where
-      true  : Bool
-      false : Bool
+    data 𝟚 : Set where
+      0₂ : 𝟚
+      1₂ : 𝟚
 
     data ℕ : Set where
       zero : ℕ
@@ -58,7 +58,8 @@ open import Data.List using (List; length; foldl; []; _∷_; _++_) renaming (map
 open import Data.Nat.NP
 open import Data.Nat.Logical
 open import Data.Nat.Show renaming (show to showℕ)
-open import Data.Bool.NP
+open import Data.Two
+open import Data.Two.Logical
 open import Data.Product
 open import Data.Unit
 import Data.Fin as Fin
@@ -109,7 +110,7 @@ module missing-lib where
     toFin {suc n} (just x) = suc (toFin x)
     toFin {zero}  ()
 
-    isSpace : Char → Bool
+    isSpace : Char → 𝟚
     isSpace = (_==ᶜ_ ' ')
 
     spaces : Parser ⊤
@@ -124,9 +125,9 @@ module missing-lib where
     bracket : ∀ {A} → Char → Parser A → Char → Parser A
     bracket start p stop = tok start *> p <* tok stop
 
-    ⟦Bool⟧⇒≡ : ⟦Bool⟧ ⇒ _≡_
-    ⟦Bool⟧⇒≡ ⟦true⟧  = ≡.refl
-    ⟦Bool⟧⇒≡ ⟦false⟧ = ≡.refl
+    ⟦𝟚⟧⇒≡ : ⟦𝟚⟧ ⇒ _≡_
+    ⟦𝟚⟧⇒≡ ⟦0₂⟧ = ≡.refl
+    ⟦𝟚⟧⇒≡ ⟦1₂⟧ = ≡.refl
 
 open missing-lib
 -- }}}
@@ -184,7 +185,7 @@ mapᴬ-lem :
     → ∀ {A B} (g : A → B) → mapᴬ g ∘ f ≗ f ∘ mapᴬ g
 
 mapᴬ-lem' :
-    (f : ∀ {A} → Tmᴬ A → Bool)
+    (f : ∀ {A} → Tmᴬ A → 𝟚)
     → ∀ {A B} (g : A → B) → f ≗ f ∘ mapᴬ g
 -}
 
@@ -205,7 +206,7 @@ module Named where
 
     unα : ∀ {A} → Cmp A → Cmp (Tmᴬ A)
     unα cmp (ƛ b₀ _) (ƛ b₁ _) = cmp b₀ b₁
-    unα _   _        _        = false
+    unα _   _        _        = 0₂ -- false
 
 module TmˢParser where
     kwdChars : List Char
@@ -348,7 +349,7 @@ module Tmˢ⇒ᴮ where
 
     _,,_ : String → Ren → Ren
     -- {{{
-    (b ,, ρ) s = if b ==ˢ s then 0 else 1 + ρ s
+    (b ,, ρ) s = [ ?? ?] if b ==ˢ s then 0 else 1 + ρ s
     -- }}}
 
     [_] : Ren → Tmˢ → Tmᴮ
@@ -593,7 +594,7 @@ mapᴹ-lem :
     → ∀ {A B} (g : A → B) → mapᴹ g ∘ f ≗ f ∘ mapᴹ g
 
 mapᴹ-lem′ :
-    (f : ∀ {A} → Tmᴹ A → Bool)
+    (f : ∀ {A} → Tmᴹ A → 𝟚)
     → ∀ {A B} (g : A → B) → f ≗ f ∘ mapᴹ g
  -}
 
@@ -756,15 +757,15 @@ module Tmᴹ-param where
           → mapᴹ g ∘ f ≗ f ∘ mapᴹ g
     thm f fᵣ g x = ⟦Tmᴹ⟧⇒mapᴹ g (fᵣ ⟨ g ⟩ᴿ (mapᴹ⇒⟦Tmᴹ⟧ g ≡.refl))
 
-    thm2 : (f : ∀ {A} → Tmᴹ A → Bool)
-           (fᵣ : (∀⟨ Aᵣ ∶ ⟦Set₀⟧ ⟩⟦→⟧ ⟦Tmᴹ⟧ Aᵣ ⟦→⟧ ⟦Bool⟧) f f)
+    thm2 : (f : ∀ {A} → Tmᴹ A → 𝟚)
+           (fᵣ : (∀⟨ Aᵣ ∶ ⟦Set₀⟧ ⟩⟦→⟧ ⟦Tmᴹ⟧ Aᵣ ⟦→⟧ ⟦𝟚⟧) f f)
            {A B : Set}
            (g : A → B)
            → f ≗ f ∘ mapᴹ g
-    thm2 f fᵣ g x = ⟦Bool⟧⇒≡ (fᵣ ⟨ g ⟩ᴿ (mapᴹ⇒⟦Tmᴹ⟧ g ≡.refl))
+    thm2 f fᵣ g x = ⟦𝟚⟧⇒≡ (fᵣ ⟨ g ⟩ᴿ (mapᴹ⇒⟦Tmᴹ⟧ g ≡.refl))
 
     ⟦Cmp⟧ : (⟦Set₀⟧ ⟦→⟧ ⟦Set₀⟧) Cmp Cmp
-    ⟦Cmp⟧ Aᵣ = Aᵣ ⟦→⟧ Aᵣ ⟦→⟧ ⟦Bool⟧
+    ⟦Cmp⟧ Aᵣ = Aᵣ ⟦→⟧ Aᵣ ⟦→⟧ ⟦𝟚⟧
 
     thm3 : (f : ∀ {A} → Cmp A → Tmᴹ A → Tmᴹ A)
            (fᵣ : (∀⟨ Aᵣ ∶ ⟦Set₀⟧ ⟩⟦→⟧ ⟦Cmp⟧ Aᵣ ⟦→⟧ ⟦Tmᴹ⟧ Aᵣ ⟦→⟧ ⟦Tmᴹ⟧ Aᵣ) f f)
@@ -778,8 +779,8 @@ module Tmᴹ-param where
       ⟦Tmᴹ⟧⇒mapᴹ g (fᵣ ⟨ g ⟩ᴿ pf (mapᴹ⇒⟦Tmᴹ⟧ g ≡.refl))
       where pf : ∀ {x₁ x₂} → g x₁ ≡ x₂ →
                  ∀ {y₁ y₂} → g y₁ ≡ y₂ →
-                   ⟦Bool⟧ (cmp₁ x₁ y₁) (cmp₂ x₂ y₂)
-            pf ≡.refl ≡.refl = ⟦Bool⟧-Props.reflexive g-ok
+                   ⟦𝟚⟧ (cmp₁ x₁ y₁) (cmp₂ x₂ y₂)
+            pf ≡.refl ≡.refl = ⟦𝟚⟧-Props.reflexive g-ok
 
 -- }}}
 
