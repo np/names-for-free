@@ -1,0 +1,33 @@
+[ GithubUser
+    { githubOwnerAvatarUrl =
+        "https://gravatar.com/avatar/106d14b3cae32f272bb1e72d727a5eb3?d=https%3A%2F%2Fidenticons.github.com%2F16231c7ba42f167e335359ebeda81a51.png&r=x"
+    , githubOwnerLogin = "wjzz"
+    , githubOwnerUrl = "https://api.github.com/users/wjzz"
+    , githubOwnerId = 199158
+    , githubOwnerGravatarId = Just "106d14b3cae32f272bb1e72d727a5eb3"
+    }
+, GithubUser
+    { githubOwnerAvatarUrl =
+        "https://gravatar.com/avatar/2e2cbd3a202d8d1cfe0cc2a9fff86733?d=https%3A%2F%2Fidenticons.github.com%2F21c509ccba24dd3710c5eec6a447438f.png&r=x"
+    , githubOwnerLogin = "gallais"
+    , githubOwnerUrl = "https://api.github.com/users/gallais"
+    , githubOwnerId = 1094905
+    , githubOwnerGravatarId = Just "2e2cbd3a202d8d1cfe0cc2a9fff86733"
+    }
+, GithubUser
+    { githubOwnerAvatarUrl =
+        "https://gravatar.com/avatar/4972963194d678c0d284a00159e2ebd3?d=https%3A%2F%2Fidenticons.github.com%2F610ed4481667e4e4bc31f7c55757a052.png&r=x"
+    , githubOwnerLogin = "jonsterling"
+    , githubOwnerUrl = "https://api.github.com/users/jonsterling"
+    , githubOwnerId = 55057
+    , githubOwnerGravatarId = Just "4972963194d678c0d284a00159e2ebd3"
+    }
+, GithubUser
+    { githubOwnerAvatarUrl =
+        "https://gravatar.com/avatar/a966d1de31adf037fb33a2665a04a0da?d=https%3A%2F%2Fidenticons.github.com%2F17055c4e30e62740ff0f23aee88393ab.png&r=x"
+    , githubOwnerLogin = "pa-ba"
+    , githubOwnerUrl = "https://api.github.com/users/pa-ba"
+    , githubOwnerId = 2786692
+    , githubOwnerGravatarId = Just "a966d1de31adf037fb33a2665a04a0da"
+    }
+]
