@@ -1,0 +1,109 @@
+Syntax:
+ - types:
+     ∉Γ
+     Context
+     Γ ▹ α
+     -
+     ∇x∉Γ. T
+ - terms:
+       t @ α
+       να. t
+       let (να. x) = z in k
+
+Typings:
+
+
+   Γ,α∉Φ ⊢ T[α] : ⋆
+---------------------    ∇-form
+   Γ ⊢ ∇α∉Φ. T[α] : ⋆
+
+
+   Γ,α∉Φ ⊢ t : T[α]
+-------------------------   ∇-intro.
+  Γ ⊢ να. t : ∇α∉Φ. T[α]
+
+
+
+  Γ ⊢ t : ∇α∉Φ. T[α]     Γ ⊢ β∉Φ
+---------------------------------    ∇-elim (1)
+   Γ ⊢ t @ β : T[β]
+
+
+This rule is probably needed only for comparison of terms; where we
+need to instanciate names to the "same" thing.
+
+  Γ, α∉Φ, x:T[α] ⊢  k : C
+-----------------------------------------------    ∇-elim (2)
+   Γ, z : ∇α∉Φ. T[α] ⊢ let (να. x) = z in k : C
+
+
+
+-------------------------- Context nil
+  Γ ⊢ nil : Context
+
+
+      Γ ⊢ Φ : Context
+--------------------------------- Context cons
+  Γ,v∉Φ ⊢ Φ ▹ v : Context
+
+
+
+   Φ : Context   α : Name
+---------------------------------
+       ref α : Ref (Φ,α)
+
+
+   ref α : Ref Φ
+------------------------
+   ref α : Ref (Φ,β)
+
+
+We want an implicit conversion from v∉Φ to v∉Ψ if Ψ ⊂ Φ
+(and the same for ref)
+
+chk : Ref Φ -> Ref Φ -> Bool 
+
+
+Reduction:
+
+(να.t[α]) @ β  ---> t[β]
+let (να.x) = (νβ.t) in k[α,x] --> k[β,t]
+
+In the second equation, β is not bound anywhere.
+This is not a problem because it is guaranteed fresh by the type system.
+
+
+(If we use ν for fresh, the reduction does not conserve the type)
+
+Or: does it hurt to replace β by a unit type?
+
+Or: the variable just becomes free! That's obviously fine if we do
+reduction from the outside only; but also fine within
+subterms. Indeed, we can always bind the variable at the top level.
+
+We could add a rule, which works only in an empty context and binds
+variables of type Name.
+
+Examples:
+
+data Tm : Context -> ⋆ where
+  var : Ref a -> Tm a
+  app : Tm a -> Tm a -> Tm a
+  lam : (∇v∉a. Tm (a ▹ v)) → Tm a
+
+apTm = Lam (να. Lam (νβ. App (var (Old (New α))) (var (New β))))
+
+
+To make this (much) nicer we'd want subtyping so terms can be
+automatically lifted to larger contexts. Unfortunately that depends
+on polarity annotations.
+
+But we can leave that for a second step.
+
+
+(==) :: Tm Φ -> Tm Φ -> Bool
+var x  ==  var y  = chk x y
+app f a == app f' a' = f == f' && a == a'
+lam (α,t) == lam t' == t == t' @ α
+
+
