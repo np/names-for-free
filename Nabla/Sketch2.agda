@@ -39,10 +39,18 @@ record Interface : Set1 where
     Binder : World → Set     -- type of a binder fresh for w. ('b:Binder w' could be written 'b∉w')
     Name : World → Set -- aka. reference into a world
     _▹_ : (w : World) → Binder w → World -- extend a world
+ 
+  NablaP : ∀ w → (T : World → Set) → Set
+  NablaP w T = Π (Binder w) \ b -> T (w ▹ b)
 
+  NablaS : ∀ w → (T : World → Set) → Set
+  NablaS w T = Σ (Binder w) \ b -> T (w ▹ b)
+
+  
+  field
     -- Scopes -- Representations of ∇(b∉w). T[b]
-    pack   : ∀ {w} → {T : Binder w → Set} → Π(Binder w) T → Σ(Binder w) T
-    unpack : ∀ {w} → {T : Binder w → Set} → Σ(Binder w) T → Π(Binder w) T
+    pack   : ∀ {w} → {T : World → Set} → NablaP w T → NablaS w T
+    unpack : ∀ {w} → {T : World → Set} → NablaS w T → NablaP w T
     -- Alternative is to use an abstract scope (Nabla) as actual representation; possibly more accurate than both the above.
       -- Nabla : ∀ w → (T : Binder w → Set) → Set
       -- toPi   : ∀ {w T} -> Nabla w T -> Π(Binder w) T
@@ -71,6 +79,16 @@ record Interface : Set1 where
     ⊆-skip :  ∀ {α} b → α ⊆ ( α ▹ b )
       -- + swap if necessary
 
+module Example (i : Interface) where
+  open Interface i
+  data Tm (w : World) : Type where
+    var : Name w -> Tm w
+    lam : NablaP w Tm -> Tm w
+    app : Tm w -> Tm w -> Tm w
+
+  id : ∀ {w} -> Tm w
+  id = lam (λ x → var (name x)) 
+  
 mutual
   data Ctx : Set where
     nil : Ctx
