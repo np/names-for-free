@@ -81,6 +81,7 @@ record Interface : Set1 where
     -- Scopes -- Representations of ∇(b∉w). T[b]
     pack   : {w : World} (T : Binder w → Set) → NablaP w T → NablaS w T
     unpack : {w : World} (T : Binder w → Set) → NablaS w T → NablaP w T
+    extBind : {w : World} -> ∀ {T : (Binder w) -> Set} {f g : (b : Binder w) -> T b} b -> (f b == g b) -> f == g
 
   packScope : {w : World} (T : World → Set) → ScopeP w T → ScopeS w T
   packScope {w} T = pack λ b → T (w ▹ b)
@@ -88,12 +89,16 @@ record Interface : Set1 where
   unpackScope {w} T = unpack λ b → T (w ▹ b)
 
 
-  unpackPack : ∀ {w : World}  T (g : ScopeP w T) -> g == unpackScope T (packScope T g)
-  unpackPack = {!!}
+  unpackPackScope : ∀ {w : World}  T (g : ScopeP w T) -> g == unpackScope T (packScope T g)
+  unpackPackScope = {!!} -- assumption
+
+  sndPack' : ∀ {w : World}  T (g : ScopeP w T) ->
+             g _  ==  snd (packScope T g)
+  sndPack' T g = {!!}  -- unpackPackScope + injective pairs
 
   sndPack : ∀ {w : World}  T (g : ScopeP w T) -> (P : T (w ▹ _) -> Set) ->
              P (g _)  -> P  (snd (packScope T g))
-  sndPack = {!!}
+  sndPack T g P p = {!subst sndPack'!} 
 
     -- Alternative is to use an abstract scope (Nabla) as actual representation; possibly more accurate than both the above.
       -- Nabla : ∀ w → (T : Binder w → Set) → Set
@@ -180,10 +185,10 @@ module Example (i : Interface) where
   -}
 
   lamP= : ∀ {w} {f g : ScopeP w Tm} → (∀ (b : Binder w) → f b == g b) → lamP f == lamP g
-  lamP= {w} {f} {g} pf = ap lam (ap (packScope Tm) {!!}) 
+  lamP= {w} {f} {g} pf = ap lam (ap (packScope Tm) {!extBind for fresh binder !}) 
 
   lamP=' : ∀ {w} {f g : ScopeP w Tm} b → f b == g b → lamP f == lamP g
-  lamP=' {w} {f} {g} b pf = ap lam (ap (packScope Tm) {!!}) 
+  lamP=' {w} {f} {g} b pf = ap lam (ap (packScope Tm) (extBind b pf)) 
 
   map▹-id : ∀ {α}{f : α → α} (pf : ∀ x → f x == x){b'} t → map▹ b' f t == t
   map▹-id pf (old x) = ap old (pf x)
