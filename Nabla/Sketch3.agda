@@ -87,6 +87,14 @@ record Interface : Set1 where
   unpackScope : {w : World} (T : World → Set) → ScopeS w T → ScopeP w T
   unpackScope {w} T = unpack λ b → T (w ▹ b)
 
+
+  unpackPack : ∀ {w : World}  T (g : ScopeP w T) -> g == unpackScope T (packScope T g)
+  unpackPack = {!!}
+
+  sndPack : ∀ {w : World}  T (g : ScopeP w T) -> (P : T (w ▹ _) -> Set) ->
+             P (g _)  -> P  (snd (packScope T g))
+  sndPack = {!!}
+
     -- Alternative is to use an abstract scope (Nabla) as actual representation; possibly more accurate than both the above.
       -- Nabla : ∀ w → (T : Binder w → Set) → Set
       -- toPi   : ∀ {w T} -> Nabla w T -> Π(Binder w) T
@@ -194,7 +202,9 @@ module Example (i : Interface) where
   renT-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} (h= : f ∘ g ~ h) t
           → renT f (renT g t) == renT h t
   renT-∘ h= (var x) = ap var (h= x)
-  renT-∘ h= (lam (b , t)) = lamP= λ b' → {!renT-∘ (map▹-∘ b b b' h=) t ∙ ?!}
+  renT-∘ {f = f} {g = g} {h = h}  h=  (lam (b , t)) = lamP= λ b' → sndPack Tm (λ b'' → renT (map▹ b'' g) t)
+                                                                     (λ tm → renT (map▹ b' f) tm == renT (map▹ b' h) t)
+                                                                     (renT-∘ (map▹-∘ _ _ _ h=) t)
   renT-∘ h= (app t u) = {!!}
 
   wkT : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
@@ -250,11 +260,8 @@ module Example (i : Interface) where
 -}
 
   -- ext-hom' b s s' = ap (λ z → substT z t) (ext-hom b s s')
+  -- (snd (packScope Tm (λ b'' → renT (map▹ b'' .g) t)))
 
-  {-
-  packunpack : ∀ {T w} (x : NablaS w T) → pack T (unpack T x) == x
-  packunpack = {!!}
-  -}
 
   {-
   NablaP w T = Π (Binder w) \ b -> T (w ▹ b)
