@@ -1,4 +1,5 @@
 open import Function.Extensionality
+open import Relation.Binary.PropositionalEquality using (subst)
 open import Relation.Binary.PropositionalEquality.NP renaming (_≡_ to _==_; _≗_ to _~_)
 open import Function
 
@@ -191,10 +192,10 @@ module Example (i : Interface) where
   map▹-id pf (old x) = ap old (pf x)
   map▹-id pf new = refl
 
-  -- renT-id : ∀ {α}{f : α → α} (pf : ∀ x → f x == x) (t : Tm α) → renT f t == t
-  -- renT-id f (var x) = ap var (f x)
-  -- renT-id f (lam (b' , t)) = lamPS=-fst (renT-id (map▹-id f) t)
-  -- renT-id f (app t t₁) = ap₂ app (renT-id f t) (renT-id f t₁)
+  renT-id : ∀ {α}{f : α → α} (pf : ∀ x → f x == x) (t : Tm α) → renT f t == t
+  renT-id f (var x) = ap var (f x)
+  renT-id f (lam (b' , t)) = {!via ScopeP!}
+  renT-id f (app t t₁) = ap₂ app (renT-id f t) (renT-id f t₁)
 
   map▹-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} b0 b1 b2 (h= : f ∘ g ~ h) t
           → map▹ b2 f (map▹ {b = b0} b1 g t) == map▹ b2 h t
@@ -210,15 +211,15 @@ module Example (i : Interface) where
   wkT = renT wkN'
 
   wkT' : ∀ {α β} (s : α ⇉ β) → Tm α → Tm β
-  wkT' (mk⇉ wk) = renT wk 
+  wkT' (mk⇉ wk) = renT wk
 
-  -- α ⇉ β → α ⇶ β 
+  -- α ⇉ β → α ⇶ β
 
   _⇶_ : World → World → Type
   α ⇶ β = α → Tm β
 
   ext : ∀ {v w b} (s : v ⇶ w) → (v ▹ b) ⇶ (w ▹ fresh w)
-  ext f (old x) = wkT (f x)
+  ext f (old x) = wkT' (Interface.mk⇉ old) (f x)
   ext f new = var new
 
   substT : ∀ {α β} (s : α ⇶ β) → Tm α → Tm β
@@ -240,65 +241,33 @@ module Example (i : Interface) where
   _~ss_ : ∀ {α β} (s s' : α ⇶ β) → Type
   s ~ss s' = ∀ t → substT s t == substT s' t
 
-  bar : ∀ {w} (x : w) (i : w ⇉ (w ▹ fresh w)) (s : w -> Tm w) -> ext s (wkN i x) == wkT' i (s x)
-  bar x (mk⇉ i) s with s x | i x
-  bar x (Interface.mk⇉ i₁) s | var x₁ | old x₂ = {!!}
-  bar x (Interface.mk⇉ i₁) s | var x₁ | new = {!!}
-  bar x (Interface.mk⇉ i₁) s | lam x₁ | old x₂ = {!!}
-  bar x (Interface.mk⇉ i₁) s | lam x₁ | new = {!!}
-  bar x (Interface.mk⇉ i₁) s | app t t₁ | old x₁ = {!!}
-  bar x (Interface.mk⇉ i₁) s | app t t₁ | new = {!!}
-  
-  -- exportN (wkN i x)
-  foo : ∀ {w} s i t → substT (ext {w} s) (wkT {{i}} t) == wkT {{i}} (substT s t)
-  foo s i (var x) = bar x i s
-  foo s i (lam (b , t)) = {!!}
-  foo s i (app t u) = {!!}
-{-
-
-  ext-hom' : ∀ {α β γ} b b' b'' (s : β ⇶ γ) (s' : α ⇶ β) → (ext b' s ∘s ext {b = b} b'' s') ~ ext b' (s ∘s s')
-  ext-hom' b1 b2 b3 s s' (old x) = {!!}
-  ext-hom' b1 b2 b3 s s' new = refl
-
-  ext-hom : ∀ {α β γ} b b' b'' (s : β ⇶ γ) (s' : α ⇶ β) t → substT (ext b' s ∘s ext {b = b} b'' s') t == substT (ext b' (s ∘s s')) t
-  ext-hom b1 b2 b3 s s' (var x) = ext-hom' b1 b2 b3 s s' x
-  ext-hom b1 b2 b3 s s' (lam (b , t)) = lamP= {!x!} 
-  ext-hom b1 b2 b3 s s' (app t u) = ap2 app (ext-hom b1 b2 b3 s s' t) (ext-hom b1 b2 b3 s s' u)
-
   _~s_ : {α β : World} (s s' : α ⇶ β) → Type
   s ~s s' = ∀ x → s x == s' x
 
-  ext-var : ∀ {α}{s : α ⇶ α}{b} (s= : s ~s var) → ext b s ~s var
+  foo : ∀ {v w} s t → substT (ext {w} {v} {b = fresh _} s) (renT old t) == renT old (substT s t)
+  foo s (var x) = refl
+  foo s (lam x) = ap lam (pair= refl {!foo +1!})
+  foo s (app t u) = ap2 app (foo s t) (foo s u)
+
+  ext-hom' : ∀ {α β γ} b (s : β ⇶ γ) (s' : α ⇶ β) → (ext s ∘s ext {b = b} s') ~s ext (s ∘s s')
+  ext-hom' b s s' (old x) = foo s (s' x)
+  ext-hom' b s s' new = refl
+
+  ext-hom : ∀ {α β γ} b (s : β ⇶ γ) (s' : α ⇶ β) t → substT (ext s ∘s ext {b = b} s') t == substT (ext (s ∘s s')) t
+  ext-hom b1 s s' (var x) = ext-hom' b1 s s' x
+  ext-hom b1 s s' (lam (b , t)) = ap lam (pair= refl {!!})
+  ext-hom b1 s s' (app t u) = ap2 app (ext-hom b1 s s' t) (ext-hom b1 s s' u)
+
+  ext-var : ∀ {α}{s : α ⇶ α} (s= : s ~s var) → ext s ~s var
   ext-var s= (old x) = ap wkT (s= x)
   ext-var s= new     = refl
 
   substT-var : ∀ {α}{s} (s= : s ~s var) (t : Tm α) → substT s t == t
   substT-var s= (var x) = s= x
-  substT-var s= (lam (b , t)) = lamPS=-fst (substT-var (ext-var s=) t)
+  substT-var s= (lam (b , t)) = {!!}
   substT-var s= (app t u) = ap₂ app (substT-var s= t) (substT-var s= u)
 
-  substT-hom : ∀ {α β γ} (s : β ⇶ γ) (s' : α ⇶ β) t → substT s (substT s' t) == substT (s ∘s s') t
-  substT-hom s s' (var x) = refl
-  substT-hom s s' (lam (b , t)) =
-    lamPS=-fst (sndPack Tm (λ b' → substT (ext b' s') t)
-                  (λ tm →
-                     substT
-                     (ext (fst (packScope Tm (λ b' → substT (ext b' (s ∘s s')) t))) s)
-                     tm
-                     == snd (packScope Tm (λ b' → substT (ext b' (s ∘s s')) t)))
-                  (sndPack Tm (λ b' → substT (ext b' (s ∘s s')) t)
-                     (λ tm →
-                        substT
-                        (ext (fst (packScope Tm (λ b' → substT (ext b' (s ∘s s')) t))) s)
-                        (substT (ext (fst (packScope Tm (λ b' → substT (ext b' s') t))) s')
-                         t)
-                        == tm)
-                     (substT-hom (ext (fst (packScope Tm (λ b' → substT (ext b' (s ∘s s')) t))) s) (ext (fst (packScope Tm (λ b' → substT (ext b' s') t))) s') t ∙ ext-hom _ _ _ s s' t)))  
-    {-substT
-      (ext (fst (packScope Tm (λ b' → substT (ext b' (s ∘s s')) t))) s)
-      (snd (packScope Tm (λ b' → substT (ext b' s') t)))
-      == snd (packScope Tm (λ b' → substT (ext b' (s ∘s s')) t))-}
-  substT-hom s s' (app t u) = ap₂ app (substT-hom s s' t) (substT-hom s s' u)
+{-
 
   idTm : ∀ {w} -> Tm w
   idTm = lamP λ x → var (name x)
