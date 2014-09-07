@@ -120,6 +120,30 @@ record Interface : Set1 where
   exportN-name : ∀ {α} (b : Binder α) → exportN (name b) == left refl
   exportN-name b = refl
 
+  data _⊆_ : World -> World -> Set1 where
+    ⊆-▹ :  ∀ {α β}{b b'}(s : α ⊆ β) → (α ▹ b) ⊆ (β ▹ b')
+    -- ⊆-skip : ∀ {α} {b} → α ⊆ ( α ▹ b )
+    ⊆-refl : ∀ {w} → w ⊆ w
+
+  wk : {v w : World} -> v ⊆ w -> v -> w
+  wk (⊆-▹ i) (old x) = old (wk i x)
+  wk (⊆-▹ i) new = new
+  wk ⊆-refl x = x
+
+  data Square : World -> World -> World -> World -> Set1 where
+    Sq-▹ :  ∀ {α β α' β'}{b b' b2 b2'}(s : Square α β α' β') → Square (α ▹ b) (β ▹ b2) (α' ▹ b') (β' ▹ b2')
+    Sq-refl : ∀ {v w} → Square v v w w
+
+  wk-l : {a b c d : World} -> Square a b c d -> a -> b
+  wk-l (Sq-▹ i) (old x) = old (wk-l i x)
+  wk-l (Sq-▹ i) new = new
+  wk-l Sq-refl x = x
+  
+  wk-r : {a b c d : World} -> Square a b c d -> c -> d
+  wk-r (Sq-▹ i) (old x) = old (wk-r i x)
+  wk-r (Sq-▹ i) new = new
+  wk-r Sq-refl x = x
+  
   record _⇉_ (α β : World) : Set where
     constructor mk⇉
     field
@@ -218,6 +242,11 @@ module Example (i : Interface) where
   _⇶_ : World → World → Type
   α ⇶ β = α → Tm β
 
+  ext-n : ∀ {a b c d} (s : Square a b c d) → a ⇶ c → b ⇶ d
+  ext-n (Interface.Sq-▹ s) f (old x) = renT old {!!}
+  ext-n (Interface.Sq-▹ s) f new = var new
+  ext-n Sq-refl f x = f x
+
   ext : ∀ {v w b} (s : v ⇶ w) → (v ▹ b) ⇶ (w ▹ fresh w)
   ext f (old x) = wkT' (Interface.mk⇉ old) (f x)
   ext f new = var new
@@ -243,6 +272,9 @@ module Example (i : Interface) where
 
   _~s_ : {α β : World} (s s' : α ⇶ β) → Type
   s ~s s' = ∀ x → s x == s' x
+
+  foo-n : ∀ {α β γ δ} (t : Tm α) (s : α ⇶ β) (i : Square α γ β δ) -> substT (ext-n i s) (renT (wk-l i) t) == renT (wk-r i) (substT s t)
+  foo-n t s i = {!!}
 
   foo : ∀ {v w} s t → substT (ext {w} {v} {b = fresh _} s) (renT old t) == renT old (substT s t)
   foo s (var x) = refl
