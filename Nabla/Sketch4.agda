@@ -28,6 +28,10 @@ data _⊎_ (A : Type)(B : Type) : Type where
   left : A → A ⊎ B
   right : B → A ⊎ B
 
+map⊎ : ∀{A B C D} -> (A -> C) -> (B -> D) -> A ⊎ B -> C ⊎ D
+map⊎ f g (left x) = left (f x)
+map⊎ f g (right x) = right (g x)
+
 Π : (A : Type) (B : A → Type) → Type
 Π A B = (x : A) → B x
 
@@ -37,6 +41,7 @@ record Σ (A : Type) (B : A → Type) : Type where
     fst : A
     snd : B fst
 open  Σ
+_×_ = \A B -> Σ A (\_ -> B)
 
 data Var {Binder : Type → Type}(w : Type) (b : Binder w) : Type where
   old : w → Var w b
@@ -242,10 +247,15 @@ module Example (i : Interface) where
   _⇶_ : World → World → Type
   α ⇶ β = α → Tm β
 
+  www : ∀ {a b c d}  (s : Square a b c d) -> b -> (a × (c -> d)) ⊎ d
+  www Sq-refl x = left (x , λ x₁ → x₁)
+  www (Sq-▹ s) (old x) = map⊎ (λ af → old (fst af) , map▹ _ (snd af)) old (www s x)
+  www (Sq-▹ s) new = right new
+  
   ext-n : ∀ {a b c d} (s : Square a b c d) → a ⇶ c → b ⇶ d
-  ext-n (Interface.Sq-▹ s) f (old x) = renT old {!!}
-  ext-n (Interface.Sq-▹ s) f new = var new
-  ext-n Sq-refl f x = f x
+  ext-n s f x with www s x
+  ext-n s f x | left (fst , snd) = renT snd (f fst)
+  ext-n s f x | right w = var w
 
   ext : ∀ {v w b} (s : v ⇶ w) → (v ▹ b) ⇶ (w ▹ fresh w)
   ext f (old x) = wkT' (Interface.mk⇉ old) (f x)
@@ -274,7 +284,8 @@ module Example (i : Interface) where
   s ~s s' = ∀ x → s x == s' x
 
   foo-n : ∀ {α β γ δ} (t : Tm α) (s : α ⇶ β) (i : Square α γ β δ) -> substT (ext-n i s) (renT (wk-l i) t) == renT (wk-r i) (substT s t)
-  foo-n t s i = {!!}
+  foo-n t s (Sq-▹ i) = {!!}
+  foo-n t s (Sq-refl) = {!refl!}
 
   foo : ∀ {v w} s t → substT (ext {w} {v} {b = fresh _} s) (renT old t) == renT old (substT s t)
   foo s (var x) = refl
