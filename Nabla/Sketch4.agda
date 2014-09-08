@@ -32,6 +32,10 @@ map⊎ : ∀{A B C D} -> (A -> C) -> (B -> D) -> A ⊎ B -> C ⊎ D
 map⊎ f g (left x) = left (f x)
 map⊎ f g (right x) = right (g x)
 
+elim⊎ : ∀{A B} {C : Set} -> (A -> C) -> (B -> C) -> A ⊎ B -> C
+elim⊎ f g (left x) =  (f x)
+elim⊎ f g (right x) = (g x)
+
 Π : (A : Type) (B : A → Type) → Type
 Π A B = (x : A) → B x
 
@@ -136,18 +140,18 @@ record Interface : Set1 where
   wk ⊆-refl x = x
 
   data Square : World -> World -> World -> World -> Set1 where
-    Sq-▹ :  ∀ {α β α' β'}{b b' b2 b2'}(s : Square α β α' β') → Square (α ▹ b) (β ▹ b2) (α' ▹ b') (β' ▹ b2')
     Sq-refl : ∀ {v w} → Square v v w w
+    Sq-▹ :  ∀ {α β α' β'}{b b' b2 b2'}(s : Square α β α' β') → Square (α ▹ b) (β ▹ b2) (α' ▹ b') (β' ▹ b2')
 
   wk-l : {a b c d : World} -> Square a b c d -> a -> b
+  wk-l Sq-refl x = x
   wk-l (Sq-▹ i) (old x) = old (wk-l i x)
   wk-l (Sq-▹ i) new = new
-  wk-l Sq-refl x = x
   
   wk-r : {a b c d : World} -> Square a b c d -> c -> d
+  wk-r Sq-refl x = x
   wk-r (Sq-▹ i) (old x) = old (wk-r i x)
   wk-r (Sq-▹ i) new = new
-  wk-r Sq-refl x = x
   
   record _⇉_ (α β : World) : Set where
     constructor mk⇉
@@ -253,9 +257,7 @@ module Example (i : Interface) where
   www (Sq-▹ s) new = right new
   
   ext-n : ∀ {a b c d} (s : Square a b c d) → a ⇶ c → b ⇶ d
-  ext-n s f x with www s x
-  ext-n s f x | left (fst , snd) = renT snd (f fst)
-  ext-n s f x | right w = var w
+  ext-n s f x = elim⊎ (\p -> renT (snd p) (f (fst p))) var (www s x)
 
   ext : ∀ {v w b} (s : v ⇶ w) → (v ▹ b) ⇶ (w ▹ fresh w)
   ext f (old x) = wkT' (Interface.mk⇉ old) (f x)
@@ -284,8 +286,10 @@ module Example (i : Interface) where
   s ~s s' = ∀ x → s x == s' x
 
   foo-n : ∀ {α β γ δ} (t : Tm α) (s : α ⇶ β) (i : Square α γ β δ) -> substT (ext-n i s) (renT (wk-l i) t) == renT (wk-r i) (substT s t)
+  foo-n t s Sq-refl with t -- I don't understand why the goal does not simplify unless I do a useless "with"
+  ... | t' rewrite renT-id {f = \x -> x} (\x -> refl) t' |
+                   renT-id {f = \x -> x} (\x -> refl) (substT s t') = {!!}
   foo-n t s (Sq-▹ i) = {!!}
-  foo-n t s (Sq-refl) = {!refl!}
 
   foo : ∀ {v w} s t → substT (ext {w} {v} {b = fresh _} s) (renT old t) == renT old (substT s t)
   foo s (var x) = refl
