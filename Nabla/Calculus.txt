@@ -1,0 +1,69 @@
+;; This buffer is for notes you don't want to save, and for Lisp evaluation.
+;; If you want to create a file, visit that file with C-x C-f,
+;; then enter the text in that file's own buffer.
+
+
+    Γ ⊢ f : ∇(x:A) B       Γ, x:Binder A, z:B[x] ⊢ k : C
+-----------------------------------------------------------
+         Γ ⊢ let (x,z) = f in k : C
+
+
+    Γ ⊢ a:Binder A         Γ ⊢ t:B[a] ?????
+-----------------------------------------------------
+         Γ ⊢ (x,t) : ∇(x:A) B
+
+
+        Γ, x:Binder A ⊢ t:B[x]
+------------------------------
+     Γ ⊢ νx. t : ∇(x:A) B
+
+
+
+
+    Γ ⊢ f : ∇(x:A) B    Γ ⊢ a : Binder A
+--------------------------------------------
+     Γ ⊢ f @ a : B[x]
+
+
+
+
+γ ⊢ let (x,z) = νy. t[y] in k[x,z]  --->  γ,y  ⊢  k[y,t[y]]
+
+
+(a,t[x])@b = t[]
+
+
+
+================================================================================
+
+
+    Γ ⊢ f : ∇(x:A) B       Γ, x:Binder A, z:B[x] ⊢ k : C
+-----------------------------------------------------------
+         Γ ⊢ let (x,z) = f in k : C
+
+
+           Γ,x:Binder A ⊢ t:B[x]      Γ, x : Binder A, f : ∇(x:A) B ⊢ k : C
+------------------------------------------------------------------------------
+         Γ,x:Binder A ⊢ let f = (x,t) in k : C
+
+
+        Γ, x:Binder A ⊢ t:B[x]
+---------------------------------
+     Γ ⊢ νx. t : ∇(x:A) B
+
+
+
+
+    Γ ⊢ f : ∇(x:A) B    Γ ⊢ x : Binder A
+--------------------------------------------
+     Γ ⊢ f @ x : B[x]
+
+
+
+
+
+γ ⊢ let (x,z) = νy. t[y] in k[x,z]  --->  γ,y  ⊢  k[y,t[y]]
+    let (x,z) = νy. t[y] in k[x,z]  --->  k[◆,t[◆]]
+
+
+let f = (x,t[x]) in f @ y           ---> let f = (y,t[y]) in f 
