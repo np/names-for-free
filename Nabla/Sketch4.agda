@@ -9,6 +9,12 @@ ap2 f refl refl = refl
 Type = Set
 Type1 = Set1
 
+Grph : ∀ {A B : Type} (f : A → B) → A → B → Type
+Grph f x y = f x == y
+
+_⇒_ : ∀ {A B : Type} (R S : A → B → Type) → Type
+R ⇒ S = ∀ {x y} → R x y → S x y
+
 … : {A : Type} {{x : A}} → A
 … {{x}} = x
 
@@ -47,6 +53,9 @@ record Σ (A : Type) (B : A → Type) : Type where
 open  Σ
 _×_ = \A B -> Σ A (\_ -> B)
 
+pair= : ∀ {A} {B : A → Type} {p q : Σ A B} (e : fst p == fst q) → tr B e (snd p) == snd q → p == q
+pair= {p = fst , snd} {.fst , snd₁} refl eq = cong (_,_ fst) eq
+
 data Var {Binder : Type → Type}(w : Type) (b : Binder w) : Type where
   old : w → Var w b
   new : Var w b
@@ -60,6 +69,15 @@ module CxtExt (Binder : Type → Set) where
   map▹  : ∀ {v w b} b' -> (v → w) → (v ▹ b) → (w ▹ b')
   map▹ _ f (old x) = old (f x)
   map▹ _ f new = new
+
+  map▹-id : ∀ {α}{f : α → α} (pf : ∀ x → f x == x){b'} t → map▹ b' f t == t
+  map▹-id pf (old x) = ap old (pf x)
+  map▹-id pf new = refl
+
+  map▹-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} b0 b1 b2 (h= : f ∘ g ~ h) t
+          → map▹ b2 f (map▹ {b = b0} b1 g t) == map▹ b2 h t
+  map▹-∘ b0 b1 b2 h= (old x) = ap old (h= x)
+  map▹-∘ b0 b1 b2 h= new = refl
 
 record Interface : Set1 where
   -- infix 3 _⊆_
@@ -78,32 +96,33 @@ record Interface : Set1 where
   NablaS : ∀ w → (T : Binder w → Set) → Set
   NablaS = λ w T → Σ (Binder w) T
 
-  ScopeP : World → (T : World → Set) → Set
-  ScopeP = λ w T → NablaP w (λ b → T (w ▹ b))
+  ScopeP : (T : World → Set) → World → Set
+  ScopeP = λ T w → NablaP w (λ b → T (w ▹ b))
 
-  ScopeS : World → (T : World → Set) → Set
-  ScopeS = λ w T → NablaS w (λ b → T (w ▹ b))
+  ScopeS : (T : World → Set) → World → Set
+  ScopeS = λ T w → NablaS w (λ b → T (w ▹ b))
+
 
   field
     -- Scopes -- Representations of ∇(b∉w). T[b]
     pack   : {w : World} (T : Binder w → Set) → NablaP w T → NablaS w T
     unpack : {w : World} (T : Binder w → Set) → NablaS w T → NablaP w T
-    extBind : {w : World} -> ∀ {T : (Binder w) -> Set} {f g : (b : Binder w) -> T b} b -> (f b == g b) -> f == g
+   -- extBind : {w : World} -> ∀ {T : (Binder w) -> Set} {f g : (b : Binder w) -> T b} b -> (f b == g b) -> f == g
 
-  packScope : {w : World} (T : World → Set) → ScopeP w T → ScopeS w T
+  packScope : {w : World} (T : World → Set) → ScopeP T w → ScopeS T w
   packScope {w} T = pack λ b → T (w ▹ b)
-  unpackScope : {w : World} (T : World → Set) → ScopeS w T → ScopeP w T
+  unpackScope : {w : World} (T : World → Set) → ScopeS T w → ScopeP T w
   unpackScope {w} T = unpack λ b → T (w ▹ b)
 
 
-  unpackPackScope : ∀ {w : World}  T (g : ScopeP w T) -> g == unpackScope T (packScope T g)
+  unpackPackScope : ∀ {w : World}  T (g : ScopeP T w) -> g == unpackScope T (packScope T g)
   unpackPackScope = {!!} -- assumption
 
-  sndPack' : ∀ {w : World}  T (g : ScopeP w T) ->
+  sndPack' : ∀ {w : World}  T (g : ScopeP T w) ->
              g _  ==  snd (packScope T g)
   sndPack' T g = {!!}  -- unpackPackScope + injective pairs
 
-  sndPack : ∀ {w : World}  T (g : ScopeP w T) -> (P : T (w ▹ _) -> Set) ->
+  sndPack : ∀ {w : World}  T (g : ScopeP T w) -> (P : T (w ▹ _) -> Set) ->
              P (g _)  -> P  (snd (packScope T g))
   sndPack T g P p = {!subst sndPack'!} 
 
@@ -187,53 +206,111 @@ module Example (i : Interface) where
 
   data Tm (w : World) : Type where
     var : w -> Tm w
-    lam : ScopeS w Tm -> Tm w
+    lam : ScopeS Tm w -> Tm w
     app : Tm w -> Tm w -> Tm w
 
-  lamP : ∀ {w} → ScopeP w Tm -> Tm w
+  lamP : ∀ {w} → ScopeP Tm w -> Tm w
   lamP f = lam (packScope Tm f)
   
   var' : ∀ {w w'}(b : Binder w){{s : (w ▹ b) ⇉ w'}} → Tm w'
   var' b = var (name' b)
+
+  idTm : ∀ {w} -> Tm w
+  idTm = lamP λ x → var (name x)
+
+  apTm : ∀ {w} (b : Binder w) -> Tm w
+  apTm {w} b = lamP λ x → lamP λ y → app (var' x) (var' y)
+
+  {-
+  ap' : ∀ {w} -> ScopeP (ScopeP Tm) w
+  ap' = λ x → λ y → app (var (wkN (⇉-skip y) (name x))) (var (name y))
+  -}
 
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
   renT f (lam (b , t)) = lam (fresh _ , renT (map▹ _ f) t)
   renT f (app t u)     = app (renT f t) (renT f u)
 
-  pair= : ∀ {A} {B : A → Type} {p q : Σ A B} (e : fst p == fst q) → tr B e (snd p) == snd q → p == q
-  pair= {p = fst , snd} {.fst , snd₁} refl eq = cong (_,_ fst) eq
-
   -- lamPS=-fst : ∀ {w} {f : ScopeP w Tm} {g : ScopeS w Tm} → f (fst g) == snd g → lamP f == lam g
   -- lamPS=-fst f = ap lam (pair= {!!} {!!}) 
 
+  {-
   lamPS= : ∀ {w} {f : ScopeP w Tm} {g : ScopeS w Tm} {b} → f b == unpackScope Tm g b → lamP f == lam g
   lamPS= f = {!!} 
 
-  {-
   lamPS= : ∀ {w} {f : ScopeP w Tm} {g : ScopeS w Tm} → (∀ (b : Binder w) → f b == unpack Tm g b) → lamP f == lam g
   lamPS= f = {!!} 
-  -}
 
   lamP= : ∀ {w} {f g : ScopeP w Tm} → (∀ (b : Binder w) → f b == g b) → lamP f == lamP g
   lamP= {w} {f} {g} pf = ap lam (ap (packScope Tm) {!extBind for fresh binder !}) 
 
   lamP=' : ∀ {w} {f g : ScopeP w Tm} b → f b == g b → lamP f == lamP g
   lamP=' {w} {f} {g} b pf = ap lam (ap (packScope Tm) (extBind b pf)) 
+  -}
 
-  map▹-id : ∀ {α}{f : α → α} (pf : ∀ x → f x == x){b'} t → map▹ b' f t == t
-  map▹-id pf (old x) = ap old (pf x)
-  map▹-id pf new = refl
+  module _ {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type)
+           {b₀ : Binder α₀} {b₁ : Binder α₁} where
+    data ▹ᵣ : (x₀ : α₀ ▹ b₀) (x₁ : α₁ ▹ b₁) → Type where
+      old : ∀ {x₀ x₁} → αᵣ x₀ x₁ → ▹ᵣ (old x₀) (old x₁)
+      new : ▹ᵣ new new
+
+  module _ (Tmᵣ : {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type) → Tm α₀ → Tm α₁ → Type)
+           {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type)
+           (s₀ : ScopeS Tm α₀) (s₁ : ScopeS Tm α₁) where
+    Scopeᵣ : Type
+    Scopeᵣ = Tmᵣ (▹ᵣ αᵣ) (snd s₀) (snd s₁)
+
+  data Tmᵣ {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type) : Tm α₀ → Tm α₁ → Type where
+    var : ∀ {x₀ x₁} → αᵣ x₀ x₁ → Tmᵣ αᵣ (var x₀) (var x₁)
+    lam : ∀ {s₀ s₁} (sᵣ : Scopeᵣ Tmᵣ αᵣ s₀ s₁)
+         → Tmᵣ αᵣ (lam s₀) (lam s₁)
+    app : ∀ {t₀ t₁ u₀ u₁} (tᵣ : Tmᵣ αᵣ t₀ t₁) (uᵣ : Tmᵣ αᵣ u₀ u₁)
+         → Tmᵣ αᵣ (app t₀ u₀) (app t₁ u₁)
+
+  module _ {α : World}{αᵣ : α → α → Type}
+           (αᵣ-refl : ∀ {x} → αᵣ x x) {b} where
+    ▹ᵣ-refl : ∀ {s : α ▹ b} → ▹ᵣ αᵣ s s
+    ▹ᵣ-refl {old x} = old αᵣ-refl
+    ▹ᵣ-refl {new} = new
+
+  Tmᵣ-refl : ∀ {α} {αᵣ : α → α → Type} (αᵣ-refl : ∀ {x} → αᵣ x x)
+              (t : Tm α) → Tmᵣ αᵣ t t
+  Tmᵣ-refl αᵣ-refl (var x) = var (αᵣ-refl {x})
+  Tmᵣ-refl αᵣ-refl (lam (b , t)) = lam (Tmᵣ-refl (▹ᵣ-refl αᵣ-refl) t)
+  Tmᵣ-refl αᵣ-refl (app t u) = app (Tmᵣ-refl αᵣ-refl t) (Tmᵣ-refl αᵣ-refl u)
+
+  Tmᵣ⇒== : ∀ {α} {αᵣ : α → α → Type} → αᵣ ⇒ _==_ → Tmᵣ αᵣ ⇒ _==_
+  Tmᵣ⇒== pf (var x) = ap var (pf x)
+  Tmᵣ⇒== pf (lam s) = ap lam {!Tmᵣ⇒== ? s!}
+  Tmᵣ⇒== pf (app t u) = ap₂ app (Tmᵣ⇒== pf t) (Tmᵣ⇒== pf u)
+
+  Tmᵣ⇒==′ : ∀ {α} → Tmᵣ (_==_ {A = α}) ⇒ _==_
+  Tmᵣ⇒==′ t = Tmᵣ⇒== (λ x → x) t
+
+  module _ {α₀ α₁}{αᵣ : α₀ → α₁ → Type}
+           {f : α₀ → α₁} {b b'} where
+    ▹ᵣ-ext : Grph f ⇒ αᵣ → Grph (map▹ {b = b} b' f) ⇒ ▹ᵣ αᵣ
+    ▹ᵣ-ext pf {old x} refl = old (pf refl)
+    ▹ᵣ-ext pf {new} refl = new
+
+  renT-grph : ∀ {α₀ α₁}{αᵣ : α₀ → α₁ → Type}
+           {f : α₀ → α₁}
+           (pf : Grph f ⇒ αᵣ) (t : Tm α₀) → Tmᵣ αᵣ t (renT f t)
+  renT-grph pf (var x) = var (pf refl)
+  renT-grph pf (lam (b' , t)) = lam (renT-grph (▹ᵣ-ext pf) t)
+  renT-grph pf (app t t₁) = app (renT-grph pf t) (renT-grph pf t₁)
+
+  renT-id′ : ∀ {α}(t : Tm α) → renT id t == t
+  renT-id′ t = ! Tmᵣ⇒==′ (renT-grph {αᵣ = _==_} {f = λ x → x} (λ x → x) t)
 
   renT-id : ∀ {α}{f : α → α} (pf : ∀ x → f x == x) (t : Tm α) → renT f t == t
   renT-id f (var x) = ap var (f x)
   renT-id f (lam (b' , t)) = {!via ScopeP!}
   renT-id f (app t t₁) = ap₂ app (renT-id f t) (renT-id f t₁)
 
-  map▹-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} b0 b1 b2 (h= : f ∘ g ~ h) t
-          → map▹ b2 f (map▹ {b = b0} b1 g t) == map▹ b2 h t
-  map▹-∘ b0 b1 b2 h= (old x) = ap old (h= x)
-  map▹-∘ b0 b1 b2 h= new = refl
+  renT-id′ : ∀ {α}(t : Tm α) → renT id t == t
+  renT-id′ = renT-id {f = λ x → x} (λ _ → refl)
+  -}
 
   renT-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} (h= : f ∘ g ~ h) t → renT f (renT g t) == renT h t
   renT-∘ h= (var x) = ap var (h= x)
@@ -245,6 +322,9 @@ module Example (i : Interface) where
 
   wkT' : ∀ {α β} (s : α ⇉ β) → Tm α → Tm β
   wkT' (mk⇉ wk) = renT wk
+
+  η : ∀ {w} → Tm w → Tm w
+  η t = lamP λ x → app (wkT t) (var' x)
 
   -- α ⇉ β → α ⇶ β
 
