@@ -68,13 +68,13 @@ data Binder (w : World) : Set where
 fresh : ∀ w -> Binder w
 fresh _ = ♦
 
-data Var (w : World) (b : Binder w) : Type where
-  old : w → Var w b
-  new : Var w b
+data _▹_ (w : World) (b : Binder w) : Type where
+  old : w → w ▹ b
+  new : w ▹ b
 
 infixr 5 _▹_
-_▹_ : (w : World) (b : Binder w) → World
-_▹_ = Var
+--  : (w : World) (b : Binder w) → World
+-- _▹_ = Var
 
 -- World extended with a fresh variable.
 _⇑ : (w : World) → World
@@ -189,8 +189,8 @@ record _⇉_ (α β : World) : Set where
 open _⇉_ public
 
 instance
-  ⇉-skip :  ∀ {α} {b} → α ⇉ ( α ▹ b )
-  ⇉-skip = mk⇉ old
+  ⇉-skip :  ∀ {α β} {b} → {{s : α ⇉ β}} → α ⇉ ( β ▹ b )
+  ⇉-skip {{mk⇉ s}} = mk⇉ (λ x → old (s x))
 
   ⇉-refl : ∀ {w} → w ⇉ w
   ⇉-refl = mk⇉ λ x → x
@@ -198,8 +198,8 @@ instance
   -- ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
   -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ ♦ s x
 
-  ⇉-▹ :  ∀ {α β}{b}{b'}{{s : α ⇉ β}} → (α ▹ b) ⇉ (β ▹ b')
-  ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ _ s x
+  -- ⇉-▹ :  ∀ {α β}{b}{b'}{{s : α ⇉ β}} → (α ▹ b) ⇉ (β ▹ b')
+  -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ _ s x
 
   {- not sure on how instance arguments
 
@@ -230,7 +230,7 @@ module Example-TmFresh where
   idTm = lamP λ x → var (name x)
   
   apTm : ∀ {w} (b : Binder w) -> Tm w
-  apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app {!var' x!} (var' y)
+  apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app (var' x) (var' y)
 
   ap' : ∀ {w} -> ScopeP (ScopeP Tm) w
   ap' = λ x → λ y → app (var' x) (var' y)
@@ -240,7 +240,7 @@ module Example-TmFresh where
   -- invalid = λ b → ap' b b
 
   module Trv
-    {_⇶_ : World → World → Type}.b
+    {_⇶_ : World → World → Type}
     (vr  : ∀ {α β} → α ⇶ β → α → Tm β)
     (ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑) where
 
