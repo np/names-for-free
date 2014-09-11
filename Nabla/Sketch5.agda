@@ -56,16 +56,14 @@ _×_ = \A B -> Σ A (\_ -> B)
 pair= : ∀ {A} {B : A → Type} {p q : Σ A B} (e : fst p == fst q) → tr B e (snd p) == snd q → p == q
 pair= {p = fst , snd} {.fst , snd₁} refl eq = cong (_,_ fst) eq
 
-World = Type -- what I'd call a context of names
+World = Type -- a context of names
 
 -- type of a binder fresh for w. ('b:Binder w' could be written 'b∉w')
-{-
 data Binder (w : World) : Set where
   ♦ : Binder w
--}
-postulate
-  Binder : (w : World) → Set
-  ♦ : ∀ {w} → Binder w
+-- postulate
+--   Binder : (w : World) → Set
+--   ♦ : ∀ {w} → Binder w
 
 fresh : ∀ w -> Binder w
 fresh _ = ♦
@@ -78,6 +76,7 @@ infixr 5 _▹_
 _▹_ : (w : World) (b : Binder w) → World
 _▹_ = Var
 
+-- World extended with a fresh variable.
 _⇑ : (w : World) → World
 w ⇑ = w ▹ ♦
 
@@ -95,6 +94,7 @@ map▹-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} b0 b1 b
 map▹-∘ b0 b1 b2 h= (old x) = ap old (h= x)
 map▹-∘ b0 b1 b2 h= new = refl
 
+-- Map to a fresh thing
 map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
 map⇑ = map▹ ♦
 
@@ -117,13 +117,26 @@ ScopeF : (T : World → Set) → World → Set
 ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
 
 -- Scopes -- Representations of ∇(b∉w). T[b]
-{-
 pack   : {w : World} (T : Binder w → Set) → NablaP w T → NablaS w T
 pack {w} T f = ♦ , f ♦
 
 unpack : {w : World} (T : Binder w → Set) → NablaS w T → NablaP w T
 unpack T (♦ , t) ♦ = t
 
+FS : {w : World} (T : Binder w → Set) → NablaF w T → NablaS w T
+FS T x = ♦ , x
+
+SF : {w : World} (T : Binder w → Set) → NablaS w T → NablaF w T
+SF T (♦ , t) = t
+
+FP : {w : World} (T : Binder w → Set) → NablaF w T → NablaP w T
+FP T x = λ {♦ → x}
+
+PF : {w : World} (T : Binder w → Set) → NablaP w T → NablaF w T
+PF T x = x ♦
+
+
+{-
 binder-uniq : ∀ {w} (b₀ b₁ : Binder w) → b₀ == b₁
 binder-uniq ♦ ♦ = refl
 
@@ -161,8 +174,6 @@ sndPack T g P p = {!subst sndPack'!}
 -- refer a specific binder
 name : ∀ {w} → (b : Binder w) → w ▹ b
 name b = new
-  
-  -- field fresh : ∀ α → Binder α
 
 exportN : ∀ {α b} → (n : α ▹ b) → (name b == n) ⊎ α
 exportN (old x) = right x
@@ -170,37 +181,6 @@ exportN new = left refl
 
 exportN-name : ∀ {α} (b : Binder α) → exportN (name b) == left refl
 exportN-name b = refl
-
-{-
-data _⊆_ : World -> World -> Set1 where
-  ⊆-▹ :  ∀ {α β}{b b'}(s : α ⊆ β) → (α ▹ b) ⊆ (β ▹ b')
-  ⊆-skip : ∀ {α β} {b}(s : α ⊆ β) → α ⊆ (β ▹ b)
-  ⊆-refl : ∀ {w} → w ⊆ w
-
-instance
-  ⊆-skip' : ∀ {α β} {b}{{s : α ⊆ β}} → α ⊆ (β ▹ b)
-  ⊆-skip' {{s}} = ⊆-skip s
-
-wk : {v w : World} -> v ⊆ w -> v -> w
-wk (⊆-▹ i) (old x) = old (wk i x)
-wk (⊆-skip i) x = old (wk i x)
-wk (⊆-▹ i) new = new
-wk ⊆-refl x = x
-
-data Square : World -> World -> World -> World -> Set1 where
-  Sq-refl : ∀ {v w} → Square v v w w
-  Sq-▹ :  ∀ {α β α' β'}{b b' b2 b2'}(s : Square α β α' β') → Square (α ▹ b) (β ▹ b2) (α' ▹ b') (β' ▹ b2')
-
-wk-l : {a b c d : World} -> Square a b c d -> a -> b
-wk-l Sq-refl x = x
-wk-l (Sq-▹ i) (old x) = old (wk-l i x)
-wk-l (Sq-▹ i) new = new
-
-wk-r : {a b c d : World} -> Square a b c d -> c -> d
-wk-r Sq-refl x = x
-wk-r (Sq-▹ i) (old x) = old (wk-r i x)
-wk-r (Sq-▹ i) new = new
--}
 
 record _⇉_ (α β : World) : Set where
   constructor mk⇉
@@ -215,11 +195,13 @@ instance
   ⇉-refl : ∀ {w} → w ⇉ w
   ⇉-refl = mk⇉ λ x → x
 
-  {- not sure on how instance arguments
-  ⇉-▹ :  ∀ {α β}{b}{{s : α ⇉ β}} → (α ▹ wkB ? b) ⇉ (β ▹ b)
-  ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ s x
+  -- ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
+  -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ ♦ s x
 
-  OR
+  ⇉-▹ :  ∀ {α β}{b}{b'}{{s : α ⇉ β}} → (α ▹ b) ⇉ (β ▹ b')
+  ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ _ s x
+
+  {- not sure on how instance arguments
 
   ⇉-▹ :  ∀ {α β}{b}{{s : α ⇉ β}}{{b'}} → (α ▹ b) ⇉ (β ▹ b')
   ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ s x
@@ -248,18 +230,17 @@ module Example-TmFresh where
   idTm = lamP λ x → var (name x)
   
   apTm : ∀ {w} (b : Binder w) -> Tm w
-  apTm {w} b = lamP λ x → lamP λ y → app (var' x) (var' y)
+  apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app {!var' x!} (var' y)
 
   ap' : ∀ {w} -> ScopeP (ScopeP Tm) w
   ap' = λ x → λ y → app (var' x) (var' y)
 
-  {- invalid!
-  invalid : ∀ {w} (b : Binder w) → Tm ((w ▹ b) ▹ b)
-  invalid = λ b → ap' b b
-  -}
+  -- invalid!
+  -- invalid : ∀ {w} (b : Binder w) → Tm ((w ▹ b) ▹ b)
+  -- invalid = λ b → ap' b b
 
   module Trv
-    {_⇶_ : World → World → Type}
+    {_⇶_ : World → World → Type}.b
     (vr  : ∀ {α β} → α ⇶ β → α → Tm β)
     (ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑) where
 
@@ -272,7 +253,7 @@ module Example-TmFresh where
 
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
-  renT f (lam t)       = lam (renT (map▹ _ f) t)
+  renT f (lam t)       = lam (renT (map▹ ♦ f) t)
   renT f (app t u)     = app (renT f t) (renT f u)
 
   renT-id : ∀ {α}{f : α → α} (pf : f ~ id) → renT f ~ id
@@ -347,10 +328,7 @@ module Example-TmFresh where
   subst-var′ : ∀ {α} → substT {α} var ~ id
   subst-var′ = subst-var (λ _ → refl)
 
-  ext-ren-subst :
-    ∀ {α β} {f : α → β}{s : α ⇶ β}
-      (s= : (var ∘ f) ~ s)
-    → (var ∘ map▹ ♦ f) ~ ext s
+  ext-ren-subst : ∀ {α β} {f : α → β}{s : α ⇶ β} (s= : (var ∘ f) ~ s) → (var ∘ map▹ ♦ f) ~ ext s
   ext-ren-subst s= (old x) = ap wkT (s= x)
   ext-ren-subst s= new     = refl
 
