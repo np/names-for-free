@@ -58,6 +58,8 @@ pair= {p = fst , snd} {.fst , snd₁} refl eq = cong (_,_ fst) eq
 
 World = Type -- a context of names
 
+-- Question: is it possible to "break" the system if Binder is made concrete as follows?
+
 -- type of a binder fresh for w. ('b:Binder w' could be written 'b∉w')
 data Binder (w : World) : Set where
   ♦ : Binder w
@@ -73,8 +75,6 @@ data _▹_ (w : World) (b : Binder w) : Type where
   new : w ▹ b
 
 infixr 5 _▹_
---  : (w : World) (b : Binder w) → World
--- _▹_ = Var
 
 -- World extended with a fresh variable.
 _⇑ : (w : World) → World
@@ -253,7 +253,8 @@ module Example-TmFresh where
 
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
-  renT f (lam t)       = lam (renT (map▹ ♦ f) t)
+  renT f (lam t)       = lamP λ x -> (renT (map▹ x f) t) -- Even better: unpack lam t properly.
+--  renT f (lam t)       = lam (renT (map▹ ♦ f) t)
   renT f (app t u)     = app (renT f t) (renT f u)
 
   renT-id : ∀ {α}{f : α → α} (pf : f ~ id) → renT f ~ id
