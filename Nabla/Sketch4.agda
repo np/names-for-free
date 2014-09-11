@@ -9,12 +9,15 @@ ap2 f refl refl = refl
 Type = Set
 Type1 = Set1
 
+-- Convert a function to a relation.
 Grph : ∀ {A B : Type} (f : A → B) → A → B → Type
 Grph f x y = f x == y
 
+-- Implication between relations
 _⇒_ : ∀ {A B : Type} (R S : A → B → Type) → Type
 R ⇒ S = ∀ {x y} → R x y → S x y
 
+-- Guess a value using instance declarations
 … : {A : Type} {{x : A}} → A
 … {{x}} = x
 
@@ -84,9 +87,7 @@ record Interface : Set1 where
   World = Set -- what I'd call a context of names
   field
     Binder : World → Set     -- type of a binder fresh for w. ('b:Binder w' could be written 'b∉w')
-  -- _▹_ : (w : World) → Binder w → World -- extend a world
     fresh : ∀ w -> Binder w
-  
 
   open CxtExt Binder public
 
@@ -135,11 +136,9 @@ record Interface : Set1 where
 
     -- no  need for the empty world; we can quantify on all worlds.
 
-    -- refer a specific binder
+  -- refer to a specific binder
   name : ∀ {w} → (b : Binder w) → w ▹ b
   name b = new
-  
-  -- field fresh : ∀ α → Binder α
 
   exportN : ∀ {α b} → (n : α ▹ b) → (name b == n) ⊎ α
   exportN (old x) = right x
@@ -185,7 +184,7 @@ record Interface : Set1 where
     ⇉-refl : ∀ {w} → w ⇉ w
     ⇉-refl = mk⇉ λ x → x
 
-    {- not sure on how instance arguments
+    {- not sure on how instance arguments work
     ⇉-▹ :  ∀ {α β}{b}{{s : α ⇉ β}} → (α ▹ wkB ? b) ⇉ (β ▹ b)
     ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ s x
 
@@ -226,6 +225,7 @@ module Example (i : Interface) where
   ap' = λ x → λ y → app (var (wkN (⇉-skip y) (name x))) (var (name y))
   -}
 
+  -- Apply a renaming
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
   renT f (lam (b , t)) = lam (fresh _ , renT (map▹ _ f) t)
@@ -248,18 +248,21 @@ module Example (i : Interface) where
   lamP=' {w} {f} {g} b pf = ap lam (ap (packScope Tm) (extBind b pf)) 
   -}
 
+  -- Relations between contexts
   module _ {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type)
            {b₀ : Binder α₀} {b₁ : Binder α₁} where
     data ▹ᵣ : (x₀ : α₀ ▹ b₀) (x₁ : α₁ ▹ b₁) → Type where
       old : ∀ {x₀ x₁} → αᵣ x₀ x₁ → ▹ᵣ (old x₀) (old x₁)
       new : ▹ᵣ new new
 
+  -- Relations between scopeS
   module _ (Tmᵣ : {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type) → Tm α₀ → Tm α₁ → Type)
            {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type)
            (s₀ : ScopeS Tm α₀) (s₁ : ScopeS Tm α₁) where
     Scopeᵣ : Type
     Scopeᵣ = Tmᵣ (▹ᵣ αᵣ) (snd s₀) (snd s₁)
 
+  -- Relations between terms
   data Tmᵣ {α₀ α₁ : World} (αᵣ : α₀ → α₁ → Type) : Tm α₀ → Tm α₁ → Type where
     var : ∀ {x₀ x₁} → αᵣ x₀ x₁ → Tmᵣ αᵣ (var x₀) (var x₁)
     lam : ∀ {s₀ s₁} (sᵣ : Scopeᵣ Tmᵣ αᵣ s₀ s₁)
@@ -267,6 +270,7 @@ module Example (i : Interface) where
     app : ∀ {t₀ t₁ u₀ u₁} (tᵣ : Tmᵣ αᵣ t₀ t₁) (uᵣ : Tmᵣ αᵣ u₀ u₁)
          → Tmᵣ αᵣ (app t₀ u₀) (app t₁ u₁)
 
+  -- ???
   module _ {α : World}{αᵣ : α → α → Type}
            (αᵣ-refl : ∀ {x} → αᵣ x x) {b} where
     ▹ᵣ-refl : ∀ {s : α ▹ b} → ▹ᵣ αᵣ s s
@@ -279,6 +283,7 @@ module Example (i : Interface) where
   Tmᵣ-refl αᵣ-refl (lam (b , t)) = lam (Tmᵣ-refl (▹ᵣ-refl αᵣ-refl) t)
   Tmᵣ-refl αᵣ-refl (app t u) = app (Tmᵣ-refl αᵣ-refl t) (Tmᵣ-refl αᵣ-refl u)
 
+  -- If the relation between worlds is equality, then relation between terms is also equality
   Tmᵣ⇒== : ∀ {α} {αᵣ : α → α → Type} → αᵣ ⇒ _==_ → Tmᵣ αᵣ ⇒ _==_
   Tmᵣ⇒== pf (var x) = ap var (pf x)
   Tmᵣ⇒== pf (lam s) = ap lam {!Tmᵣ⇒== ? s!}
@@ -287,11 +292,12 @@ module Example (i : Interface) where
   Tmᵣ⇒==′ : ∀ {α} → Tmᵣ (_==_ {A = α}) ⇒ _==_
   Tmᵣ⇒==′ t = Tmᵣ⇒== (λ x → x) t
 
+  -- Relation between extensions
   module _ {α₀ α₁}{αᵣ : α₀ → α₁ → Type}
            {f : α₀ → α₁} {b b'} where
     ▹ᵣ-ext : Grph f ⇒ αᵣ → Grph (map▹ {b = b} b' f) ⇒ ▹ᵣ αᵣ
     ▹ᵣ-ext pf {old x} refl = old (pf refl)
-    ▹ᵣ-ext pf {new} refl = new
+    ▹ᵣ-ext pf {new}   refl = new
 
   renT-grph : ∀ {α₀ α₁}{αᵣ : α₀ → α₁ → Type}
            {f : α₀ → α₁}
@@ -308,9 +314,8 @@ module Example (i : Interface) where
   renT-id f (lam (b' , t)) = {!via ScopeP!}
   renT-id f (app t t₁) = ap₂ app (renT-id f t) (renT-id f t₁)
 
-  renT-id′ : ∀ {α}(t : Tm α) → renT id t == t
-  renT-id′ = renT-id {f = λ x → x} (λ _ → refl)
-  -}
+  -- renT-id′ : ∀ {α}(t : Tm α) → renT id t == t
+  -- renT-id′ = renT-id {f = λ x → x} (λ _ → refl)
 
   renT-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} (h= : f ∘ g ~ h) t → renT f (renT g t) == renT h t
   renT-∘ h= (var x) = ap var (h= x)
@@ -394,130 +399,23 @@ module Example (i : Interface) where
   substT-var s= (lam (b , t)) = {!!}
   substT-var s= (app t u) = ap₂ app (substT-var s= t) (substT-var s= u)
 
-{-
 
-  idTm : ∀ {w} -> Tm w
-  idTm = lamP λ x → var (name x)
   
-  apTm : ∀ {w} (b : Binder w) -> Tm w
-  apTm {w} b = lamP λ x → lamP λ y → app (var' x) (var' y)
-
-  {-
-  η : ∀ {w} → Tm w → Tm w
-  η t = lamP λ x → app (wkT t) (var' x)
-  
-  ap' : ∀ {w} -> NablaP w (λ w' → NablaP w' Tm)
-  ap' = λ x → λ y → app (var (wkN (⇉-skip y) (name x))) (var (name y))
+  -- ap' : ∀ {w} -> NablaP w (λ w' → NablaP w' Tm)
+  -- ap' = λ x → λ y → app (var (wkN (⇉-skip y) (name x))) (var (name y))
 
   {- invalid!
   invalid : ∀ {w} (b : Binder w) → Tm ((w ▹ b) ▹ b)
   invalid = λ b → ap' b b
   -}
   
-Ctx = Type
-{-
-mutual
-  data Ctx : Set where
-    nil : Ctx
-    cons : (c : Ctx) -> Bnd c -> Ctx -- we could do everything with just nats.
--}
-
-Bnd : Ctx -> Set
-Bnd _ = One
-open CxtExt (λ _ → One)
-nil = Zero
-cons = _▹_
-
-Idx : Ctx → Set
-Idx w = w
-
-here : ∀ {c b} -> Idx (cons c b)
-here = new
-there : ∀ {c b} -> Idx c -> Idx (cons c b)
-there = old
-{-
-data Idx : Ctx -> Set1 where
-  here : ∀ {c b} -> Idx (cons c b)
-  there : ∀ {c b} -> Idx c -> Idx (cons c b)
-
-_==i_ : ∀ {α} (x y : Idx α) → Bool
-here ==i here = true
-here ==i there y = false
-there x ==i here = false
-there x ==i there y = x ==i y
--}
-
-{-
-exportI : ∀ {α b} → (n : Idx (cons α b)) → T (here ==i n) ⊎ (Idx α)
-exportI {b = tt} here = left tt
-exportI {b = tt} (there n) = right n
--}
-
-{-
-exportI : ∀ {α b} → (n : Idx (cons α b)) → (here == n) ⊎ (Idx α)
-exportI {b = tt} here = left refl
-exportI {b = tt} (there n) = right n
--}
-
-_incl_ : Ctx -> Ctx -> Set
-w incl w' = w → w'
-done : ∀ {c} -> nil incl c
-done ()
-skip  : ∀ {v w b} -> v incl w -> v incl (cons w b)
-skip i x = old (i x)
-take  : ∀ {v w b} -> v incl w -> (cons v b) incl (cons w b)
-take = map▹
-{-
-data _incl_ : Ctx -> Ctx -> Set where
-  done : ∀ {c} -> nil incl c
-  skip  : ∀ {v w b} -> v incl w -> v incl (cons w b)
-  take  : ∀ {v w b} -> v incl w -> (cons v b) incl (cons w b)
-
-wkI : ∀ {v w} -> v incl w -> Idx v -> Idx w
-wkI done ()
-wkI (skip p) i = there (wkI p i)
-wkI (take p) i = here
--}
-wkI : ∀ {v w} -> v incl w -> Idx v -> Idx w
-wkI x = x
-
-incl-refl : ∀ {w} → w incl w
-incl-refl x = x
-{-
-incl-refl {nil} = done
-incl-refl {cons w x} = take incl-refl
--}
-
-incl-cons :  ∀ {α β} b → (s : α incl β) → (cons α b) incl ( cons  β b )
-incl-cons b = take
-
-incl-skip :  ∀ {α} b → α incl ( cons  α b )
-incl-skip b = skip incl-refl
 
 implem : Interface
 implem = record
-           { -- World = Ctx
-             Binder = Bnd
-           -- ; Name = Idx
-           -- ; _▹_ = cons
+           { Binder = \_ -> One
            ; pack = λ T f → tt , f tt
            ; unpack = λ T b x → snd b
-           -- ; name = λ b → here
-           -- ; _==N_ = _==i_
-           -- ; exportN = exportI
-           ; _⊆_ = _incl_
-           ; wkN = wkI
-           ; wkB = λ x x₁ → tt
-           ; ⊆-refl = incl-refl
-           ; ⊆-▹ = incl-cons
-           ; ⊆-skip = incl-skip
-           ; _⇉_ = _incl_
-           ; renN = wkI
-           ; ⇉-refl = incl-refl
-           ; ⇉-▹ = λ _ _ → take
-           ; ⇉-skip = incl-skip
-           ; sucB = λ x → x
-           -- ; exportN-name = {!!}
+           ; fresh = λ w → tt
            }
 -- -}
 -- -}
