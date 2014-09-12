@@ -6,6 +6,45 @@ open import Function
 ap2 : ∀ {a b c : Set} {x1 x2 : a} {y1 y2 : b} -> (f : a -> b -> c) -> (x1 == x2) -> (y1 == y2) -> f x1 y1 == f x2 y2
 ap2 f refl refl = refl
 
+record Functor (F : Set -> Set) : Set1 where
+  infixl 4 _<$>_
+  field
+    _<$>_ : ∀ {A B} → (A → B) → F A → F B
+  map = _<$>_
+  field
+    <$>-id : ∀ {α}{f : α → α} (pf : f ~ id) → _<$>_ f ~ id
+    <$>-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ}
+            (h= : f ∘ g ~ h)
+          → map f ∘ map g ~ map h
+
+record Monad (M : Set -> Set) : Set1 where
+  -- Kleisli arrow
+  _→K_ : Set -> Set -> Set
+  _→K_ A B = A → M B
+  field
+    return : ∀ {A} → A → M A
+    _>>=_  : ∀ {A B} → M A → (A → M B) → M B
+
+  subs : ∀ {A B} → (A → M B) → M A  → M B
+  subs = λ x x₁ → x₁ >>= x
+
+  join : ∀ {A} -> M (M A) -> M A
+  join x = x >>= id
+
+  -- Kleisli composition
+  _∘k_ : ∀ {α β γ} (s : β →K γ) (s' : α →K β) → α →K γ
+  _∘k_ s s' x = subs s (s' x)
+
+  field
+    bind-assoc : ∀ {α β γ} {s : β →K γ} {s' : α →K β} {s'' : α →K γ} (s= : (s ∘k s') ~ s'') → subs s ∘ subs s' ~ subs s''
+    right-id : ∀ {α}{s} (s= : s ~ return) → subs {α} s ~ id
+    left-id : ∀ {α β x} {f : α →K β} -> return x >>= f == f x
+
+  functor : Functor M
+  functor = record { _<$>_ = λ f m → m >>= (λ x → return (f x))
+                   ; <$>-id = λ pf → right-id (λ x₁ → ap return (pf x₁))
+                   ; <$>-∘ = λ h= → bind-assoc (λ x₁ → trans left-id (ap return (h= x₁))) }
+   
 Type = Set
 Type1 = Set1
 
@@ -60,7 +99,7 @@ World = Type -- a context of names
 
 -- Question: is it possible to "break" the system if Binder is made concrete as follows?
 
--- type of a binder fresh for w. ('b:Binder w' could be written 'b∉w')
+-- type of a binder fresh for w. ('b:Binder w' could be written 'b FreshFor w')
 data Binder (w : World) : Set where
   ♦ : Binder w
 -- postulate
@@ -116,13 +155,6 @@ ScopeS = λ T w → NablaS w (λ b → T (w ▹ b))
 ScopeF : (T : World → Set) → World → Set
 ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
 
--- Scopes -- Representations of ∇(b∉w). T[b]
-pack   : {w : World} (T : Binder w → Set) → NablaP w T → NablaS w T
-pack {w} T f = ♦ , f ♦
-
-unpack : {w : World} (T : Binder w → Set) → NablaS w T → NablaP w T
-unpack T (♦ , t) ♦ = t
-
 FS : {w : World} (T : Binder w → Set) → NablaF w T → NablaS w T
 FS T x = ♦ , x
 
@@ -144,11 +176,13 @@ nablaS= : {w : World} (T : Binder w → Set)
           {x y : NablaS w T} → tr T (binder-uniq _ _) (snd x) == snd y → x == y
 nablaS= T = pair= (binder-uniq _ _) 
 
-packScope : {w : World} (T : World → Set) → ScopeP T w → ScopeS T w
-packScope {w} T = pack λ b → T (w ▹ b)
-unpackScope : {w : World} (T : World → Set) → ScopeS T w → ScopeP T w
-unpackScope {w} T = unpack λ b → T (w ▹ b)
 -}
+
+pack : {w : World} (T : World → Set) → ScopeP T w → ScopeF T w
+pack {w} T x = x ♦
+
+unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> T (w ▹ v) -> r) -> r
+unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
 
 {-
 unpackPackScope : ∀ {w : World}  T (g : ScopeP T w) -> g == unpackScope T (packScope T g)
@@ -253,8 +287,11 @@ module Example-TmFresh where
 
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
-  renT f (lam t)       = lamP λ x -> (renT (map▹ x f) t) -- Even better: unpack lam t properly.
---  renT f (lam t)       = lam (renT (map▹ ♦ f) t)
+  -- renT f (lam t)       = lam (renT (map▹ ♦ f) t) -- using fresh
+  renT f (lam t)       = lamP λ x -> renT (map▹ x f) t
+  -- Even better: unpack lam t properly.
+  -- renT f (lam t0) = unpack Tm t0 λ x t -> lamP (λ x' → renT (map▹ x' f) t)
+  -- Unfortunately this jams the termination-checker.
   renT f (app t u)     = app (renT f t) (renT f u)
 
   renT-id : ∀ {α}{f : α → α} (pf : f ~ id) → renT f ~ id
@@ -408,6 +445,14 @@ module Example-TmFresh where
   subst-join∘ren s t =
     !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
       ∙ renT-id′ _)
+  Tm-Monad : Monad Tm
+  Tm-Monad = record
+               { return = var
+               ; _>>=_ = λ x x₁ → substT x₁ x
+               ; bind-assoc = subst-hom
+               ; right-id = subst-var
+               ; left-id = λ {α} {β} {x} {f} → refl
+               }
 
   {-
 These should be derivable from the previous lemmas only:
