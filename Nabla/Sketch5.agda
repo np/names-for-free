@@ -610,8 +610,8 @@ module Stupid {w : World} where
   swp new = old new
 
   swp' : ∀ {b : Binder w} {b' : Binder (w ▹ b) } -> w ▹ b ▹ b' → w ▹ b ▹ b'
-  swp' (old (old x)) = old (old x)
-  swp' (old new) = new
+  swp' (old (old x)) = old (old x) 
+  swp' {b} {b'} (old new) = new
   swp' new = old new
 
 -- -}
