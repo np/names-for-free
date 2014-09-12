@@ -45,6 +45,7 @@ record Monad (M : Set -> Set) : Set1 where
   functor = record { _<$>_ = λ f m → m >>= (λ x → return (f x))
                    ; <$>-id = λ pf → right-id (λ x₁ → ap return (pf x₁))
                    ; <$>-∘ = λ h= → bind-assoc (λ x₁ → trans left-id (ap return (h= x₁))) }
+  open Functor functor public
    
 Type = Set
 Type1 = Set1
