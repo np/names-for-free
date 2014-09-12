@@ -1,6 +1,7 @@
 open import Function.Extensionality
-open import Relation.Binary.PropositionalEquality using (subst)
-open import Relation.Binary.PropositionalEquality.NP renaming (_≡_ to _==_; _≗_ to _~_)
+open import Relation.Binary.PropositionalEquality.NP
+  hiding ([_])
+  renaming (_≡_ to _==_; _≗_ to _~_)
 open import Function
 
 ap2 : ∀ {a b c : Set} {x1 x2 : a} {y1 y2 : b} -> (f : a -> b -> c) -> (x1 == x2) -> (y1 == y2) -> f x1 y1 == f x2 y2
@@ -98,10 +99,22 @@ pair= {p = fst , snd} {.fst , snd₁} refl eq = cong (_,_ fst) eq
 World = Type -- a context of names
 
 -- Question: is it possible to "break" the system if Binder is made concrete as follows?
+-- NP: First, as soon as ♦/fresh exist then the function Stupid.swp type-checks
+-- with only abstract binders we won't be able to write both w ▹ b ▹ b' and w ▹ b' ▹ b
+-- Second this concrete representation for Binder brings binder-uniq/binder-♦ which
+-- I think is harmless in the current setting.
+-- In particular terms are monadic even when Binder is kept abstract.
 
 -- type of a binder fresh for w. ('b:Binder w' could be written 'b FreshFor w')
 data Binder (w : World) : Set where
   ♦ : Binder w
+
+binder-uniq : ∀ {w} (b₀ b₁ : Binder w) → b₀ == b₁
+binder-uniq ♦ ♦ = refl
+
+binder-♦ : ∀ {w} (b : Binder w) → b == ♦
+binder-♦ ♦ = refl
+
 -- postulate
 --   Binder : (w : World) → Set
 --   ♦ : ∀ {w} → Binder w
@@ -109,15 +122,27 @@ data Binder (w : World) : Set where
 fresh : ∀ w -> Binder w
 fresh _ = ♦
 
+infixr 5 _▹_
 data _▹_ (w : World) (b : Binder w) : Type where
   old : w → w ▹ b
   new : w ▹ b
 
-infixr 5 _▹_
+data IVar {I : Type} {w : World} (Γ : w → I → Type)
+          (b : Binder w) (i : I) : w ▹ b → I → Type where
+  old : ∀ {j x} → Γ x j → IVar Γ b i (old x) j
+  new : IVar Γ b i new i
 
 -- World extended with a fresh variable.
 _⇑ : (w : World) → World
 w ⇑ = w ▹ ♦
+
+_,_↦_ : ∀ {I : Type}{w : World}
+          (Γ : w → I → Type)(b : Binder w) → I → w ▹ b → I → Type
+Γ , b ↦ i = IVar Γ b i
+
+-- World extended with a fresh variable.
+_,,_ : ∀ {I : Type}{w : World}(Γ : w → I → Type) → I → w ⇑ → I → Type
+Γ ,, i = Γ , ♦ ↦ i
 
 -- b # v and b' # w
 map▹  : ∀ {v w b} b' -> (v → w) → (v ▹ b) → (w ▹ b')
@@ -155,34 +180,38 @@ ScopeS = λ T w → NablaS w (λ b → T (w ▹ b))
 ScopeF : (T : World → Set) → World → Set
 ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
 
-FS : {w : World} (T : Binder w → Set) → NablaF w T → NablaS w T
-FS T x = ♦ , x
+module _ {w : World} (T : Binder w → Type) where
+    -- Scopes -- Representations of ∇(b∉w). T[b]
+    pack : NablaP w T → NablaS w T
+    pack f = ♦ , f ♦
 
-SF : {w : World} (T : Binder w → Set) → NablaS w T → NablaF w T
-SF T (♦ , t) = t
+    unpack : NablaS w T → NablaP w T
+    unpack (♦ , t) ♦ = t
 
-FP : {w : World} (T : Binder w → Set) → NablaF w T → NablaP w T
-FP T x = λ {♦ → x}
+    FS : NablaF w T → NablaS w T
+    FS x = ♦ , x
 
-PF : {w : World} (T : Binder w → Set) → NablaP w T → NablaF w T
-PF T x = x ♦
+    SF : NablaS w T → NablaF w T
+    SF (♦ , t) = t
 
+    FP : NablaF w T → NablaP w T
+    FP x ♦ = x
+
+    PF : NablaP w T → NablaF w T
+    PF x = x ♦
 
 {-
-binder-uniq : ∀ {w} (b₀ b₁ : Binder w) → b₀ == b₁
-binder-uniq ♦ ♦ = refl
-
 nablaS= : {w : World} (T : Binder w → Set)
           {x y : NablaS w T} → tr T (binder-uniq _ _) (snd x) == snd y → x == y
 nablaS= T = pair= (binder-uniq _ _) 
 
 -}
 
-pack : {w : World} (T : World → Set) → ScopeP T w → ScopeF T w
-pack {w} T x = x ♦
+-- pack : {w : World} (T : World → Set) → ScopeP T w → ScopeF T w
+-- pack {w} T x = x ♦
 
-unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> T (w ▹ v) -> r) -> r
-unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
+-- unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> T (w ▹ v) -> r) -> r
+-- unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
 
 {-
 unpackPackScope : ∀ {w : World}  T (g : ScopeP T w) -> g == unpackScope T (packScope T g)
@@ -194,7 +223,7 @@ sndPack' T g = {!!}  -- unpackPackScope + injective pairs
 
 sndPack : ∀ {w : World}  T (g : ScopeP T w) -> (P : T (w ▹ _) -> Set) ->
            P (g _)  -> P  (snd (packScope T g))
-sndPack T g P p = {!subst sndPack'!} 
+sndPack T g P p = {!tr sndPack'!}
 -}
     -- Alternative is to use an abstract scope (Nabla) as actual representation; possibly more accurate than both the above.
       -- Nabla : ∀ w → (T : Binder w → Set) → Set
@@ -261,7 +290,7 @@ module Example-TmFresh where
   var' b = var (name' b)
 
   idTm : ∀ {w} -> Tm w
-  idTm = lamP λ x → var (name x)
+  idTm = lamP λ x → var' x
   
   apTm : ∀ {w} (b : Binder w) -> Tm w
   apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app (var' x) (var' y)
@@ -283,7 +312,16 @@ module Example-TmFresh where
     trvT s (lam t) = lam (trvT (ext s) t)
     trvT s (app t u) = app (trvT s t) (trvT s u)
 
-  -- open Trv (λ f x → var (f x)) map⇑ public renaming (trvT to renT)
+    module _
+      (ext-var : ∀ {α}{s : α ⇶ α} (s= : vr s ~ var) → vr (ext s) ~ var)
+      where
+
+        trvT-vr : ∀ {α}{f : α ⇶ α} → vr f ~ var → trvT f ~ id
+        trvT-vr s (var x) = s x
+        trvT-vr s (lam t) = ap lam (trvT-vr (ext-var s) t)
+        trvT-vr s (app t u) = ap₂ app (trvT-vr s t) (trvT-vr s u)
+
+  -- open Trv (λ f → var ∘ f) map⇑ public renaming (trvT to renT)
 
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
@@ -292,6 +330,9 @@ module Example-TmFresh where
   -- Even better: unpack lam t properly.
   -- renT f (lam t0) = unpack Tm t0 λ x t -> lamP (λ x' → renT (map▹ x' f) t)
   -- Unfortunately this jams the termination-checker.
+  -- renT f (lam t)       = lamP λ b → (renT (map▹ b f) t)
+    -- Even better: unpack lam t properly.
+    -- renT f (lam t)       = lam (renT (map⇑ f) t)
   renT f (app t u)     = app (renT f t) (renT f u)
 
   renT-id : ∀ {α}{f : α → α} (pf : f ~ id) → renT f ~ id
@@ -307,7 +348,7 @@ module Example-TmFresh where
           → renT f ∘ renT g ~ renT h
   renT-∘ h= (var x) = ap var (h= x)
   renT-∘ h= (lam t) = ap lam (renT-∘ (map▹-∘ _ _ _ h=) t)
-  renT-∘ h= (app t u) = ap2 app (renT-∘ h= t) (renT-∘ h= u)
+  renT-∘ h= (app t u) = ap₂ app (renT-∘ h= t) (renT-∘ h= u)
 
   renT-∘′ : ∀ {α β γ}{f : β → γ}{g : α → β}
            → renT f ∘ renT g ~ renT (f ∘ g)
@@ -343,6 +384,8 @@ module Example-TmFresh where
   substT s (var x) = s x
   substT s (lam t) = lam (substT (ext s) t)
   substT s (app t u) = app (substT s t) (substT s u)
+
+  [_]_ = substT
 
   joinT : ∀ {α} → Tm (Tm α) → Tm α
   joinT = substT id
@@ -384,7 +427,7 @@ module Example-TmFresh where
              → renT f ~ substT (var ∘ f)
   ren-subst′ f = ren-subst {f = f} λ x → refl
 
-  subst-var∘old : ∀ {α b} → wkT ~ substT (var ∘ old {α} {b})
+  subst-var∘old : ∀ {α b} → wkT {α} {α ▹ b} ~ substT (var ∘ old)
   subst-var∘old = ren-subst′ old
 
   module Alt-ext where
@@ -465,6 +508,106 @@ join . fmap return   ≡ join . return = id
 
 join . fmap (fmap f) ≡ fmap f . join
   -}
+
+  -- Types for STLC
+  data Ty : Type where
+    _⟶_ : (S T : Ty) → Ty
+    nat : Ty
+
+  -- Contexts for STLC
+  Cx : World → Type1
+  Cx α = α → Ty → Type
+
+  -- Typing derivations for STLC
+  infix 0 _⊢_∶_
+  data _⊢_∶_ {α} (Γ : Cx α) : Cx (Tm α) where
+    var : ∀ {x S} → Γ x S → Γ ⊢ var x ∶ S
+    lam : ∀ {t T S}
+          (t⊢ : Γ ,, S ⊢ t ∶ T)
+          -------------------
+          → Γ ⊢ lam t ∶ S ⟶ T
+    app : ∀ {t u T S}
+          (t⊢ : Γ ⊢ t ∶ S ⟶ T)
+          (u⊢ : Γ ⊢ u ∶ S)
+          -------------------
+          → Γ ⊢ app t u ∶ T
+
+  -- Lifts a "renaming" to context membership proofs.
+  Ren⊢ : ∀ {α β}(Γ : Cx α)(Δ : Cx β)(f : α → β) → Type
+  Ren⊢ Γ Δ f = ∀ {T x} → Γ x T → Δ (f x) T
+
+  -- These renamings are compatible with world extension.
+  extRen⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{s : α → β}{b b' i}
+         → Ren⊢ Γ Δ s → Ren⊢ (Γ , b ↦ i) (Δ , b' ↦ i) (map▹ b' s)
+  extRen⊢ r (old x) = old (r x)
+  extRen⊢ r new = new
+
+  -- Renaming in a typing derivation.
+  ren⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{f : α → β}{t T}
+       → Ren⊢ Γ Δ f
+       → Γ ⊢ t ∶ T → Δ ⊢ renT f t ∶ T
+  ren⊢ r⊢ (var x) = var (r⊢ x)
+  ren⊢ r⊢ (lam d) = lam (ren⊢ (extRen⊢ r⊢) d)
+  ren⊢ r⊢ (app d d₁) = app (ren⊢ r⊢ d) (ren⊢ r⊢ d₁)
+
+  -- Lifts a substitution on terms as a substitution on
+  -- typing derivations. Context membership proofs are
+  -- mapped to typing derivations.
+  Subst⊢ : ∀ {α β}(Γ : Cx α)(Δ : Cx β)(s : α ⇶ β) → Type
+  Subst⊢ Γ Δ s = ∀ {T x} → Γ x T → Δ ⊢ s x ∶ T
+
+  -- These substitutions are compatible with world extension.
+  -- Weakening a derivation is a particular case of renaming.
+  extSubst⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{s : α ⇶ β}{i}
+         → Subst⊢ Γ Δ s → Subst⊢ (Γ ,, i) (Δ ,, i) (ext s)
+  extSubst⊢ r (old x₁) = ren⊢ old (r x₁)
+  extSubst⊢ r new = var new
+
+  -- Substituting in a typing derivation.
+  subst⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{s : α ⇶ β}{t T}
+           → Subst⊢ Γ Δ s
+           → Γ ⊢ t ∶ T → Δ ⊢ [ s ] t ∶ T
+  subst⊢ r (var x) = r x
+  subst⊢ r (lam d) = lam (subst⊢ (extSubst⊢ r) d)
+  subst⊢ r (app d d₁) = app (subst⊢ r d) (subst⊢ r d₁)
+
+  -- TODO generalize (⇶,Tm)
+  subst0 : ∀ {α b} → Tm α → (α ▹ b) ⇶ α
+  subst0 u (old x) = var x
+  subst0 u new     = u
+
+  subst⊢0 : ∀ {α}{u : Tm α}{Γ b T}
+            → Γ ⊢ u ∶ T → Subst⊢ (Γ , b ↦ T) Γ (subst0 u)
+  subst⊢0 u (old x) = var x
+  subst⊢0 u new     = u
+
+  [0≔_]_ : ∀ {α b} (u : Tm α) → Tm (α ▹ b) → Tm α
+  [0≔ u ] t = [ subst0 u ] t
+
+  pattern _·_ t u = app t u
+  pattern ƛ t = lam t
+
+  infix 0 _↝_
+  data _↝_ {α} : (t u : Tm α) → Type where
+    β     : ∀ {t u} → ƛ t · u ↝ [0≔ u ] t
+    [_]·_ : ∀ {t t'}(r : t ↝ t') u → t · u ↝ t' · u
+    _·[_] : ∀ {t t'} u (r : t ↝ t') → u · t ↝ u · t'
+    ƛ[_]  : ∀ {t t'}(r : t ↝ t') → ƛ t ↝ ƛ t'
+
+  -- Type preservation: reduction preserves typing
+  ↝-pres-⊢ : ∀ {α Γ T} {t t' : Tm α} → t ↝ t' → Γ ⊢ t ∶ T → Γ ⊢ t' ∶ T
+  ↝-pres-⊢ β (ƛ t₁ · t₂) = subst⊢ (subst⊢0 t₂) t₁
+  ↝-pres-⊢ ([ r ]· u) (t₁ · t₂) = ↝-pres-⊢ r t₁ · t₂
+  ↝-pres-⊢ (u ·[ r ]) (t₁ · t₂) = t₁ · ↝-pres-⊢ r t₂
+  ↝-pres-⊢ ƛ[ r ] (ƛ t₁) = ƛ (↝-pres-⊢ r t₁)
+
+module Stupid {w : World} where
+  -- Both swp and id have the same type...
+
+  swp : w ⇑ ⇑ → w ⇑ ⇑
+  swp (old (old x)) = old (old x)
+  swp (old new) = new
+  swp new = old new
 
 -- -}
 -- -}
