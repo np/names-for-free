@@ -281,8 +281,9 @@ module Example-TmFresh where
 
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
-  renT f (lam t)       = lamP λ x -> (renT (map▹ x f) t) -- Even better: unpack lam t properly.
---  renT f (lam t)       = lam (renT (map▹ ♦ f) t)
+  renT f (lam t)       = lamP λ b → (renT (map▹ b f) t)
+    -- Even better: unpack lam t properly.
+    -- renT f (lam t)       = lam (renT (map⇑ f) t)
   renT f (app t u)     = app (renT f t) (renT f u)
 
   renT-id : ∀ {α}{f : α → α} (pf : f ~ id) → renT f ~ id
