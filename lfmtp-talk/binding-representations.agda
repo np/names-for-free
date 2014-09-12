@@ -43,10 +43,18 @@ module intro where
       just    : (x : A) → Maybe A
       nothing : Maybe A
 
+    map? : ∀ {A B} → (A → B) → Maybe A → Maybe B
+    map? f (just x) = just (f x)
+    map? f nothing  = nothing
+
     data Fin : ℕ → Set where
       zero : {n : ℕ} → Fin (suc n)
       suc  : {n : ℕ} (i : Fin n) → Fin (suc n)
+
+    data _≡_ {A : Set} (x : A) : A → Set where
+      refl : x ≡ x
 -- }}}
+--open intro
 
 -- {{{
 open import Data.Char using (Char) renaming (_==_ to _==ᶜ_)
@@ -62,15 +70,14 @@ open import Data.Two
 open import Data.Two.Logical
 open import Data.Product
 open import Data.Unit
-import Data.Fin as Fin
-open Fin using (Fin; zero; suc; #_)
+open import Data.Fin renaming (toℕ to Fin▹ℕ) using (Fin; zero; suc; #_; raise)
 open import Data.Empty
 open import Data.String as String renaming (_==_ to _==ˢ_; _++_ to _++ˢ_)
 open import Function.NP
 open import Relation.Binary
 open import Relation.Binary.Logical
 import Relation.Binary.PropositionalEquality.NP as ≡
-open ≡ using (_≡_; _≗_)
+open ≡ using (refl; _≡_; _≗_)
 open import Text.Parser
   hiding (join; _>>=_)
   renaming (⟪_·_⟫ to ⟪_∙_⟫;
@@ -450,7 +457,7 @@ private
         broken-add-V : ∀ {n} k ℓ → Fin (ℓ + n) → Tmᶠ (ℓ + (k + n))
         broken-add-V {n} k ℓ x
           rewrite +-assoc-comm ℓ k n
-                = V (Fin.raise k x)
+                = V (raise k x)
 
         broken-add : ∀ {n} k → Tmᶠ n → Tmᶠ (k + n)
         broken-add k = traverseᶠ (broken-add-V k)
@@ -469,7 +476,7 @@ module Tmᶠ&ᴮ where
 
     [_] : ∀ {n} → Tmᶠ n → Tmᴮ
     -- {{{
-    [ V x   ] = V (Fin.toℕ x)
+    [ V x   ] = V (Fin▹ℕ x)
     [ t · u ] = [ t ] · [ u ]
     [ ƛ t   ] = ƛ [ t ]
     -- }}}
@@ -577,6 +584,50 @@ data Tmᴹ A : Set where
   _·_  : (t u : Tmᴹ A) → Tmᴹ A
   ƛ    : (t : Tmᴹ (Maybe A)) → Tmᴹ A
   -- }}}
+
+data Path A : Set where
+  [] : Path A
+  V : A → Path A
+  _·[] []·_ : Path A → Path A
+  ƛ : Path (Maybe A) → Path A
+
+data _∈_ {A} : Path A → Tmᴹ A → Set where
+  []   : ∀ {t} → [] ∈ t
+  V    : ∀ x → V x ∈ V x
+  _·[] : ∀ {p t u} → p ∈ t → (p ·[]) ∈ (t · u)
+  []·_ : ∀ {p t u} → p ∈ u → ([]· p) ∈ (t · u)
+  ƛ    : ∀ {p t} → p ∈ t → ƛ p ∈ ƛ t
+
+_~_ : ∀ {A} (t u : Tmᴹ A) → Set
+t ~ u = ∀ {p} → p ∈ t → p ∈ u
+
+-- See also ⟦Tmᴹ⟧ below
+data _≡ᴹ_ {A} : (t u : Tmᴹ A) → Set where
+  V   : ∀ {x x'} → x ≡ x' → V x ≡ᴹ V x'
+  _·_ : ∀ {t u t' u'} → t ≡ᴹ t' → u ≡ᴹ u' → (t · u) ≡ᴹ (t' · u')
+  ƛ   : ∀ {t u} → t ≡ᴹ u → ƛ t ≡ᴹ ƛ u
+
+un-V : ∀ {A} {x : A} {t} → V x ∈ t → V x ≡ᴹ t
+un-V (V x) = V refl
+
+un-·[] : ∀ {A} {p : Path A}{t u} → (p ·[]) ∈ (t · u) → p ∈ t
+un-·[] (q ·[]) = q
+
+un-[]· : ∀ {A} {p : Path A}{t u} → ([]· p) ∈ (t · u) → p ∈ u
+un-[]· ([]· q) = q
+
+un-ƛ : ∀ {A} {p : Path (Maybe A)}{t} → (ƛ p) ∈ (ƛ t) → p ∈ t
+un-ƛ (ƛ q) = q
+
+~-sound : ∀ {A} (t u : Tmᴹ A) → t ~ u → t ≡ᴹ u
+~-sound (V x) u t~u = un-V (t~u (V x))
+~-sound (t · t₁) u t~u with t~u ([] ·[])
+~-sound (t · t₁) ._ t~u | p ·[] = (~-sound t _ (λ x → un-·[] (t~u (x ·[])))) · (~-sound t₁ _ (λ x → un-[]· (t~u ([]· x))))
+~-sound (ƛ t) u t~u with t~u (ƛ [])
+~-sound (ƛ t) ._ t~u | ƛ p = ƛ (~-sound t _ (λ q → un-ƛ (t~u (ƛ q))))
+
+~-refl : ∀ {A} {t : Tmᴹ A} → t ~ t
+~-refl p = p
 
 mapᴹ : ∀ {A B} → (A → B) → Tmᴹ A → Tmᴹ B
 -- {{{
