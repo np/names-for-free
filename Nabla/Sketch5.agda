@@ -182,11 +182,11 @@ ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
 
 module _ {w : World} (T : Binder w → Type) where
     -- Scopes -- Representations of ∇(b∉w). T[b]
-    pack : NablaP w T → NablaS w T
-    pack f = ♦ , f ♦
+    -- pack : NablaP w T → NablaS w T
+    -- pack f = ♦ , f ♦
 
-    unpack : NablaS w T → NablaP w T
-    unpack (♦ , t) ♦ = t
+    -- unpack : NablaS w T → NablaP w T
+    -- unpack (♦ , t) ♦ = t
 
     FS : NablaF w T → NablaS w T
     FS x = ♦ , x
@@ -207,11 +207,11 @@ nablaS= T = pair= (binder-uniq _ _)
 
 -}
 
--- pack : {w : World} (T : World → Set) → ScopeP T w → ScopeF T w
--- pack {w} T x = x ♦
+pack : {w : World} (T : World → Set) → ScopeP T w → ScopeF T w
+pack {w} T x = x ♦
 
--- unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> T (w ▹ v) -> r) -> r
--- unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
+unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> T (w ▹ v) -> r) -> r
+unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
 
 {-
 unpackPackScope : ∀ {w : World}  T (g : ScopeP T w) -> g == unpackScope T (packScope T g)
@@ -376,7 +376,7 @@ module Example-TmFresh where
 
   ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
   ext f (old x) = wkT (f x)
-  ext f (new ._)     = var (new _)
+  ext f (new ._)     = var (new ♦)
 
   -- open Trv (λ f → f) ext public renaming (trvT to substT)
   
@@ -497,6 +497,11 @@ module Example-TmFresh where
                ; left-id = λ {α} {β} {x} {f} → refl
                }
 
+  swpLams : ∀ {w} -> Tm w -> Tm w
+  swpLams (lam t0) = unpack Tm t0 (λ {v (lam t1) → unpack Tm t1 (λ v₁ t → lamP (λ x → lamP (λ x₁ → {!t [x := v1, x1 := v]!})))
+                                     ;v t' → {!!}})
+  -- swpLams (lam (lam t0)) = {!!}
+  swpLams x = x
   {-
 These should be derivable from the previous lemmas only:
 
@@ -604,16 +609,18 @@ join . fmap (fmap f) ≡ fmap f . join
 module Stupid {w : World} where
   -- Both swp and id have the same type...
 
-  -- swp : w ⇑ ⇑ → w ⇑ ⇑
-  -- swp (old (old x)) = old (old x)
-  -- swp (old new) = new
-  -- swp new = old new
+  swp : w ⇑ ⇑ → w ⇑ ⇑
+  swp (old (old x)) = old (old x)
+  swp (old (new ._)) = new _
+  swp (new ._) = old (new _)
 
   swp' : ∀ {b : Binder w} {b' : Binder (w ▹ b)} -> w ▹ b ▹ b' → w ▹ b ▹ b'
   swp' (old (old x)) = old (old x)
   swp' {b} {b'} (old (new .b)) = new b'
   swp' {b} {b'} (new .b') = old (new b)
 
+
+   
 -- -}
 -- -}
 -- -}
