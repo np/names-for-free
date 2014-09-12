@@ -118,19 +118,52 @@ World = Type -- a context of names
 
 -- Maybe there is a simple way to make Agda support the semantics that we want?
 
+
+
 -- type of a binder fresh for w. ('b:Binder w' could be written 'b FreshFor w')
-data Binder (w : World) : Set where
-  ♦ : Binder w
+-- data Binder (w : World) : Set where
+--   ♦ : Binder w
 
-binder-uniq : ∀ {w} (b₀ b₁ : Binder w) → b₀ == b₁
-binder-uniq ♦ ♦ = refl
+-- JP: THIS IS BAAAD (see remark on safety above)
+-- binder-uniq : ∀ {w} (b₀ b₁ : Binder w) → b₀ == b₁
+-- binder-uniq ♦ ♦ = refl
 
-binder-♦ : ∀ {w} (b : Binder w) → b == ♦
-binder-♦ ♦ = refl
+-- binder-♦ : ∀ {w} (b : Binder w) → b == ♦
+-- binder-♦ ♦ = refl
 
--- postulate
---   Binder : (w : World) → Set
---   ♦ : ∀ {w} → Binder w
+postulate
+  Binder : (w : World) → Set
+  ♦ : ∀ {w} → Binder w
+  
+NablaP : ∀ w → (T : Binder w → Set) → Set
+NablaP = λ w T → Π (Binder w) T
+
+NablaS : ∀ w → (T : Binder w → Set) → Set
+NablaS = λ w T → Σ (Binder w) T
+
+NablaF : ∀ w → (T : Binder w → Set) → Set
+NablaF = λ w T → T ♦
+
+module _ {w : World} (T : Binder w → Type) where
+    -- Scopes -- Representations of ∇(b∉w). T[b]
+    -- pack : NablaP w T → NablaS w T
+    -- pack f = ♦ , f ♦
+
+    -- unpack : NablaS w T → NablaP w T
+    -- unpack (♦ , t) ♦ = t
+
+    FS : NablaF w T → NablaS w T
+    FS x = ♦ , x
+
+    SF : NablaS w T → NablaF w T
+    SF = {!!} -- SF (♦ , t) = t
+    
+
+    FP : NablaF w T → NablaP w T
+    FP = {!!} -- FP x ♦ = x
+
+    PF : NablaP w T → NablaF w T
+    PF x = x ♦
 
 fresh : ∀ w -> Binder w
 fresh _ = ♦
@@ -175,14 +208,6 @@ map▹-∘ b0 b1 b2 h= (new .b0) = refl
 map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
 map⇑ = map▹ ♦
 
-NablaP : ∀ w → (T : Binder w → Set) → Set
-NablaP = λ w T → Π (Binder w) T
-
-NablaS : ∀ w → (T : Binder w → Set) → Set
-NablaS = λ w T → Σ (Binder w) T
-
-NablaF : ∀ w → (T : Binder w → Set) → Set
-NablaF = λ w T → T ♦
 
 ScopeP : (T : World → Set) → World → Set
 ScopeP = λ T w → NablaP w (λ b → T (w ▹ b))
@@ -193,25 +218,6 @@ ScopeS = λ T w → NablaS w (λ b → T (w ▹ b))
 ScopeF : (T : World → Set) → World → Set
 ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
 
-module _ {w : World} (T : Binder w → Type) where
-    -- Scopes -- Representations of ∇(b∉w). T[b]
-    -- pack : NablaP w T → NablaS w T
-    -- pack f = ♦ , f ♦
-
-    -- unpack : NablaS w T → NablaP w T
-    -- unpack (♦ , t) ♦ = t
-
-    FS : NablaF w T → NablaS w T
-    FS x = ♦ , x
-
-    SF : NablaS w T → NablaF w T
-    SF (♦ , t) = t
-
-    FP : NablaF w T → NablaP w T
-    FP x ♦ = x
-
-    PF : NablaP w T → NablaF w T
-    PF x = x ♦
 
 {-
 nablaS= : {w : World} (T : Binder w → Set)
