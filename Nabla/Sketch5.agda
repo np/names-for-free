@@ -256,7 +256,16 @@ module Example-TmFresh where
     trvT s (lam t) = lam (trvT (ext s) t)
     trvT s (app t u) = app (trvT s t) (trvT s u)
 
-  -- open Trv (λ f x → var (f x)) map⇑ public renaming (trvT to renT)
+    module _
+      (ext-var : ∀ {α}{s : α ⇶ α} (s= : vr s ~ var) → vr (ext s) ~ var)
+      where
+
+        trvT-vr : ∀ {α}{f : α ⇶ α} → vr f ~ var → trvT f ~ id
+        trvT-vr s (var x) = s x
+        trvT-vr s (lam t) = ap lam (trvT-vr (ext-var s) t)
+        trvT-vr s (app t u) = ap₂ app (trvT-vr s t) (trvT-vr s u)
+
+  -- open Trv (λ f → var ∘ f) map⇑ public renaming (trvT to renT)
 
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
