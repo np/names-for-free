@@ -66,9 +66,9 @@ data Bool : Type where
 record One : Type where
   constructor tt
 
-T : Bool -> Type
-T true = One
-T false = Zero
+-- T : Bool -> Type
+-- T true = One
+-- T false = Zero
 
 data _⊎_ (A : Type)(B : Type) : Type where
   left : A → A ⊎ B
@@ -98,12 +98,25 @@ pair= {p = fst , snd} {.fst , snd₁} refl eq = cong (_,_ fst) eq
 
 World = Type -- a context of names
 
+
 -- Question: is it possible to "break" the system if Binder is made concrete as follows?
 -- NP: First, as soon as ♦/fresh exist then the function Stupid.swp type-checks
 -- with only abstract binders we won't be able to write both w ▹ b ▹ b' and w ▹ b' ▹ b
 -- Second this concrete representation for Binder brings binder-uniq/binder-♦ which
 -- I think is harmless in the current setting.
 -- In particular terms are monadic even when Binder is kept abstract.
+
+-- JP:
+-- Keeping ♦ abstract makes us remain safe; in the sense that we can never confuse two binders.
+-- One way to explain it: NablaP and NablaS are both safe (static) name introducers/eliminers.
+-- But "NablaF" allows to manipulate names without having a static handle on their binder.
+-- It is ok as long as each instance of ◆ is considered different from another. But not otherwise.
+
+-- However, making ♦ concrete (and a single value) allows to compute.
+-- Computationally, this corresponds to the unification of NablaP and
+-- NablaS, (eg. like the erasure semantics that we have outlined.)
+
+-- Maybe there is a simple way to make Agda support the semantics that we want?
 
 -- type of a binder fresh for w. ('b:Binder w' could be written 'b FreshFor w')
 data Binder (w : World) : Set where
@@ -280,7 +293,8 @@ module Example-TmFresh where
 
   data Tm (w : World) : Type where
     var : w -> Tm w
-    lam : ScopeF Tm w -> Tm w
+    -- lam : ScopeF Tm w -> Tm w
+    lam : Tm (w ▹ ♦) → Tm w 
     app : Tm w -> Tm w -> Tm w
 
   lamP : ∀ {w} → ScopeP Tm w -> Tm w
