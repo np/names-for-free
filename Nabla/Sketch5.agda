@@ -122,7 +122,7 @@ binder-♦ ♦ = refl
 fresh : ∀ w -> Binder w
 fresh _ = ♦
 
-infixr 5 _▹_
+infixl 5 _▹_
 data _▹_ (w : World) (b : Binder w) : Type where
   old : w → w ▹ b
   new : w ▹ b
@@ -608,6 +608,11 @@ module Stupid {w : World} where
   swp (old (old x)) = old (old x)
   swp (old new) = new
   swp new = old new
+
+  swp' : ∀ {b : Binder w} {b' : Binder (w ▹ b) } -> w ▹ b ▹ b' → w ▹ b ▹ b'
+  swp' (old (old x)) = old (old x)
+  swp' (old new) = new
+  swp' new = old new
 
 -- -}
 -- -}
