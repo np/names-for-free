@@ -123,14 +123,14 @@ fresh : ∀ w -> Binder w
 fresh _ = ♦
 
 infixl 5 _▹_
-data _▹_ (w : World) (b : Binder w) : Type where
-  old : w → w ▹ b
-  new : w ▹ b
+data _▹_ (w : World) : (b : Binder w) -> Type where
+  old : {b : Binder w} -> w → w ▹ b
+  new : (b : Binder w) -> w ▹ b
 
 data IVar {I : Type} {w : World} (Γ : w → I → Type)
           (b : Binder w) (i : I) : w ▹ b → I → Type where
   old : ∀ {j x} → Γ x j → IVar Γ b i (old x) j
-  new : IVar Γ b i new i
+  new : IVar Γ b i (new b) i
 
 -- World extended with a fresh variable.
 _⇑ : (w : World) → World
@@ -147,16 +147,16 @@ _,,_ : ∀ {I : Type}{w : World}(Γ : w → I → Type) → I → w ⇑ → I �
 -- b # v and b' # w
 map▹  : ∀ {v w b} b' -> (v → w) → (v ▹ b) → (w ▹ b')
 map▹ _ f (old x) = old (f x)
-map▹ _ f new = new
+map▹ _ f (new _) = new _
 
 map▹-id : ∀ {α}{f : α → α} (pf : f ~ id){b'} → map▹ b' f ~ id
 map▹-id pf (old x) = ap old (pf x)
-map▹-id pf new = refl
+map▹-id pf (new _) = refl
 
 map▹-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} b0 b1 b2 (h= : f ∘ g ~ h)
         → map▹ b2 f ∘ map▹ {b = b0} b1 g ~ map▹ b2 h
 map▹-∘ b0 b1 b2 h= (old x) = ap old (h= x)
-map▹-∘ b0 b1 b2 h= new = refl
+map▹-∘ b0 b1 b2 h= (new .b0) = refl
 
 -- Map to a fresh thing
 map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
@@ -236,11 +236,11 @@ sndPack T g P p = {!tr sndPack'!}
 
 -- refer a specific binder
 name : ∀ {w} → (b : Binder w) → w ▹ b
-name b = new
+name b = new _
 
 exportN : ∀ {α b} → (n : α ▹ b) → (name b == n) ⊎ α
 exportN (old x) = right x
-exportN new = left refl
+exportN (new _) = left refl
 
 exportN-name : ∀ {α} (b : Binder α) → exportN (name b) == left refl
 exportN-name b = refl
@@ -376,7 +376,7 @@ module Example-TmFresh where
 
   ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
   ext f (old x) = wkT (f x)
-  ext f new     = var new
+  ext f (new ._)     = var (new _)
 
   -- open Trv (λ f → f) ext public renaming (trvT to substT)
   
@@ -398,7 +398,7 @@ module Example-TmFresh where
 
   ext-var : ∀ {α}{s : α ⇶ α} (s= : s ~ var) → ext s ~ var
   ext-var s= (old x) = ap wkT (s= x)
-  ext-var s= new     = refl
+  ext-var s= (new ._)     = refl
 
   -- m >>= return   ≡   m
   subst-var : ∀ {α}{s} (s= : s ~ var) → substT {α} s ~ id
@@ -411,7 +411,7 @@ module Example-TmFresh where
 
   ext-ren-subst : ∀ {α β} {f : α → β}{s : α ⇶ β} (s= : (var ∘ f) ~ s) → (var ∘ map▹ ♦ f) ~ ext s
   ext-ren-subst s= (old x) = ap wkT (s= x)
-  ext-ren-subst s= new     = refl
+  ext-ren-subst s= (new ._)     = refl
 
   -- liftM == fmap
   -- NP: my hope with trvT was to avoid this proof...
@@ -433,12 +433,12 @@ module Example-TmFresh where
   module Alt-ext where
     ext' : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
     ext' f (old x) = substT (var ∘ old) (f x)
-    ext' f new     = var new
+    ext' f (new ._)     = var (new _)
 
     ext-ext' : ∀ {α β} (s : α ⇶ β)
                → ext s ~ ext' s
     ext-ext' s (old x) = subst-var∘old (s x)
-    ext-ext' s new = refl
+    ext-ext' s (new ._) = refl
 
   ext-wk-subst : ∀ {α β γ δ}
                    {f  : α → γ}
@@ -448,7 +448,7 @@ module Example-TmFresh where
                    (q : s ∘ f ~ renT f' ∘ s')
                  → ext s ∘ map⇑ f ~ renT (map⇑ f') ∘ ext s'
   ext-wk-subst q (old x) = ap wkT (q x) ∙ renT-∘′ _ ∙ ! renT-∘′ _
-  ext-wk-subst q new = refl
+  ext-wk-subst q (new ._) = refl
 
   subst∘ren : ∀ {α β γ δ}
                {f  : α → γ}
@@ -468,7 +468,7 @@ module Example-TmFresh where
   ext-hom {s = s} {s'} {s''} s= (old x) =
     subst∘ren (λ x → refl) (s' x)
     ∙ ap wkT (s= x)
-  ext-hom s= new = refl
+  ext-hom s= (new ._) = refl
 
   -- (m >>= f) >>= g   ≡   m >>= ( \x -> (f x >>= g) )
   subst-hom : ∀ {α β γ}
@@ -574,7 +574,7 @@ join . fmap (fmap f) ≡ fmap f . join
   -- TODO generalize (⇶,Tm)
   subst0 : ∀ {α b} → Tm α → (α ▹ b) ⇶ α
   subst0 u (old x) = var x
-  subst0 u new     = u
+  subst0 u (new ._)     = u
 
   subst⊢0 : ∀ {α}{u : Tm α}{Γ b T}
             → Γ ⊢ u ∶ T → Subst⊢ (Γ , b ↦ T) Γ (subst0 u)
@@ -604,15 +604,15 @@ join . fmap (fmap f) ≡ fmap f . join
 module Stupid {w : World} where
   -- Both swp and id have the same type...
 
-  swp : w ⇑ ⇑ → w ⇑ ⇑
-  swp (old (old x)) = old (old x)
-  swp (old new) = new
-  swp new = old new
+  -- swp : w ⇑ ⇑ → w ⇑ ⇑
+  -- swp (old (old x)) = old (old x)
+  -- swp (old new) = new
+  -- swp new = old new
 
-  swp' : ∀ {b : Binder w} {b' : Binder (w ▹ b) } -> w ▹ b ▹ b' → w ▹ b ▹ b'
-  swp' (old (old x)) = old (old x) 
-  swp' {b} {b'} (old new) = new
-  swp' new = old new
+  swp' : ∀ {b : Binder w} {b' : Binder (w ▹ b)} -> w ▹ b ▹ b' → w ▹ b ▹ b'
+  swp' (old (old x)) = old (old x)
+  swp' {b} {b'} (old (new .b)) = new b'
+  swp' {b} {b'} (new .b') = old (new b)
 
 -- -}
 -- -}
