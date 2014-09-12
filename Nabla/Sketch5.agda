@@ -1,10 +1,8 @@
 open import Function.Extensionality
-open import Relation.Binary.PropositionalEquality using (subst)
-open import Relation.Binary.PropositionalEquality.NP renaming (_≡_ to _==_; _≗_ to _~_)
+open import Relation.Binary.PropositionalEquality.NP
+  hiding ([_])
+  renaming (_≡_ to _==_; _≗_ to _~_)
 open import Function
-
-ap2 : ∀ {a b c : Set} {x1 x2 : a} {y1 y2 : b} -> (f : a -> b -> c) -> (x1 == x2) -> (y1 == y2) -> f x1 y1 == f x2 y2
-ap2 f refl refl = refl
 
 Type = Set
 Type1 = Set1
@@ -59,10 +57,22 @@ pair= {p = fst , snd} {.fst , snd₁} refl eq = cong (_,_ fst) eq
 World = Type -- a context of names
 
 -- Question: is it possible to "break" the system if Binder is made concrete as follows?
+-- NP: First, as soon as ♦/fresh exist then the function Stupid.swp type-checks
+-- with only abstract binders we won't be able to write both w ▹ b ▹ b' and w ▹ b' ▹ b
+-- Second this concrete representation for Binder brings binder-uniq/binder-♦ which
+-- I think is harmless in the current setting.
+-- In particular terms are monadic even when Binder is kept abstract.
 
 -- type of a binder fresh for w. ('b:Binder w' could be written 'b∉w')
 data Binder (w : World) : Set where
   ♦ : Binder w
+
+binder-uniq : ∀ {w} (b₀ b₁ : Binder w) → b₀ == b₁
+binder-uniq ♦ ♦ = refl
+
+binder-♦ : ∀ {w} (b : Binder w) → b == ♦
+binder-♦ ♦ = refl
+
 -- postulate
 --   Binder : (w : World) → Set
 --   ♦ : ∀ {w} → Binder w
@@ -116,30 +126,27 @@ ScopeS = λ T w → NablaS w (λ b → T (w ▹ b))
 ScopeF : (T : World → Set) → World → Set
 ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
 
--- Scopes -- Representations of ∇(b∉w). T[b]
-pack   : {w : World} (T : Binder w → Set) → NablaP w T → NablaS w T
-pack {w} T f = ♦ , f ♦
+module _ {w : World} (T : Binder w → Type) where
+    -- Scopes -- Representations of ∇(b∉w). T[b]
+    pack : NablaP w T → NablaS w T
+    pack f = ♦ , f ♦
 
-unpack : {w : World} (T : Binder w → Set) → NablaS w T → NablaP w T
-unpack T (♦ , t) ♦ = t
+    unpack : NablaS w T → NablaP w T
+    unpack (♦ , t) ♦ = t
 
-FS : {w : World} (T : Binder w → Set) → NablaF w T → NablaS w T
-FS T x = ♦ , x
+    FS : NablaF w T → NablaS w T
+    FS x = ♦ , x
 
-SF : {w : World} (T : Binder w → Set) → NablaS w T → NablaF w T
-SF T (♦ , t) = t
+    SF : NablaS w T → NablaF w T
+    SF (♦ , t) = t
 
-FP : {w : World} (T : Binder w → Set) → NablaF w T → NablaP w T
-FP T x = λ {♦ → x}
+    FP : NablaF w T → NablaP w T
+    FP x ♦ = x
 
-PF : {w : World} (T : Binder w → Set) → NablaP w T → NablaF w T
-PF T x = x ♦
-
+    PF : NablaP w T → NablaF w T
+    PF x = x ♦
 
 {-
-binder-uniq : ∀ {w} (b₀ b₁ : Binder w) → b₀ == b₁
-binder-uniq ♦ ♦ = refl
-
 nablaS= : {w : World} (T : Binder w → Set)
           {x y : NablaS w T} → tr T (binder-uniq _ _) (snd x) == snd y → x == y
 nablaS= T = pair= (binder-uniq _ _) 
@@ -160,7 +167,7 @@ sndPack' T g = {!!}  -- unpackPackScope + injective pairs
 
 sndPack : ∀ {w : World}  T (g : ScopeP T w) -> (P : T (w ▹ _) -> Set) ->
            P (g _)  -> P  (snd (packScope T g))
-sndPack T g P p = {!subst sndPack'!} 
+sndPack T g P p = {!tr sndPack'!}
 -}
     -- Alternative is to use an abstract scope (Nabla) as actual representation; possibly more accurate than both the above.
       -- Nabla : ∀ w → (T : Binder w → Set) → Set
@@ -227,7 +234,7 @@ module Example-TmFresh where
   var' b = var (name' b)
 
   idTm : ∀ {w} -> Tm w
-  idTm = lamP λ x → var (name x)
+  idTm = lamP λ x → var' x
   
   apTm : ∀ {w} (b : Binder w) -> Tm w
   apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app (var' x) (var' y)
@@ -270,7 +277,7 @@ module Example-TmFresh where
           → renT f ∘ renT g ~ renT h
   renT-∘ h= (var x) = ap var (h= x)
   renT-∘ h= (lam t) = ap lam (renT-∘ (map▹-∘ _ _ _ h=) t)
-  renT-∘ h= (app t u) = ap2 app (renT-∘ h= t) (renT-∘ h= u)
+  renT-∘ h= (app t u) = ap₂ app (renT-∘ h= t) (renT-∘ h= u)
 
   renT-∘′ : ∀ {α β γ}{f : β → γ}{g : α → β}
            → renT f ∘ renT g ~ renT (f ∘ g)
@@ -306,6 +313,8 @@ module Example-TmFresh where
   substT s (var x) = s x
   substT s (lam t) = lam (substT (ext s) t)
   substT s (app t u) = app (substT s t) (substT s u)
+
+  [_]_ = substT
 
   joinT : ∀ {α} → Tm (Tm α) → Tm α
   joinT = substT id
@@ -347,7 +356,7 @@ module Example-TmFresh where
              → renT f ~ substT (var ∘ f)
   ren-subst′ f = ren-subst {f = f} λ x → refl
 
-  subst-var∘old : ∀ {α b} → wkT ~ substT (var ∘ old {α} {b})
+  subst-var∘old : ∀ {α b} → wkT {α} {α ▹ b} ~ substT (var ∘ old)
   subst-var∘old = ren-subst′ old
 
   module Alt-ext where
@@ -420,6 +429,14 @@ join . fmap return   ≡ join . return = id
 
 join . fmap (fmap f) ≡ fmap f . join
   -}
+
+module Stupid {w : World} where
+  -- Both swp and id have the same type...
+
+  swp : w ⇑ ⇑ → w ⇑ ⇑
+  swp (old (old x)) = old (old x)
+  swp (old new) = new
+  swp new = old new
 
 -- -}
 -- -}
