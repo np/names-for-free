@@ -523,11 +523,13 @@ module Example-TmFresh where
                ; left-id = λ {α} {β} {x} {f} → refl
                }
 
+               {-
   swpLams : ∀ {w} -> Tm w -> Tm w
   swpLams (lam t0) = unpack Tm t0 (λ {v (lam t1) → unpack Tm t1 (λ v₁ t → lamP (λ x → lamP (λ x₁ → {!t [x := v1, x1 := v]!})))
                                      ;v t' → {!!}})
   -- swpLams (lam (lam t0)) = {!!}
   swpLams x = x
+  -}
   {-
 These should be derivable from the previous lemmas only:
 
