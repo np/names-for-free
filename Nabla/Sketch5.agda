@@ -46,7 +46,7 @@ record Monad (M : Set -> Set) : Set1 where
                    ; <$>-id = λ pf → right-id (λ x₁ → ap return (pf x₁))
                    ; <$>-∘ = λ h= → bind-assoc (λ x₁ → trans left-id (ap return (h= x₁))) }
   open Functor functor public
-   
+
 Type = Set
 Type1 = Set1
 
@@ -156,12 +156,14 @@ module _ {w : World} (T : Binder w → Type) where
     FS : NablaF w T → NablaS w T
     FS x = ♦ , x
 
-    SF : NablaS w T → NablaF w T
-    SF = {!!} -- SF (♦ , t) = t
+    postulate
+      SF : NablaS w T → NablaF w T
+    -- SF = {!!} -- SF (♦ , t) = t
     
 
-    FP : NablaF w T → NablaP w T
-    FP = {!!} -- FP x ♦ = x
+    postulate
+      FP : NablaF w T → NablaP w T
+    -- FP = {!!} -- FP x ♦ = x
 
     PF : NablaP w T → NablaF w T
     PF x = x ♦
