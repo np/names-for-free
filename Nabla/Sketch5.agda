@@ -295,7 +295,10 @@ instance
 wkN' : ∀ {α β} {{s : α ⇉ β}} → α → β
 wkN' = wkN …
 
-name' : ∀ {w w'}(b : Binder w) {{s : (w ▹ b) ⇉ w'}} → w'
+_∈_ : ∀ {w}(b : Binder w)(w' : World) → Set
+b ∈ w' = (_ ▹ b) ⇉ w'
+
+name' : ∀ {w w'}(b : Binder w) {{s : b ∈ w'}} → w'
 name' b = wkN' (name b)
 
 module Example-TmFresh where
