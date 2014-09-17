@@ -194,22 +194,22 @@ _,,_ : ∀ {I : Type}{w : World}(Γ : w → I → Type) → I → w ⇑ → I �
 Γ ,, i = Γ , ♦ ↦ i
 
 -- b # v and b' # w
-map▹  : ∀ {v w b} b' -> (v → w) → (v ▹ b) → (w ▹ b')
-map▹ _ f (old x) = old (f x)
-map▹ _ f (new _) = new _
+map▹  : ∀ {v w} b b' -> (v → w) → (v ▹ b) → (w ▹ b')
+map▹ _ _ f (old x) = old (f x)
+map▹ _ _ f (new ._) = new _
 
-map▹-id : ∀ {α}{f : α → α} (pf : f ~ id){b'} → map▹ b' f ~ id
+map▹-id : ∀ {α}{f : α → α} (pf : f ~ id){b} → map▹ b b f ~ id
 map▹-id pf (old x) = ap old (pf x)
 map▹-id pf (new _) = refl
 
 map▹-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} b0 b1 b2 (h= : f ∘ g ~ h)
-        → map▹ b2 f ∘ map▹ {b = b0} b1 g ~ map▹ b2 h
+        → map▹ b1 b2 f ∘ map▹ b0 b1 g ~ map▹ b0 b2 h
 map▹-∘ b0 b1 b2 h= (old x) = ap old (h= x)
 map▹-∘ b0 b1 b2 h= (new .b0) = refl
 
 -- Map to a fresh thing
 map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
-map⇑ = map▹ ♦
+map⇑ = map▹ ♦ ♦
 
 
 ScopeP : (T : World → Set) → World → Set
@@ -349,7 +349,7 @@ module Example-TmFresh where
   renT : ∀ {α β} → (α → β) → Tm α → Tm β
   renT f (var x)       = var (f x)
   -- renT f (lam t)       = lam (renT (map▹ ♦ f) t) -- using fresh
-  renT f (lam t)       = lamP λ x -> renT (map▹ x f) t
+  renT f (lam t)       = lamP λ x -> renT (map▹ ♦ x f) t
   -- Even better: unpack lam t properly.
   -- renT f (lam t0) = unpack Tm t0 λ x t -> lamP (λ x' → renT (map▹ x' f) t)
   -- Unfortunately this jams the termination-checker.
@@ -432,7 +432,7 @@ module Example-TmFresh where
   subst-var′ : ∀ {α} → substT {α} var ~ id
   subst-var′ = subst-var (λ _ → refl)
 
-  ext-ren-subst : ∀ {α β} {f : α → β}{s : α ⇶ β} (s= : (var ∘ f) ~ s) → (var ∘ map▹ ♦ f) ~ ext s
+  ext-ren-subst : ∀ {α β} {f : α → β}{s : α ⇶ β} (s= : (var ∘ f) ~ s) → (var ∘ map⇑ f) ~ ext s
   ext-ren-subst s= (old x) = ap wkT (s= x)
   ext-ren-subst s= (new ._)     = refl
 
@@ -566,7 +566,7 @@ join . fmap (fmap f) ≡ fmap f . join
 
   -- These renamings are compatible with world extension.
   extRen⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{s : α → β}{b b' i}
-         → Ren⊢ Γ Δ s → Ren⊢ (Γ , b ↦ i) (Δ , b' ↦ i) (map▹ b' s)
+         → Ren⊢ Γ Δ s → Ren⊢ (Γ , b ↦ i) (Δ , b' ↦ i) (map▹ b b' s)
   extRen⊢ r (old x) = old (r x)
   extRen⊢ r new = new
 
