@@ -222,15 +222,17 @@ map▹-∘ b0 b1 b2 h= (new .b0) = refl
 map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
 map⇑ = map▹ ♦ ♦
 
+mkScope : ∀ {w} (T : World -> Set) -> Binder w -> Set
+mkScope {w} T = λ b → T (w ▹ b)
 
 ScopeP : (T : World → Set) → World → Set
-ScopeP = λ T w → NablaP w (λ b → T (w ▹ b))
+ScopeP = λ T w → NablaP w (mkScope T)
 
 ScopeS : (T : World → Set) → World → Set
-ScopeS = λ T w → NablaS w (λ b → T (w ▹ b))
+ScopeS = λ T w → NablaS w (mkScope T)
 
 ScopeF : (T : World → Set) → World → Set
-ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
+ScopeF = λ T w → NablaF w (mkScope T)
 
 ScopeFFunctor : ∀ {F} -> Functor F -> Functor (ScopeF F)
 ScopeFFunctor F = record { _<$>_ = λ f s →  map▹ ♦ ♦ f <$> s
@@ -251,9 +253,10 @@ pack {w} T x = x ♦
 unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> T (w ▹ v) -> r) -> r
 unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
 
-postulate
-  atVar : {w : World} (T : World → Set) → ScopeF T w → ScopeP T w
-  -- Can we implement this?
+atVar : {w : World} (T : World → Set) → ScopeF T w → ScopeP T w
+atVar T = FP (mkScope T)
+
+-- atVar' : TmC (a ▹ ◆) -> (x : Binder b) → a ⇉ b -> 
 
 
 {-
