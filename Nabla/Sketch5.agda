@@ -173,15 +173,27 @@ module _ {w : World} (T : Binder w → Type) where
 fresh : ∀ w -> Binder w
 fresh _ = ♦
 
+{-
 infixl 5 _▹_
 data _▹_ (w : World) : (b : Binder w) -> Type where
   old : {b : Binder w} -> w → w ▹ b
   new : (b : Binder w) -> w ▹ b
+-}
+
+data The {w : World} : Binder w → Set where
+  the : ∀ (b : Binder w) → The b
+
+infixl 5 _▹_
+_▹_ : (w : World) (b : Binder w) → Type
+w ▹ b = w ⊎ The b
+
+pattern old w = left w
+pattern new b = right (the b)
 
 data IVar {I : Type} {w : World} (Γ : w → I → Type)
           (b : Binder w) (i : I) : w ▹ b → I → Type where
-  old : ∀ {j x} → Γ x j → IVar Γ b i (old x) j
-  new : IVar Γ b i (new b) i
+  iold : ∀ {j x} → Γ x j → IVar Γ b i (old x) j
+  inew : IVar Γ b i (new b) i
 
 -- World extended with a fresh variable.
 _⇑ : (w : World) → World
@@ -595,8 +607,8 @@ join . fmap (fmap f) ≡ fmap f . join
   -- These renamings are compatible with world extension.
   extRen⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{s : α → β}{b b' i}
          → Ren⊢ Γ Δ s → Ren⊢ (Γ , b ↦ i) (Δ , b' ↦ i) (map▹ b b' s)
-  extRen⊢ r (old x) = old (r x)
-  extRen⊢ r new = new
+  extRen⊢ r (iold x) = iold (r x)
+  extRen⊢ r inew = inew
 
   -- Renaming in a typing derivation.
   ren⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{f : α → β}{t T}
@@ -616,8 +628,8 @@ join . fmap (fmap f) ≡ fmap f . join
   -- Weakening a derivation is a particular case of renaming.
   extSubst⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{s : α ⇶ β}{i}
          → Subst⊢ Γ Δ s → Subst⊢ (Γ ,, i) (Δ ,, i) (ext s)
-  extSubst⊢ r (old x₁) = ren⊢ old (r x₁)
-  extSubst⊢ r new = var new
+  extSubst⊢ r (iold x₁) = ren⊢ iold (r x₁)
+  extSubst⊢ r inew = var inew
 
   -- Substituting in a typing derivation.
   subst⊢ : ∀ {α β}{Γ : Cx α}{Δ : Cx β}{s : α ⇶ β}{t T}
@@ -634,8 +646,8 @@ join . fmap (fmap f) ≡ fmap f . join
 
   subst⊢0 : ∀ {α}{u : Tm α}{Γ b T}
             → Γ ⊢ u ∶ T → Subst⊢ (Γ , b ↦ T) Γ (subst0 u)
-  subst⊢0 u (old x) = var x
-  subst⊢0 u new     = u
+  subst⊢0 u (iold x) = var x
+  subst⊢0 u inew     = u
 
   [0≔_]_ : ∀ {α b} (u : Tm α) → Tm (α ▹ b) → Tm α
   [0≔ u ] t = [ subst0 u ] t
