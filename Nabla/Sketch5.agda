@@ -301,6 +301,13 @@ b ∈ w' = (_ ▹ b) ⇉ w'
 name' : ∀ {w w'}(b : Binder w) {{s : b ∈ w'}} → w'
 name' b = wkN' (name b)
 
+module Derive-fresh-PS
+    (PS : {w : World} (T : World → Set) → ScopeP T w → ScopeS T w)
+    where
+
+    freshPS : ∀ w → Binder w
+    freshPS w = fst (PS id (λ x → name' x))
+
 module Derive-fresh
     (ScopeA : (T : World → Set) → World → Set)
     (packA : {w : World} (T : World → Set) → ScopeP T w → ScopeA T w)
