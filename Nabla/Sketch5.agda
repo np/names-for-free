@@ -301,6 +301,15 @@ b ∈ w' = (_ ▹ b) ⇉ w'
 name' : ∀ {w w'}(b : Binder w) {{s : b ∈ w'}} → w'
 name' b = wkN' (name b)
 
+module Derive-fresh
+    (ScopeA : (T : World → Set) → World → Set)
+    (packA : {w : World} (T : World → Set) → ScopeP T w → ScopeA T w)
+    (unpackA : {r : Set} {w : World} (T : World → Set) → ScopeA T w → (∀ v -> T (w ▹ v) -> r) -> r)
+    where
+
+    freshA : ∀ w → Binder w
+    freshA w = unpackA id (packA id λ x → name' x) (λ b x → b)
+
 module Example-TmFresh where
 
   data Tm (w : World) : Type where
