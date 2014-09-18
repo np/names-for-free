@@ -2,33 +2,36 @@
 module KAM where
 
 open import Sketch5
+open import Data.List
 open Example-TmFresh
 
-
 mutual
-  Env : Set -> Set -> Set1
-  Env v w = v -> Closure w
+  Env : Set → Set → Set1
+  Env v w = v → Closure w
   
   data Closure w : Set1 where
-    C : ∀ {w'} -> Tm w' -> (w' -> Closure w) -> Closure w
-    Ne : Tm w -> Closure w
+    _/_ : ∀ {w'} → Tm w' → Env w' w → Closure w
+    ne  : Tm w → Closure w
 
-  data Stack w : Set1 where
-    Nil : Stack w
-    Cons : Closure w -> Stack w -> Stack w
+  Stack : World → Set1
+  Stack w = List (Closure w)
 
 instance
   postulate c-fun : Functor Closure
 
-cenv : ∀ {v w} -> Closure w -> Env v w -> Env (v ▹ ◆) w 
+cenv : ∀ {v w} → Closure w → Env v w → Env (v ▹ ◆) w
 cenv c ρ (old x) = ρ x
 cenv c ρ (new .♦) = c
 
-kam : ∀ {w} -> Closure w -> Stack w -> Tm w
-kam (Ne v) Nil = v 
-kam (Ne v) (Cons s ss) = kam (Ne (app v (kam s Nil)) ) ss 
-kam (C (var x) ρ) s = kam (ρ x) s
-kam (C (lam t) ρ) Nil = lam (kam (C t (λ { (old x) → wk (ρ x)  ; (new .♦) → Ne (var (new _)) })) Nil)
-kam (C (lam t) ρ) (Cons s ss) = kam (C t (cenv s ρ)) ss -- nicer: unpack
-kam (C (app t u) ρ) s = kam (C t ρ) (Cons (C u ρ) s)
+ext-env : ∀ {v w} (s : Env v w) → Env (v ⇑) (w ⇑)
+ext-env f (old x)  = wk (f x)
+ext-env f (new ._) = ne (var (new ♦))
+
+kam : ∀ {w} → Closure w → Stack w → Tm w
+kam (ne v) [] = v
+kam (ne v) (s ∷ ss) = kam (ne (app v (kam s [])) ) ss
+kam (var x   / ρ) s = kam (ρ x) s
+kam (lam t   / ρ) [] = lam (kam (t / ext-env ρ) [])
+kam (lam t   / ρ) (s ∷ ss) = kam (t / cenv s ρ) ss -- nicer: unpack
+kam (app t u / ρ) s = kam (t / ρ) (u / ρ ∷ s)
 

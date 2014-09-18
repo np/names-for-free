@@ -224,18 +224,21 @@ map▹  : ∀ {v w} b b' -> (v → w) → (v ▹ b) → (w ▹ b')
 map▹ _ _ f (old x) = old (f x)
 map▹ _ _ f (new ._) = new _
 
+-- Map to a fresh thing
+map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
+map⇑ = map▹ ♦ ♦
+
 map▹-id : ∀ {α}{f : α → α} (pf : f ~ id){b} → map▹ b b f ~ id
 map▹-id pf (old x) = ap old (pf x)
 map▹-id pf (new _) = refl
 
-map▹-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ} b0 b1 b2 (h= : f ∘ g ~ h)
-        → map▹ b1 b2 f ∘ map▹ b0 b1 g ~ map▹ b0 b2 h
-map▹-∘ b0 b1 b2 h= (old x) = ap old (h= x)
-map▹-∘ b0 b1 b2 h= (new .b0) = refl
+module _ {α β γ}{f : β → γ}{g : α → β}{h : α → γ}(h= : f ∘ g ~ h) where
+    map▹-∘ : ∀ b0 b1 b2 → map▹ b1 b2 f ∘ map▹ b0 b1 g ~ map▹ b0 b2 h
+    map▹-∘ b0 b1 b2 (old x) = ap old (h= x)
+    map▹-∘ b0 b1 b2 (new .b0) = refl
 
--- Map to a fresh thing
-map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
-map⇑ = map▹ ♦ ♦
+    map⇑-∘ : map⇑ f ∘ map⇑ g ~ map⇑ h
+    map⇑-∘ = map▹-∘ _ _ _
 
 mkScope : ∀ {w} (T : World -> Set) -> Binder w -> Set
 mkScope {w} T = λ b → T (w ▹ b)
@@ -250,9 +253,9 @@ ScopeF : (T : World → Set) → World → Set
 ScopeF = λ T w → NablaF w (mkScope T)
 
 ScopeFFunctor : ∀ {F} -> Functor F -> Functor (ScopeF F)
-ScopeFFunctor F = record { _<$>_ = λ f s →  map▹ ♦ ♦ f <$> s
+ScopeFFunctor F = record { _<$>_ = λ f s →  map⇑ f <$> s
                          ; <$>-id = λ pf → <$>-id (map▹-id pf)
-                         ; <$>-∘ = λ h= → <$>-∘ (map▹-∘ ♦ ♦ ♦ h=) }
+                         ; <$>-∘ = λ h= → <$>-∘ (map⇑-∘ h=) }
   where open Functor F
 
 pack : {w : World} (T : World → Set) → ScopeP T w → ScopeF T w
@@ -514,7 +517,7 @@ module Example-TmFresh where
             (h= : f ∘ g ~ h)
           → renT f ∘ renT g ~ renT h
   renT-∘ h= (var x) = ap var (h= x)
-  renT-∘ h= (lam t) = ap lam (renT-∘ (map▹-∘ _ _ _ h=) t)
+  renT-∘ h= (lam t) = ap lam (renT-∘ (map⇑-∘ h=) t)
   renT-∘ h= (app t u) = ap₂ app (renT-∘ h= t) (renT-∘ h= u)
 
   renT-∘′ : ∀ {α β γ}{f : β → γ}{g : α → β}
@@ -550,8 +553,8 @@ module Example-TmFresh where
   η t = lamP λ x → app (wkT t) (var' x)
 
   ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
-  ext f (old x) = wkT (f x)
-  ext f (new ._)     = var (new ♦)
+  ext f (old x)  = wkT (f x)
+  ext f (new ._) = var (new ♦)
 
   -- open Trv (λ f → f) ext public renaming (trvT to substT)
   
