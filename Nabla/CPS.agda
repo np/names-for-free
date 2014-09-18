@@ -65,7 +65,8 @@ cps (app e1 e2) k = cps (   e1) (pack TmC λ x₁ →
 -- untag (left x) = x
 -- untag (right x) = x
 -- fixit : ∀ {a} -> (a ⊎ Binder a) -> (a ▹ ◆)
--- fixit = {!!}
+-- fixit (left x) = old x
+-- fixit (right x) = new ♦
 
 
 -- cps : ∀ {a} -> Tm a -> (∀ {v} -> v -> TmC (a ⊎ v)) -> TmC a
