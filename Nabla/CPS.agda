@@ -36,6 +36,10 @@ mutual
  f <$V> FstC x = FstC (f x)
  f <$V> SndC x = SndC (f x)
 
+instance
+  tmCFun : Functor TmC
+  tmCFun = record { _<$>_ = _<$C>_ ; <$>-id = {!!} ; <$>-∘ = {!!} }
+
 wkC : ∀ {α β} {{s : α ⇉ β}} → TmC α → TmC β
 wkC {{s = mk⇉ f}} = _<$C>_ f
 
@@ -49,13 +53,13 @@ cps (var x) k = load x <$C> k
 cps (lam e) k = LetC (LamC (pack TmC λ p →
                         LetC (FstC (name' p)) (pack TmC λ x1 →
                         LetC (SndC (name' p)) (pack TmC λ x2 →
-                        cps (wkT (atVar Tm e p)) (pack TmC λ r →
+                        cps (wk (atVar Tm e p)) (pack TmC λ r →
                           AppC (VarC (name' x2)) (VarC (name' r))))))) k
-cps (app e1 e2) k = cps (    e1) (pack TmC λ x₁ →
-                    cps (wkT e2) (pack TmC λ x₂ →
+cps (app e1 e2) k = cps (   e1) (pack TmC λ x₁ →
+                    cps (wk e2) (pack TmC λ x₂ →
                     AppC (VarC (name' x₁))
                          (PairC (VarC (name' x₂))
-                                (LamC (pack TmC (λ x → atVar TmC (wkC k) x))))))
+                                (LamC (pack TmC (λ x → atVar' TmC k x))))))
 
 -- untag : ∀ {a} -> a ⊎ a -> a
 -- untag (left x) = x

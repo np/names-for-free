@@ -256,7 +256,6 @@ unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
 atVar : {w : World} (T : World → Set) → ScopeF T w → ScopeP T w
 atVar T = FP (mkScope T)
 
--- atVar' : TmC (a ▹ ◆) -> (x : Binder b) → a ⇉ b -> 
 
 
 {-
@@ -297,6 +296,10 @@ record _⇉_ (α β : World) : Set where
     wkN : α → β
 open _⇉_ public
 
+atVar' : {α β : World} (T : World → Set) -> {{_ : Functor T}} → ScopeF T α -> (b : Binder β) → {{_ : α ⇉ β}} -> T (β ▹ b)
+atVar' T {{Fun}} sc b {{mk⇉ s}} = map▹ _ _ s <$> sc
+  where open Functor Fun
+
 instance
   ⇉-skip :  ∀ {α β} {b} → {{s : α ⇉ β}} → α ⇉ ( β ▹ b )
   ⇉-skip {{mk⇉ s}} = mk⇉ (λ x → old (s x))
@@ -304,8 +307,8 @@ instance
   ⇉-refl : ∀ {w} → w ⇉ w
   ⇉-refl = mk⇉ λ x → x
 
-  ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
-  ⇉-▹ {{mk⇉ s}} = mk⇉ λ { (old x) → old (s x) ; (new .♦) → new ♦ }
+  -- ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
+  -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x -> map▹ ♦ ♦ s x
 
   -- ⇉-▹ :  ∀ {α β}{b}{b'}{{s : α ⇉ β}} → (α ▹ b) ⇉ (β ▹ b')
   -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ _ s x
@@ -434,6 +437,14 @@ module Example-TmFresh where
   -- wkT : ∀ {α β} {{i : α ⊆ β}} → Tm α → Tm β
   -- wkT = renT (wk …)
 
+  wk : ∀ {α β T} {{Fun : Functor T}} {{s : α ⇉ β}} → T α → T β
+  wk {{Fun}} = _<$>_ wkN'
+   where open Functor Fun
+  -- wkT : ∀ {α b} → Tm α → Tm (α ▹ b)
+  -- wkT = renT old
+  -- wkT : ∀ {α β} {{i : α ⊆ β}} → Tm α → Tm β
+  -- wkT = renT (wk …)
+
   wkT' : ∀ {α β} (s : α ⇉ β) → Tm α → Tm β
   wkT' (mk⇉ wk) = renT wk
 
@@ -554,6 +565,9 @@ module Example-TmFresh where
   subst-join∘ren s t =
     !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
       ∙ renT-id′ _)
+  instance
+    Tm-Functor : Functor Tm
+    Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
   Tm-Monad : Monad Tm
   Tm-Monad = record
                { return = var
