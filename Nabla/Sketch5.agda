@@ -135,7 +135,9 @@ World = Type -- a context of names
 postulate
   Binder : (w : World) → Set
   ♦ : ∀ {w} → Binder w
-  
+
+◆ : ∀ {w} → Binder w
+◆ = ♦ 
 NablaP : ∀ w → (T : Binder w → Set) → Set
 NablaP = λ w T → Π (Binder w) T
 
@@ -234,6 +236,11 @@ pack {w} T x = x ♦
 
 unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> T (w ▹ v) -> r) -> r
 unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
+
+postulate
+  atVar : {r : Set} {w : World} (T : World → Set) → ScopeF T w → ScopeP T w
+  -- Can we implement this?
+
 
 {-
 unpackPackScope : ∀ {w : World}  T (g : ScopeP T w) -> g == unpackScope T (packScope T g)
