@@ -173,22 +173,19 @@ module _ {w : World} (T : Binder w → Type) where
 fresh : ∀ w -> Binder w
 fresh _ = ♦
 
-{-
 infixl 5 _▹_
 data _▹_ (w : World) : (b : Binder w) -> Type where
   old : {b : Binder w} -> w → w ▹ b
   new : (b : Binder w) -> w ▹ b
--}
-
+{-
 data The {w : World} : Binder w → Set where
   the : ∀ (b : Binder w) → The b
 
-infixl 5 _▹_
 _▹_ : (w : World) (b : Binder w) → Type
 w ▹ b = w ⊎ The b
-
 pattern old w = left w
 pattern new b = right (the b)
+-}
 
 data IVar {I : Type} {w : World} (Γ : w → I → Type)
           (b : Binder w) (i : I) : w ▹ b → I → Type where
@@ -235,6 +232,11 @@ ScopeS = λ T w → NablaS w (λ b → T (w ▹ b))
 ScopeF : (T : World → Set) → World → Set
 ScopeF = λ T w → NablaF w (λ b → T (w ▹ b))
 
+ScopeFFunctor : ∀ {F} -> Functor F -> Functor (ScopeF F)
+ScopeFFunctor F = record { _<$>_ = λ f s →  map▹ ♦ ♦ f <$> s
+                         ; <$>-id = λ pf → <$>-id (map▹-id pf)
+                         ; <$>-∘ = λ h= → <$>-∘ (map▹-∘ ♦ ♦ ♦ h=) }
+  where open Functor F
 
 {-
 nablaS= : {w : World} (T : Binder w → Set)
@@ -250,7 +252,7 @@ unpack : {r : Set} {w : World} (T : World → Set) → ScopeF T w → (∀ v -> 
 unpack = λ {r} {w} T₁ z z₁ → z₁ ♦ z
 
 postulate
-  atVar : {r : Set} {w : World} (T : World → Set) → ScopeF T w → ScopeP T w
+  atVar : {w : World} (T : World → Set) → ScopeF T w → ScopeP T w
   -- Can we implement this?
 
 
@@ -299,8 +301,8 @@ instance
   ⇉-refl : ∀ {w} → w ⇉ w
   ⇉-refl = mk⇉ λ x → x
 
-  -- ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
-  -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ ♦ s x
+  ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
+  ⇉-▹ {{mk⇉ s}} = mk⇉ λ { (old x) → old (s x) ; (new .♦) → new ♦ }
 
   -- ⇉-▹ :  ∀ {α β}{b}{b'}{{s : α ⇉ β}} → (α ▹ b) ⇉ (β ▹ b')
   -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ _ s x
