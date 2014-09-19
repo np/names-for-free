@@ -345,7 +345,7 @@ module Derived-from-PS-SP
     where
 
     fresh' : ∀ w → Binder w
-    fresh' w = fst (PS (_▹_ w) λ x → name' x)
+    fresh' w = fst (PS (_▹_ w) new)
 
     ♦' : ∀ {w} → Binder w
     ♦' = fresh' _
@@ -444,6 +444,10 @@ SP : {w : World} (T : Binder w → Set) → NablaS w T → NablaP w T
 SP = {!!}
 -- SP {w} T (x , t) y = ⟪ x , t ⟫ @ y
 -}
+
+substituteOut : ∀  {M : Set -> Set} {{Mon : Monad M}} {a} v ->  M a -> M (a ▹ v) -> M a
+substituteOut {{Mon}} x t u = u >>= λ { (old x) → return x ; (new ._) → t }
+  where open Monad Mon
 
 module Example-TmFresh where
 
@@ -669,14 +673,14 @@ module Example-TmFresh where
   instance
     Tm-Functor : Functor Tm
     Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
-  Tm-Monad : Monad Tm
-  Tm-Monad = record
-               { return = var
-               ; _>>=_ = λ x x₁ → substT x₁ x
-               ; bind-assoc = subst-hom
-               ; right-id = subst-var
-               ; left-id = λ {α} {β} {x} {f} → refl
-               }
+    Tm-Monad : Monad Tm
+    Tm-Monad = record
+                 { return = var
+                 ; _>>=_ = λ x x₁ → substT x₁ x
+                 ; bind-assoc = subst-hom
+                 ; right-id = subst-var
+                 ; left-id = λ {α} {β} {x} {f} → refl
+                 }
 
                {-
   swpLams : ∀ {w} -> Tm w -> Tm w

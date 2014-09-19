@@ -16,10 +16,14 @@ mutual
 instance
   postulate no-monad : Monad No
 
+module _ {F : Set -> Set} {{F : Monad F}} where
+  open Monad F public
 
 appl : ∀ {a} -> No a -> No a -> No a
-appl = {!!}
+appl (Neu x) u = Neu (App x u)
+appl (Lam t) u = substituteOut _ u t
 
--- norm : ∀ {w} -> Tm w -> No w
--- norm (Var x) = return x
--- norm (App t u)
+norm : ∀ {w} -> Tm w -> No w
+norm (var x) = return x
+norm (lam x) = Lam (norm x)
+norm (app t u) = appl (norm t) (norm u)
