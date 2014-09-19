@@ -6,9 +6,7 @@ open import Data.Nat
 open import Function
 
 open import Sketch5
-open Example-TmFresh
-
-[_]_ = substT
+open import Terms
 
 data IVar {I : Type} {w : World} (Γ : w → I → Type)
           (b : Binder w) (i : I) : w ▹ b → I → Type where
@@ -91,9 +89,6 @@ subst⊢0 : ∀ {α}{u : Tm α}{Γ b T}
           → Γ ⊢ u ∶ T → Subst⊢ (Γ , b ↦ T) Γ (subst0 u)
 subst⊢0 u (iold x) = var x
 subst⊢0 u inew     = u
-
-[0≔_]_ : ∀ {α b} (u : Tm α) → Tm (α ▹ b) → Tm α
-[0≔ u ] t = [ subst0 u ] t
 
 pattern _·_ t u = app t u
 pattern ƛ t = lam t

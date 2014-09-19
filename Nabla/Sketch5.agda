@@ -30,8 +30,11 @@ record Monad (M : Set -> Set) : Set1 where
     return : ∀ {A} → A → M A
     _>>=_  : ∀ {A B} → M A → (A → M B) → M B
 
+  -- Too many names for the same thing...
   subs : ∀ {A B} → (A → M B) → M A  → M B
   subs = λ x x₁ → x₁ >>= x
+
+  [_]_ = subs
 
   join : ∀ {A} -> M (M A) -> M A
   join x = x >>= id
@@ -442,6 +445,10 @@ subst0 u (new ._)     = u
 
 substituteOut : ∀ {M} {{Mon : Monad M}} {a} v ->  M a -> M (a ▹ v) -> M a
 substituteOut {{Mon}} x t u = u >>= subst0 t
+
+
+[0≔_]_ : ∀ {M} {{Mon : Monad M}} {α b} (u : M α) → M (α ▹ b) → M α
+[0≔ u ] t = [ subst0 u ] t
 
 wk : ∀ {α β T} {{Fun : Functor T}} {{s : α ⇉ β}} → T α → T β
 wk {{Fun}} = _<$>_ wkN'
