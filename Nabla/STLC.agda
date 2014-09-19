@@ -44,6 +44,9 @@ data _⊢_∶_ {α} (Γ : Cx α) : Cx (Tm α) where
         (u⊢ : Γ ⊢ u ∶ S)
         -------------------
         → Γ ⊢ app t u ∶ T
+pattern _·_ t u = app t u
+pattern ƛ t = lam t
+
 
 -- Lifts a "renaming" to context membership proofs.
 Ren⊢ : ∀ {α β}(Γ : Cx α)(Δ : Cx β)(f : α → β) → Type
@@ -90,15 +93,7 @@ subst⊢0 : ∀ {α}{u : Tm α}{Γ b T}
 subst⊢0 u (iold x) = var x
 subst⊢0 u inew     = u
 
-pattern _·_ t u = app t u
-pattern ƛ t = lam t
 
-infix 0 _↝_
-data _↝_ {α} : (t u : Tm α) → Type where
-  β     : ∀ {t u} → ƛ t · u ↝ [0≔ u ] t
-  [_]·_ : ∀ {t t'}(r : t ↝ t') u → t · u ↝ t' · u
-  _·[_] : ∀ {t t'} u (r : t ↝ t') → u · t ↝ u · t'
-  ƛ[_]  : ∀ {t t'}(r : t ↝ t') → ƛ t ↝ ƛ t'
 
 -- Type preservation: reduction preserves typing
 ↝-pres-⊢ : ∀ {α Γ T} {t t' : Tm α} → t ↝ t' → Γ ⊢ t ∶ T → Γ ⊢ t' ∶ T

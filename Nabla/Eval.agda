@@ -4,12 +4,6 @@ open import Sketch5
 open import Terms
 
 
-infix 0 _↝_
-data _↝_ {α} : (t u : Tm α) → Type where
-  β     : ∀ {t u} → app (lam t) u ↝ [0≔ u ] t
-  [_]·_ : ∀ {t t'}(r : t ↝ t') u → app t u ↝ app t'  u
-  _·[_] : ∀ {t t'} u (r : t ↝ t') → app u t ↝ app u t'
-  ƛ[_]  : ∀ {t t'}(r : t ↝ t') → lam t ↝ lam t'
 
 mutual
   data Ne w : Set where
