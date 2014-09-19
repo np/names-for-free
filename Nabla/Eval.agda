@@ -13,11 +13,20 @@ mutual
     Neu : Ne w -> No w
     Lam : ScopeF No w -> No w
 
-instance
-  postulate no-monad : Monad No
+_>>='_ : ∀ {a b} -> Ne a -> (a -> No a) -> No a
+_>>='_
 
-module _ {F : Set -> Set} {{F : Monad F}} where
-  open Monad F public
+instance
+  no-monad : Monad No
+  no-monad = record
+               { return = λ {A} z → Neu (Var z)
+               ; _>>=_ = λ { (Neu (Var x)) θ → θ x
+                           ; (Neu (App t u)) θ → {!!} ; (Lam x) θ → {!!} }
+               ; bind-assoc = {!!}
+               ; right-id = {!!}
+               ; left-id = {!!}
+               }
+
 
 appl : ∀ {a} -> No a -> No a -> No a
 appl (Neu x) u = Neu (App x u)
