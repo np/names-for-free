@@ -1,4 +1,9 @@
 
+
+-- Potentially relevant:
+-- http://gallium.inria.fr/~xleroy/publi/cps-dargaye-leroy.pdf
+-- http://crpit.com/confpapers/CRPITV51Tian.pdf
+
 module CPS where
 
 open import Data.List
@@ -60,6 +65,7 @@ cps (app e1 e2) k = cps (   e1) (pack TmC λ x₁ →
                     AppC (VarC (name' x₁))
                          (PairC (VarC (name' x₂))
                                 (LamC (pack TmC (λ x → atVar' TmC k x))))))
+
 
 -- untag : ∀ {a} -> a ⊎ a -> a
 -- untag (left x) = x
