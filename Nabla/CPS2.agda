@@ -31,11 +31,18 @@ load v (new _) = v
 -- instance
 --   postulate no-monad : Monad No
 
+{-# NO_TERMINATION_CHECK #-}
 cps : ∀ {a} -> Tm a -> ScopeF Tm a -> Tm a
 cps (var x) k = load x <$> k
-cps (lam t) k = lam (pack Tm λ x → lam (pack Tm λ k' → cps ( wk (atVar Tm t x) )  (var' k')))
+cps (lam t) k = lam (pack Tm λ x → lam (pack Tm λ k' → cps ( wk (atVar' Tm t x) )  (var' k')))
 cps (app e1 e2) k = cps e1 (pack Tm λ m →
                     cps (wk e2) (pack Tm λ n →
                     app (app (var' m) (var' n)) (lam (pack Tm (λ x' → atVar' Tm k x')))))
 
+identity : ∀ {α} -> Tm α
+identity = lam (var (new _))
 
+
+-- Maybe something like that?
+theorem : ∀{α} (x y : Tm α) -> x ~> y -> cps x identity ~> y
+theorem = {!!}
