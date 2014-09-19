@@ -3,7 +3,7 @@ module KAM where
 
 open import Sketch5
 open import Data.List
-open Example-TmFresh
+open import Terms
 
 mutual
   Env : Set → Set → Set1
