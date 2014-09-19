@@ -222,8 +222,8 @@ subst-join∘ren s t =
   !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
     ∙ renT-id′ _)
 instance
-  Tm-Functor : Functor Tm
-  Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
+  -- Tm-Functor : Functor Tm
+  -- Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
   Tm-Monad : Monad Tm
   Tm-Monad = record
                { return = var
@@ -232,6 +232,13 @@ instance
                ; right-id = subst-var
                ; left-id = λ {α} {β} {x} {f} → refl
                }
+
+infix 0 _↝_
+data _↝_ {α} : (t u : Tm α) → Type where
+  β     : ∀ {t u} → app (lam t) u ↝ [0≔ u ] t
+  [_]·_ : ∀ {t t'}(r : t ↝ t') u → app t u ↝ app t'  u
+  _·[_] : ∀ {t t'} u (r : t ↝ t') → app u t ↝ app u t'
+  ƛ[_]  : ∀ {t t'}(r : t ↝ t') → lam t ↝ lam t'
 
              {-
 swpLams : ∀ {w} -> Tm w -> Tm w
