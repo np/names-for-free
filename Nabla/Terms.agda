@@ -233,13 +233,6 @@ instance
                ; left-id = λ {α} {β} {x} {f} → refl
                }
 
-infix 0 _↝_
-data _↝_ {α} : (t u : Tm α) → Type where
-  β     : ∀ {t u} → app (lam t) u ↝ [0≔ u ] t
-  [_]·_ : ∀ {t t'}(r : t ↝ t') u → app t u ↝ app t'  u
-  _·[_] : ∀ {t t'} u (r : t ↝ t') → app u t ↝ app u t'
-  ƛ[_]  : ∀ {t t'}(r : t ↝ t') → lam t ↝ lam t'
-
              {-
 swpLams : ∀ {w} -> Tm w -> Tm w
 swpLams (lam t0) = unpack Tm t0 (λ {v (lam t1) → unpack Tm t1 (λ v₁ t → lamP (λ x → lamP (λ x₁ → {!t [x := v1, x1 := v]!})))

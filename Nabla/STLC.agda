@@ -106,3 +106,4 @@ data _↝_ {α} : (t u : Tm α) → Type where
 ↝-pres-⊢ ([ r ]· u) (t₁ · t₂) = ↝-pres-⊢ r t₁ · t₂
 ↝-pres-⊢ (u ·[ r ]) (t₁ · t₂) = t₁ · ↝-pres-⊢ r t₂
 ↝-pres-⊢ ƛ[ r ] (ƛ t₁) = ƛ (↝-pres-⊢ r t₁)
+
