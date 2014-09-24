@@ -159,7 +159,7 @@ postulate
   ♦ : ∀ {w} → Binder w
 
 ◆ : ∀ {w} → Binder w
-◆ = ♦ 
+◆ = ♦
 
 NablaP : ∀ w → (T : Binder w → Set) → Set
 NablaP = λ w T → Π (Binder w) T
@@ -184,7 +184,6 @@ module _ {w : World} (T : Binder w → Type) where
     postulate
       SF : NablaS w T → NablaF w T
     -- SF = {!!} -- SF (♦ , t) = t
-    
 
     postulate
       FP : NablaF w T → NablaP w T
