@@ -222,15 +222,15 @@ subst-join∘ren s t =
   !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
     ∙ renT-id′ _)
 instance
-  -- Tm-Functor : Functor Tm
-  -- Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
   Tm-Monad : Monad Tm
   Tm-Monad = record
                { return = var
                ; _>>=_ = λ x x₁ → substT x₁ x
+               ; isFunctor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
                ; bind-assoc = subst-hom
                ; right-id = subst-var
                ; left-id = λ {α} {β} {x} {f} → refl
+               ; fmap-bind = ren-subst
                }
 
              {-

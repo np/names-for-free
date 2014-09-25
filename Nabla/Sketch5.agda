@@ -51,8 +51,9 @@ record Monad (M : Set -> Set) : Set1 where
     bind-assoc : ∀ {α β γ} {s : β →K γ} {s' : α →K β} {s'' : α →K γ} (s= : (s ∘k s') ~ s'') → subs s ∘ subs s' ~ subs s''
     right-id : ∀ {α}{s} (s= : s ~ return) → subs {α} s ~ id
     left-id : ∀ {α β x} {f : α →K β} -> return x >>= f == f x
-    -- fmap-bind : f <$> t == t >>= (\x -> return (f x))
-    
+    fmap-bind  : ∀ {α β} {f : α → β} {s : α →K β} (s= : return ∘ f ~ s) → _<$>_ f ~ subs s
+                 --f <$> t == t >>= (\x -> return (f x))
+
 
   {-
   We can define ANOTHER functor instance, but this is not really good.
