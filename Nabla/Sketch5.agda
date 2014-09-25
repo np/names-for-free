@@ -323,6 +323,10 @@ ext-gen : ∀ {v w} {F} {{Fun : Functor F}} (var : ∀ {α} -> α -> F α) (s : 
 ext-gen _ f (old x)  = wk (f x)
 ext-gen var f (new ._) = var (new ♦)
 
+-- ext-var-gen : ∀ {α}{F} {{Fun : Functor F}} (var : ∀ {α} -> α -> F α) {s : α →K α} (s= : s ~ var) → ext-gen var s ~ var
+-- ext-var-gen {{Fun = Fun}} _ s= (old x) = ?
+-- ext-var-gen _ s= (new ._)     = refl
+
 liftSubst : ∀ {M} {{Mon : Monad M}} {a b v} {v' : Binder b} → a →K b → (a ▹ v) →K (b ▹ v')
 liftSubst θ (old x) = wk (θ x)
 liftSubst θ (new x) = return (new _)
