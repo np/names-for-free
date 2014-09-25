@@ -47,7 +47,7 @@ lemma5 : ∀{a} {M v v' : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> (substituteOut
 lemma5 {M = var x} val r2 = β (β r2)
 lemma5 {M = lam M} val r2 = β (β {!!}) --1
 lemma5 {M = app M M₁} val r2 = β {!lemma5!} --2
-lemma5 (β r1) r2 = β (β (β {!!})) 
+lemma5 (β r1) r2 = β (β (β {!!}))
 lemma5 (r1 · r2) r3 = β {!!} --2
 lemma5 (ƛ r1) r2 = β (β {!!}) --1
 
