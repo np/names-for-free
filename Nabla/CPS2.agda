@@ -17,6 +17,10 @@ load : ∀ {w b}  -> w -> w ▹ b -> w
 load _ (old x) = x
 load v (new _) = v
 
+wkTm : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
+wkTm = wk {{Tm-Functor}}
+
+
 {-# NO_TERMINATION_CHECK #-}
 mutual 
   psi : ∀ {a} -> Tm a -> Tm a
@@ -24,10 +28,10 @@ mutual
   psi x = x
 
   cps : ∀ {a} -> Tm a -> Tm a
-  cps (app M N) = lam (pack Tm λ κ0 -> app (cps (wk M)) (lam (pack Tm λ k1 →
-                                       app (cps (wk N)) (lam (pack Tm λ k2 ->
+  cps (app M N) = lam (pack Tm λ κ0 -> app (cps (wkTm M)) (lam (pack Tm λ k1 →
+                                       app (cps (wkTm N)) (lam (pack Tm λ k2 ->
                                        app (app (var' k2) (var' k1)) (var' κ0))))))
-  cps A = lam (pack Tm (λ κ0 → app (var' κ0) (wk $ psi A))) -- Or psi (wk A)
+  cps A = lam (pack Tm (λ κ0 → app (var' κ0) (wkTm $ psi A))) -- Or psi (wk A)
 
 data _⟶_ {α} : (t u : Tm α) → Type where
   val : ∀{v} -> v ⟶ v
