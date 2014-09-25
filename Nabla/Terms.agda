@@ -109,11 +109,14 @@ wkT' (mk⇉ wk) = renT wk
 η : ∀ {w} → Tm w → Tm w
 η t = lamP λ x → app (wkT t) (var' x)
 
-ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
-ext f (old x)  = wkT (f x)
-ext f (new ._) = var (new ♦)
 
 -- open Trv (λ f → f) ext public renaming (trvT to substT)
+
+Tm-Functor : Functor Tm
+Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
+
+ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
+ext = ext-gen {{Fun = Tm-Functor}} var
 
 substT : ∀ {α β} (s : α ⇶ β) → Tm α → Tm β
 substT s (var x) = s x
@@ -226,7 +229,7 @@ instance
   Tm-Monad = record
                { return = var
                ; _>>=_ = λ x x₁ → substT x₁ x
-               ; isFunctor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
+               ; isFunctor = Tm-Functor
                ; bind-assoc = subst-hom
                ; right-id = subst-var
                ; left-id = λ {α} {β} {x} {f} → refl

@@ -319,6 +319,10 @@ substituteOut {{Mon}} x t u = u >>= subst0 t
 wk : ∀ {α β T} {{Fun : Functor T}} {{s : α ⇉ β}} → T α → T β
 wk {{Fun}} = _<$>_ wkN'
 
+ext-gen : ∀ {v w} {F} {{Fun : Functor F}} (var : ∀ {α} -> α -> F α) (s : v →K w) → v ⇑ →K w ⇑
+ext-gen _ f (old x)  = wk (f x)
+ext-gen var f (new ._) = var (new ♦)
+
 liftSubst : ∀ {M} {{Mon : Monad M}} {a b v} {v' : Binder b} → a →K b → (a ▹ v) →K (b ▹ v')
 liftSubst θ (old x) = wk (θ x)
 liftSubst θ (new x) = return (new _)
