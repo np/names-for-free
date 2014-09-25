@@ -224,11 +224,12 @@ subst-join∘ren : ∀ {α β} (s : α ⇶ β) → substT s ~ joinT ∘ renT s
 subst-join∘ren s t =
   !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
     ∙ renT-id′ _)
+
 instance
   Tm-Monad : Monad Tm
   Tm-Monad = record
                { return = var
-               ; _>>=_ = λ x x₁ → substT x₁ x
+               ; _>>=_ = flip substT
                ; isFunctor = Tm-Functor
                ; bind-assoc = subst-hom
                ; right-id = subst-var
