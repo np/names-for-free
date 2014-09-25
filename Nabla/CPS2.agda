@@ -35,11 +35,19 @@ data _⟶_ {α} : (t u : Tm α) → Type where
   _·_ : ∀ {t t' u u'}(r : t ⟶ t') (q : u ⟶ u') -> app t u ⟶ app t'  u'
   ƛ_  : ∀ {t t'}(r : t ⟶ t') → lam t ⟶ lam t'
 
-lemma : ∀{a} {M v v' : Tm a} {P : ScopeP Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) (P (fresh _))) ⟶ v' -> app (cps M) (lam (pack Tm P)) ⟶ v'
-lemma {M = M} val r2 = {!!}
-lemma (β r1) r2 = β (β (β {!!}))
-lemma (r1 · r2) r3 = β {!!}
-lemma (ƛ r1) r2 = β {!!}
+
+-- lem : ∀{PsubstT (subst0 (lam (substT (ext (subst0 (lam .P))) (substT (ext (λ x → var (old x))) (cps M))))) .P == ?
+-- lem = ?
+
+lemma5 : ∀{a} {M v v' : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> app (cps M) (lam P) ⟶ v'
+lemma5 {M = var x} val r2 = β (β r2)
+lemma5 {M = lam M} val r2 = β (β {!!}) --1
+lemma5 {M = app M M₁} val r2 = β {!lemma5!} --2 
+lemma5 (β r1) r2 = β (β (β {!!})) 
+lemma5 (r1 · r2) r3 = β {!!} --2
+lemma5 (ƛ r1) r2 = β (β {!!}) --1
+
+ 
 {-
 {-# NO_TERMINATION_CHECK #-}
 cps : ∀ {a} -> Tm a -> ScopeF Tm a -> Tm a
