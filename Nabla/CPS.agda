@@ -13,7 +13,7 @@ open import Data.Nat
 open import Function
 
 open import Sketch5
-open Example-TmFresh
+open import Terms
 
 
 mutual
