@@ -262,3 +262,16 @@ data _↝_ {α} : (t u : Tm α) → Type where
   _·[_] : ∀ {t t'} u (r : t ↝ t') → app u t ↝ app u t'
   ƛ[_]  : ∀ {t t'}(r : t ↝ t') → lam t ↝ lam t'
 _~>_ = _↝_
+
+
+mutual
+  Normal : ∀ {α} -> Tm α -> Set
+  Normal (var x) = One
+  Normal (lam tm) = Normal tm
+  Normal (app t u) = Neutral t × Normal u
+
+  Neutral : ∀ {α} -> Tm α -> Set
+  Neutral (var x) = One
+  Neutral (lam t) = Zero
+  Neutral (app t u) = Neutral t × Normal u
+
