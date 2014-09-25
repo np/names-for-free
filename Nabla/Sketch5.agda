@@ -12,6 +12,9 @@ ap2 : ∀ {a b c : Set} {x1 x2 : a} {y1 y2 : b} -> (f : a -> b -> c) -> (x1 == x
 ap2 f refl refl = refl
 
 record Functor (F : Set -> Set) : Set1 where
+  -- Kleisli arrow (useful at this level even though we do not have a category yet.)
+  _→K_ : Set -> Set -> Set
+  _→K_ A B = A → F B
   infixl 4 _<$>_
   field
     _<$>_ : ∀ {A B} → (A → B) → F A → F B
@@ -23,13 +26,14 @@ record Functor (F : Set -> Set) : Set1 where
           → map f ∘ map g ~ map h
 
 record Monad (M : Set -> Set) : Set1 where
-  -- Kleisli arrow
-  _→K_ : Set -> Set -> Set
-  _→K_ A B = A → M B
   field
+    {{isFunctor}} : Functor M
     return : ∀ {A} → A → M A
     _>>=_  : ∀ {A B} → M A → (A → M B) → M B
-
+  instance
+    isFunctor' : Functor M
+    isFunctor' = isFunctor
+  open Functor isFunctor
   -- Too many names for the same thing...
   subs : ∀ {A B} → (A → M B) → M A  → M B
   subs = λ x x₁ → x₁ >>= x
@@ -47,14 +51,18 @@ record Monad (M : Set -> Set) : Set1 where
     bind-assoc : ∀ {α β γ} {s : β →K γ} {s' : α →K β} {s'' : α →K γ} (s= : (s ∘k s') ~ s'') → subs s ∘ subs s' ~ subs s''
     right-id : ∀ {α}{s} (s= : s ~ return) → subs {α} s ~ id
     left-id : ∀ {α β x} {f : α →K β} -> return x >>= f == f x
+    -- fmap-bind : f <$> t == t >>= (\x -> return (f x))
+    
 
+  {-
+  We can define ANOTHER functor instance, but this is not really good.
   instance
     functor : Functor M
     functor = record { _<$>_ = λ f m → m >>= (λ x → return (f x))
                      ; <$>-id = λ pf → right-id (λ x₁ → ap return (pf x₁))
                      ; <$>-∘ = λ h= → bind-assoc (λ x₁ → trans left-id (ap return (h= x₁))) }
   -- open Functor functor public
-
+  -}
 module _ {F : Set -> Set} {{F : Monad F}} where
   open Monad F public
 module _ {F : Set -> Set} {{F : Functor F}} where
