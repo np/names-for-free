@@ -7,11 +7,14 @@ open import Relation.Binary.PropositionalEquality.NP
   renaming (_≡_ to _==_; _≗_ to _~_)
 open import Function
 
+infix 5 _$$_
 data Tm (w : World) : Type where
-  var : w -> Tm w
-  -- lam : ScopeF Tm w -> Tm w
-  lam : Tm (w ▹ ♦) → Tm w 
-  app : Tm w -> Tm w -> Tm w
+  var  : w -> Tm w
+  ƛ_   : ScopeF Tm w -> Tm w
+  _$$_ : Tm w -> Tm w -> Tm w
+
+pattern app t u = t $$ u
+pattern lam t = ƛ_ t
 
 lamP : ∀ {w} → ScopeP Tm w -> Tm w
 lamP f = lam (f ♦)
@@ -130,11 +133,12 @@ joinT = substT id
 -- by definition
 
 _∘s_ : ∀ {α β γ} (s : β ⇶ γ) (s' : α ⇶ β) → α ⇶ γ
-(s ∘s s') x = substT s (s' x)
+s ∘s s' = substT s ∘ s'
 
+-- TODO generalize out of terms
 ext-var : ∀ {α}{s : α ⇶ α} (s= : s ~ var) → ext s ~ var
-ext-var s= (old x) = ap wkT (s= x)
-ext-var s= (new ._)     = refl
+ext-var s= (old x)  = ap wkT (s= x)
+ext-var s= (new ._) = refl
 
 -- m >>= return   ≡   m
 subst-var : ∀ {α}{s} (s= : s ~ var) → substT {α} s ~ id

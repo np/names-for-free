@@ -9,6 +9,9 @@ open import Data.Product hiding (map)
 open import Data.Maybe hiding (module Eq; Eq; map)
 open import Data.Nat
 open import Function
+open import Relation.Binary.PropositionalEquality.NP
+  hiding ([_])
+  renaming (_≡_ to _==_; _≗_ to _~_)
 
 open import Sketch5
 open import Terms
@@ -20,43 +23,116 @@ load v (new _) = v
 wkTm : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
 wkTm = wk {{Tm-Functor}}
 
+ext-var' : ∀ {α β}(s : α → β) → ext (var ∘ s) ~ var ∘ map⇑ s
+ext-var' s (old x) = refl
+ext-var' s (new .♦) = refl
+
+ext-map⇑ : ∀ {α b}(t : Tm α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ var
+ext-map⇑ s (old x) = refl
+ext-map⇑ s (new .♦) = refl
+
+open ≡-Reasoning
+lem-ext : ∀ {α} (t : Tm α) (x : α ⇑) →
+  substT (ext (subst0 {b = ♦} t)) (ext (var ∘ old) x) == var x
+lem-ext t x =
+  let s = subst0 t in
+  substT (ext s) (ext (var ∘ old) x)
+  ≡⟨ ap (substT (ext s)) (ext-var' old x) ⟩
+  substT (ext s) (var (map⇑ old x))
+  ≡⟨ ext-map⇑ t x ⟩
+  var x
+  ∎
+
+-- Maybe this one can be simplified now
+lemma4 : ∀ {a} {t : Tm (a ⇑)}{u}
+  → substT (ext (subst0 {b = ♦} u)) (renT (map⇑ old) t) == t
+lemma4 {t = t} {u}
+  = ap (substT (ext (subst0 u)))
+       ((ren-subst (λ x → ! ext-var' old x) t))
+  ∙ subst-hom′ (ext (subst0 u)) (ext (var ∘ old)) t
+  ∙ subst-var (lem-ext u) t
+
+lemma4' : ∀ {a} {t : Tm (a ⇑ ⇑)}{u}
+  → substT (ext (ext (subst0 {b = ♦} u))) (renT (map⇑ (map⇑ old)) t) == t
+lemma4' {t = t} {u} = {!!}
+
 
 {-# NO_TERMINATION_CHECK #-}
 mutual 
   psi : ∀ {a} -> Tm a -> Tm a
-  psi (lam M) = lam (pack Tm λ κ0 -> atVar Tm (cps M) κ0)
+  psi (ƛ M) = lamP λ κ0 -> atVar Tm (cps M) κ0
   psi x = x
 
+  cpsP : ∀ {a} -> Tm a -> ScopeP Tm a
+  cpsP (M $$ N) κ0 = cps (wkTm M) $$
+                         (lamP λ k1 →
+                           cps (wkTm N) $$
+                               (lamP λ k2 ->
+                                  (var' k2 $$ var' k1) $$ var' κ0))
+  cpsP A κ0 = var' κ0 $$ (wkTm $ psi A) -- Or psi (wk A)
+
   cps : ∀ {a} -> Tm a -> Tm a
-  cps (app M N) = lam (pack Tm λ κ0 -> app (cps (wkTm M)) (lam (pack Tm λ k1 →
-                                       app (cps (wkTm N)) (lam (pack Tm λ k2 ->
-                                       app (app (var' k2) (var' k1)) (var' κ0))))))
-  cps A = lam (pack Tm (λ κ0 → app (var' κ0) (wkTm $ psi A))) -- Or psi (wk A)
+  cps A = lamP (cpsP A)
 
+-- supposed to come for free
+cpsP-naturality : ∀ {α β b b'} (f : α → β) (t : Tm α) → cpsP (renT f t) b == renT (map▹ _ _ f) (cpsP t b')
+cpsP-naturality = {!!}
+
+-- supposed to come for free
+cps-naturality : ∀ {α β} (f : α → β) (t : Tm α) → cps (renT f t) == renT f (cps t)
+cps-naturality f t = ap lam (cpsP-naturality f t)
+
+cpsP-wk-naturality : ∀ {α} (t : Tm α)
+ → cpsP (wkTm {{mk⇉ (old {b = ♦}) }} t) ♦ == wkTm {{mk⇉ (map⇑ old)}} (cpsP t ♦)
+cpsP-wk-naturality = cpsP-naturality old
+
+-- Not used yet
+mutual
+    -- Neutral forms
+    data Neu {α} : Tm α → Type where
+      var  : ∀ x → Neu (var x)
+      _$$_ : ∀ {t u} → Neu t → Nrm u → Neu (t $$ u)
+
+    -- Normal forms
+    data Nrm {α} : Tm α → Type where
+      ƛ_  : {t : Tm (α ⇑)} → Nrm t → Nrm (ƛ t)
+      neu : ∀ {t} → Neu t → Nrm t
+
+infix 2 _⟶_
 data _⟶_ {α} : (t u : Tm α) → Type where
-  val : ∀{v} -> v ⟶ v
-  β     : ∀ {t u v} → [0≔ u ] t ⟶ v -> app (lam t) u ⟶ v
-  _·_ : ∀ {t t' u u'}(r : t ⟶ t') (q : u ⟶ u') -> app t u ⟶ app t'  u'
-  ƛ_  : ∀ {t t'}(r : t ⟶ t') → lam t ⟶ lam t'
+  -- nrm : ∀{v} → Nrm v → v ⟶ v
+  noop  : ∀{v} → v ⟶ v
+  β    : ∀ {t u v} → [0≔ u ] t ⟶ v -> ƛ t $$ u ⟶ v
+  _$$_ : ∀ {t t' u u'}(r : t ⟶ t') (q : u ⟶ u') -> t $$ u ⟶ t' $$ u'
+  ƛ_   : ∀ {t t'}(r : t ⟶ t') → ƛ t ⟶ ƛ t'
 
+lemma5' : ∀ {a P v'} {M v : Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> [0≔ (ƛ P) ] cpsP M ♦ ⟶ v'
+lemma5' {a} {P} {v'} {M = var x} noop r2 = β r2
+lemma5' {a} {P} {v'} {M = ƛ M}   noop r2 = β (tr (λ t → substT (subst0 (ƛ t)) P ⟶ v') (! lemma4) r2)
+lemma5' {a} {P} {v'} {M $$ N}    noop r2 = β (tr (λ t → t ⟶ v')
+    (({!!} ∙ ap (substT _) (! cpsP-wk-naturality M)) ∙ ! subst-hom′ _ _ (cpsP (wkTm M) ♦)) r2)
+lemma5' {a} {P} {v'} (ƛ r1) r2
+  {-
+    t ⟶ t'
+    [0≔ ƛ (ƛ (cpsP t')) ] P ⟶ v'
+    -------------------------------------
+    [0≔ ƛ (ƛ ([ Φ ] (cpsP t)) ] P ⟶ v'
 
--- lem : ∀{PsubstT (subst0 (lam (substT (ext (subst0 (lam .P))) (substT (ext (λ x → var (old x))) (cps M))))) .P == ?
--- lem = ?
+    where Φ = ext (ext [0≔ ƛ P ]) ∘ renT (map⇑ (map⇑ wkN'))
+  -}
+  = β ({!lemma5' {!r1!} {!!}!})
+  -- (tr (λ t → substT (subst0 t) P ⟶ v') (ap ƛ_ (ap ƛ_ ({!!} ∙ ! lemma4'))) r2)
+lemma5' (β r1) r2 = {!!}
+lemma5' (r1 $$ r2) r3 = β {!!}
 
-lemma5 : ∀{a} {M v v' : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> app (cps M) (lam P) ⟶ v'
-lemma5 {M = var x} val r2 = β (β r2)
-lemma5 {M = lam M} val r2 = β (β {!!}) --1
-lemma5 {M = app M M₁} val r2 = β {!lemma5!} --2
-lemma5 (β r1) r2 = β (β (β {!!}))
-lemma5 (r1 · r2) r3 = β {!!} --2
-lemma5 (ƛ r1) r2 = β (β {!!}) --1
+lemma5 : ∀{a} {M v v' : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> cps M $$ ƛ P ⟶ v'
+lemma5 r1 r2 = β (lemma5' r1 r2)
 
 identity : ∀ {α} -> Tm α
-identity = lam (var (new _))
+identity = lamP λ x → var' x
 
 theorem : ∀{a} (M : Tm a) -> app (cps M) identity ⟶ psi M
-theorem M = lemma5 {M = M} {v = M} {P = var (new ◆)} val val
-
+theorem M = lemma5 {M = M} {v = M} {P = var (new ◆)} noop noop
  
 {-
 {-# NO_TERMINATION_CHECK #-}
@@ -84,3 +160,7 @@ theorem ._ ._ ƛ[ p ] = {!!}
 
 -- However, there may be another set of instances which may help.
 -}
+-- -}
+-- -}
+-- -}
+-- -}
