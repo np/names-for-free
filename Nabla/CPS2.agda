@@ -42,10 +42,16 @@ data _⟶_ {α} : (t u : Tm α) → Type where
 lemma5 : ∀{a} {M v v' : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> app (cps M) (lam P) ⟶ v'
 lemma5 {M = var x} val r2 = β (β r2)
 lemma5 {M = lam M} val r2 = β (β {!!}) --1
-lemma5 {M = app M M₁} val r2 = β {!lemma5!} --2 
+lemma5 {M = app M M₁} val r2 = β {!lemma5!} --2
 lemma5 (β r1) r2 = β (β (β {!!})) 
 lemma5 (r1 · r2) r3 = β {!!} --2
 lemma5 (ƛ r1) r2 = β (β {!!}) --1
+
+identity : ∀ {α} -> Tm α
+identity = lam (var (new _))
+
+theorem : ∀{a} (M : Tm a) -> app (cps M) identity ⟶ psi M
+theorem M = lemma5 {M = M} {v = M} {P = var (new ◆)} val val
 
  
 {-
@@ -60,8 +66,6 @@ cps (app e1 e2) k = cps e1 (pack Tm λ m →
                     cps (wk e2) (pack Tm λ n →
                     app (app (var' m) (var' n)) (lam (pack Tm (λ x' → atVar' Tm k x')))))
 
-identity : ∀ {α} -> Tm α
-identity = lam (var (new _))
 
 
 -- Maybe something like that?
