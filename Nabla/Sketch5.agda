@@ -50,7 +50,8 @@ record Monad (M : Set -> Set) : Set1 where
   field
     bind-assoc : ∀ {α β γ} {s : β →K γ} {s' : α →K β} {s'' : α →K γ} (s= : (s ∘k s') ~ s'') → subs s ∘ subs s' ~ subs s''
     right-id : ∀ {α}{s} (s= : s ~ return) → subs {α} s ~ id
-    left-id : ∀ {α β x} {f : α →K β} -> return x >>= f == f x
+    left-id : ∀ {α β x} {f : α →K β}{s} (s= : s ~ return)  -> s x >>= f == f x
+    -- left-id : ∀ {α β x} {f : α →K β} -> return x >>= f == f x
     fmap-bind  : ∀ {α β} {f : α → β} {s : α →K β} (s= : return ∘ f ~ s) → _<$>_ f ~ subs s
                  --f <$> t == t >>= (\x -> return (f x))
 
@@ -323,9 +324,13 @@ ext-gen : ∀ {v w} {F} {{Fun : Functor F}} (var : ∀ {α} -> α -> F α) (s : 
 ext-gen _ f (old x)  = wk (f x)
 ext-gen var f (new ._) = var (new ♦)
 
--- ext-var-gen : ∀ {α}{F} {{Fun : Functor F}} (var : ∀ {α} -> α -> F α) {s : α →K α} (s= : s ~ var) → ext-gen var s ~ var
--- ext-var-gen {{Fun = Fun}} _ s= (old x) = ?
--- ext-var-gen _ s= (new ._)     = refl
+-- ext-var-gen : ∀ {α} {F : Set -> Set} {{Mon : Monad F}} -> ext-gen {α}  return return ~ return
+-- ext-var-gen {{Mon = Mon}} (old x) = trans (fmap-bind (\y -> refl) (return x)) (left-id (λ x₁ → refl))
+-- ext-var-gen  (new ._)     = refl
+
+ext-var-gen : ∀ {α}{F} {{Mon : Monad F}}  {s : α →K α} (s= : s ~ return) → ext-gen return s ~ return
+ext-var-gen {{Mon = Mon}} {s = s} s= (old x) =  trans (fmap-bind (λ y → refl) (s x)) (left-id   s=)  
+ext-var-gen s= (new ._)     = refl
 
 liftSubst : ∀ {M} {{Mon : Monad M}} {a b v} {v' : Binder b} → a →K b → (a ▹ v) →K (b ▹ v')
 liftSubst θ (old x) = wk (θ x)

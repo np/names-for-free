@@ -229,6 +229,10 @@ subst-join∘ren s t =
   !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
     ∙ renT-id′ _)
 
+var-subst : ∀ {α} {β} {x} {f : α ⇶ β} {s : α → Tm α} → s ~ var → flip substT (s x) f == f x
+var-subst {x = x} {s = s} s= with s x | s= x
+var-subst s= | ._ | refl = refl
+
 instance
   Tm-Monad : Monad Tm
   Tm-Monad = record
@@ -237,7 +241,7 @@ instance
                ; isFunctor = Tm-Functor
                ; bind-assoc = subst-hom
                ; right-id = subst-var
-               ; left-id = λ {α} {β} {x} {f} → refl
+               ; left-id = λ {α} {β} {x} {f} → var-subst
                ; fmap-bind = ren-subst
                }
 
