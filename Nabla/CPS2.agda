@@ -31,7 +31,6 @@ ext-var' s (new .♦) = refl
 -- ext-map⇑ s (old x) = refl
 -- ext-map⇑ s (new .♦) = refl
 
--- Maybe this one can be simplified now
 lemma4 : ∀ {a} {t : Tm (a ⇑)}{u}
   → substT (ext (subst0 {b = ♦} u)) (renT (map⇑ old) t) == t
 lemma4 {t = t} {u} = trans (bind∘fmap t _ _) (right-id (ext-map⇑ u) t)
@@ -90,6 +89,21 @@ data _⟶_ {α} : (t u : Tm α) → Type where
   _$$_ : ∀ {t t' u u'}(r : t ⟶ t') (q : u ⟶ u') -> t $$ u ⟶ t' $$ u'
   ƛ_   : ∀ {t t'}(r : t ⟶ t') → ƛ t ⟶ ƛ t'
 
+⟶trans : ∀ {a} {t u v : Tm a} -> (t ⟶ u) -> (u ⟶ v) -> (t ⟶ v)
+⟶trans = {!!}
+
+==⟶ : ∀ {a} -> {t u : Tm a} -> (t == u) -> (t ⟶ u)
+==⟶ = {!!}
+
+subst-lemma' : ∀ {a b} -> {M M' : Tm a} -> ∀ {s s' : a → Tm b} → (M ⟶ M') -> (∀ x -> s x ⟶ s' x) -> M >>= s ⟶ M' >>= s'
+subst-lemma' noop = {!extensionality x!}  
+subst-lemma' {a} {b} {._} {M'} {s} {s'} (β {t} {u} r1) x = β (⟶trans (==⟶ (trans (bind-assoc {{Tm-Monad}} {s =(subst0 (substT s u)) } {s' = ext s} {s'' = substT (subst0 (substT s u)) ∘ (ext  s )} (λ x₁ → refl) t) (trans {!ap2 substT ? refl !} (! bind-assoc {{Tm-Monad}} {s = s} {s' = subst0 u} {s'' = substT s ∘ subst0 u} (λ x₁ → refl) t)))) (subst-lemma' {M = substT (subst0 u) t} {M' = M'} {s = s} {s' = s'} r1 x))
+subst-lemma' (r1 $$ r2) x = subst-lemma' r1 x $$ subst-lemma' r2 x 
+subst-lemma' (ƛ r1) x = ƛ subst-lemma' r1 {!extensionality x!}
+
+subst-lemma : ∀ {a} -> {M v : Tm a} -> (N v' : ScopeF Tm a) → (M ⟶ v) -> (N ⟶ v') -> [0≔ M ] N ⟶ [0≔ v ] v'
+subst-lemma = {!!}
+
 lemma5' : ∀ {a P v'} {M v : Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> [0≔ (ƛ P) ] cpsP M ♦ ⟶ v'
 lemma5' {a} {P} {v'} {M = var x} noop r2 = β r2
 lemma5' {a} {P} {v'} {M = ƛ M}   noop r2 = β (tr (λ t → substT (subst0 (ƛ t)) P ⟶ v') (! lemma4) r2)
@@ -106,7 +120,7 @@ lemma5' {a} {P} {v'} (ƛ r1) r2
   -}
   = β ({!lemma5' {!r1!} {!!}!})
   -- (tr (λ t → substT (subst0 t) P ⟶ v') (ap ƛ_ (ap ƛ_ ({!!} ∙ ! lemma4'))) r2)
-lemma5' (β r1) r2 = {!!}
+lemma5' (β r1) r2 = β (β (β {!!}))
 lemma5' (r1 $$ r2) r3 = β {!!}
 
 lemma5 : ∀{a} {M v v' : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> cps M $$ ƛ P ⟶ v'

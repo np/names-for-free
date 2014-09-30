@@ -57,6 +57,7 @@ record Monad (M : Set -> Set) : Set1 where
     fmap-bind  : ∀ {α β} {f : α → β} {s : α →K β} (s= : return ∘ f ~ s) → _<$>_ f ~ subs s
                  --f <$> t == t >>= (\x -> return (f x))
 
+  -- associativity, but with one substitution specialised to fmap
   bind∘fmap : ∀ {a b c} (t : M a) (f : a -> b) (s : b -> M c) -> ((f <$> t) >>= s) == (t >>= (s ∘ f))
   bind∘fmap t f s = trans ((ap (\l -> l >>= s) (fmap-bind {f = f} (λ x → refl) t)))
                           (bind-assoc {s = s} {s' = return ∘ f} {s'' = s ∘ f} (\ y -> left-id {f = s} {s = return} (λ x → refl)) t)
