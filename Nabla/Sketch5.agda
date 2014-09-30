@@ -339,6 +339,10 @@ liftSubst : ∀ {M} {{Mon : Monad M}} {a b v} {v' : Binder b} → a →K b → (
 liftSubst θ (old x) = wk (θ x)
 liftSubst θ (new x) = return (new _)
 
+-- (>>=) f == join ∘ fmap f
+-- subs-join∘ren : ∀ {α β} {f : Set -> Set} {{_ : Monad f}} (s : α →K β) → subs s ~ join ∘ _<$>_ s
+-- subs-join∘ren {{Mon}} s t = {!!}
+
 
 -- Note that one cannot define lambda in terms of >>=:
 -- lambda : ∀ {m a} -> {{_ : Monad m}} -> m (a ▹ ◆) -> m a
