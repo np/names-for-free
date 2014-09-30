@@ -340,8 +340,43 @@ liftSubst θ (old x) = wk (θ x)
 liftSubst θ (new x) = return (new _)
 
 
+-- Note that one cannot define lambda in terms of >>=:
+-- lambda : ∀ {m a} -> {{_ : Monad m}} -> m (a ▹ ◆) -> m a
+-- lambda t = t >>= (λ {(old x) → return x ; (new ._) → {!!} })
+  
 
 
+{-- module Free where
+  -- Maybe we can make a version of "free" which supports lambdas.
+
+  -- This chould probably be defined using copatterns/whatnot, without nonsense.
+  data Free (f : Set -> Set) (a : Set) : Set where
+    pure : a -> Free f a
+    embed : f (Free f a) -> Free f a
+
+  {-# NO_TERMINATION_CHECK #-}
+  Free-fmap : ∀ {f a b} {{Fun : Functor f}} -> (a -> b) -> Free f a -> Free f b
+  Free-fmap f (pure x) = pure (f x)
+  Free-fmap f (embed m) = embed (Free-fmap f <$> m )
+
+  {-# NO_TERMINATION_CHECK #-}
+  Free-bind : ∀ {f a b} {{Fun : Functor f}} -> Free f a -> (a -> Free f b) -> Free f b
+  Free-bind (pure x) f = f x
+  Free-bind (embed m) f = embed ((λ x → Free-bind x f) <$> m)
+  
+  instance
+    Free-Fun : ∀ {f} -> {{_ : Functor f}} -> Functor (Free f)
+    Free-Fun = record { _<$>_ = Free-fmap ; <$>-id = {!!} ; <$>-∘ = {!!} }
+
+    Free-Mon : ∀ {f} -> {{Fun : Functor f}} -> Monad (Free f)
+    Free-Mon {f} {{Fun}} = record
+                             { return = pure
+                             ; _>>=_ = Free-bind
+                             ; bind-assoc = {!!}
+                             ; right-id = {!!}
+                             ; left-id = {!!}
+                             ; fmap-bind = {!!}
+                             }
    
 -- -}
 -- -}
