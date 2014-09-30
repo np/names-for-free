@@ -18,6 +18,8 @@ record Functor (F : Set -> Set) : Set1 where
   infixl 4 _<$>_
   field
     _<$>_ : ∀ {A B} → (A → B) → F A → F B
+
+  map : ∀ {A B} → (A → B) → F A → F B
   map = _<$>_
   field
     <$>-id : ∀ {α}{f : α → α} (pf : f ~ id) → _<$>_ f ~ id
@@ -55,6 +57,9 @@ record Monad (M : Set -> Set) : Set1 where
     fmap-bind  : ∀ {α β} {f : α → β} {s : α →K β} (s= : return ∘ f ~ s) → _<$>_ f ~ subs s
                  --f <$> t == t >>= (\x -> return (f x))
 
+  bind∘fmap : ∀ {a b c} (t : M a) (f : a -> b) (s : b -> M c) -> ((f <$> t) >>= s) == (t >>= (s ∘ f))
+  bind∘fmap t f s = trans ((ap (\l -> l >>= s) (fmap-bind {f = f} (λ x → refl) t)))
+                          (bind-assoc {s = s} {s' = return ∘ f} {s'' = s ∘ f} (\ y -> left-id {f = s} {s = return} (λ x → refl)) t)
 
   {-
   We can define ANOTHER functor instance, but this is not really good.
@@ -343,11 +348,13 @@ liftSubst θ (new x) = return (new _)
 -- subs-join∘ren : ∀ {α β} {f : Set -> Set} {{_ : Monad f}} (s : α →K β) → subs s ~ join ∘ _<$>_ s
 -- subs-join∘ren {{Mon}} s t = {!!}
 
-
 -- Note that one cannot define lambda in terms of >>=:
 -- lambda : ∀ {m a} -> {{_ : Monad m}} -> m (a ▹ ◆) -> m a
 -- lambda t = t >>= (λ {(old x) → return x ; (new ._) → {!!} })
   
+postulate
+  ext-map⇑ : ∀ {α b f}(t : f α) {{Mon : Monad f}} → ext-gen return (subst0 {b = b} t) ∘ map⇑ old ~ return
+  -- by def of <$> and right-id
 
 
 {-- module Free where

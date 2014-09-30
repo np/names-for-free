@@ -27,9 +27,9 @@ ext-var' : ∀ {α β}(s : α → β) → ext (var ∘ s) ~ var ∘ map⇑ s
 ext-var' s (old x) = refl
 ext-var' s (new .♦) = refl
 
-ext-map⇑ : ∀ {α b}(t : Tm α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ var
-ext-map⇑ s (old x) = refl
-ext-map⇑ s (new .♦) = refl
+-- ext-map⇑ : ∀ {α b}(t : Tm α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ var
+-- ext-map⇑ s (old x) = refl
+-- ext-map⇑ s (new .♦) = refl
 
 open ≡-Reasoning
 lem-ext : ∀ {α} (t : Tm α) (x : α ⇑) →
@@ -52,9 +52,10 @@ lemma4 {t = t} {u}
   ∙ subst-hom′ (ext (subst0 u)) (ext (var ∘ old)) t
   ∙ subst-var (lem-ext u) t
 
+
 lemma4' : ∀ {a} {t : Tm (a ⇑ ⇑)}{u}
   → substT (ext (ext (subst0 {b = ♦} u))) (renT (map⇑ (map⇑ old)) t) == t
-lemma4' {t = t} {u} = {!!}
+lemma4' {t = t} {u} = trans (bind∘fmap t (map⇑ (map⇑ old)) (ext (ext (subst0 {b = ♦} u)))) {!!}  
 
 
 {-# NO_TERMINATION_CHECK #-}
