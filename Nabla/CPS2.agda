@@ -31,27 +31,10 @@ ext-var' s (new .♦) = refl
 -- ext-map⇑ s (old x) = refl
 -- ext-map⇑ s (new .♦) = refl
 
-open ≡-Reasoning
-lem-ext : ∀ {α} (t : Tm α) (x : α ⇑) →
-  substT (ext (subst0 {b = ♦} t)) (ext (var ∘ old) x) == var x
-lem-ext t x =
-  let s = subst0 t in
-  substT (ext s) (ext (var ∘ old) x)
-  ≡⟨ ap (substT (ext s)) (ext-var' old x) ⟩
-  substT (ext s) (var (map⇑ old x))
-  ≡⟨ ext-map⇑ t x ⟩
-  var x
-  ∎
-
 -- Maybe this one can be simplified now
 lemma4 : ∀ {a} {t : Tm (a ⇑)}{u}
   → substT (ext (subst0 {b = ♦} u)) (renT (map⇑ old) t) == t
-lemma4 {t = t} {u}
-  = ap (substT (ext (subst0 u)))
-       ((ren-subst (λ x → ! ext-var' old x) t))
-  ∙ subst-hom′ (ext (subst0 u)) (ext (var ∘ old)) t
-  ∙ subst-var (lem-ext u) t
-
+lemma4 {t = t} {u} = trans (bind∘fmap t _ _) (right-id (ext-map⇑ u) t)
 
 lemma4' : ∀ {a} {t : Tm (a ⇑ ⇑)}{u}
   → substT (ext (ext (subst0 {b = ♦} u))) (renT (map⇑ (map⇑ old)) t) == t
@@ -111,7 +94,7 @@ lemma5' : ∀ {a P v'} {M v : Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) 
 lemma5' {a} {P} {v'} {M = var x} noop r2 = β r2
 lemma5' {a} {P} {v'} {M = ƛ M}   noop r2 = β (tr (λ t → substT (subst0 (ƛ t)) P ⟶ v') (! lemma4) r2)
 lemma5' {a} {P} {v'} {M $$ N}    noop r2 = β (tr (λ t → t ⟶ v')
-    (({!!} ∙ ap (substT _) (! cpsP-wk-naturality M)) ∙ ! subst-hom′ _ _ (cpsP (wkTm M) ♦)) r2)
+    (({!lemma5' !} ∙ ap (substT _) (! cpsP-wk-naturality M)) ∙ ! subst-hom′ _ _ (cpsP (wkTm M) ♦)) r2)
 lemma5' {a} {P} {v'} (ƛ r1) r2
   {-
     t ⟶ t'
