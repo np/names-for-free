@@ -237,4 +237,20 @@ module Derived-from-PS-SP
                   {x y : NablaS w T} → SF' T x == SF' T y → x == y
         SF'-inj T = SP-inj' T ∘ FP' _
 
+-- World extended with a fresh variable.
+_⇑ : (w : World) → World
+w ⇑ = w ▹ ♦
+
+module Stupid {w : World} where
+  -- Both swp and id have the same type...
+
+  swp : w ⇑ ⇑ → w ⇑ ⇑
+  swp (old (old x)) = old (old x)
+  swp (old (new ._)) = new _
+  swp (new ._) = old (new _)
+
+  swp' : ∀ {b : Binder w} {b' : Binder (w ▹ b)} -> w ▹ b ▹ b' → w ▹ b ▹ b'
+  swp' (old (old x)) = old (old x)
+  swp' {b} {b'} (old (new .b)) = new b'
+  swp' {b} {b'} (new .b') = old (new b)
 

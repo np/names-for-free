@@ -296,6 +296,8 @@ instance
   ⇉-▹ {{mk⇉ s}} = mk⇉ λ x → map▹ s x
   -}
 
+----------------------------
+-- Weakening/Renaming
 wkN' : ∀ {α β} {{s : α ⇉ β}} → α → β
 wkN' = wkN …
 
@@ -304,18 +306,6 @@ b ∈ w' = (_ ▹ b) ⇉ w'
 
 name' : ∀ {w w'}(b : Binder w) {{s : b ∈ w'}} → w'
 name' b = wkN' (name b)
-
-
-subst0 : ∀ {M} {{Mon : Monad M}} {α b} → M α → (α ▹ b) →K α
-subst0 u (old x) = return x
-subst0 u (new ._)     = u
-
-substituteOut : ∀ {M} {{Mon : Monad M}} {a} v ->  M a -> M (a ▹ v) -> M a
-substituteOut {{Mon}} x t u = u >>= subst0 t
-
-
-[0≔_]_ : ∀ {M} {{Mon : Monad M}} {α b} (u : M α) → M (α ▹ b) → M α
-[0≔ u ] t = [ subst0 u ] t
 
 wk : ∀ {α β T} {{Fun : Functor T}} {{s : α ⇉ β}} → T α → T β
 wk {{Fun}} = _<$>_ wkN'
@@ -332,24 +322,24 @@ ext-var-gen : ∀ {α}{F} {{Mon : Monad F}}  {s : α →K α} (s= : s ~ return) 
 ext-var-gen {{Mon = Mon}} {s = s} s= (old x) =  trans (fmap-bind (λ y → refl) (s x)) (left-id   s=)  
 ext-var-gen s= (new ._)     = refl
 
+
+-----------------
+-- Substitutions
+subst0 : ∀ {M} {{Mon : Monad M}} {α b} → M α → (α ▹ b) →K α
+subst0 u (old x) = return x
+subst0 u (new ._)     = u
+
+[0≔_]_ : ∀ {M} {{Mon : Monad M}} {α b} (u : M α) → M (α ▹ b) → M α
+[0≔ u ] t = [ subst0 u ] t
+
+substituteOut : ∀ {M} {{Mon : Monad M}} {a} v ->  M a -> M (a ▹ v) -> M a
+substituteOut {{Mon}} x t u = u >>= subst0 t
+
 liftSubst : ∀ {M} {{Mon : Monad M}} {a b v} {v' : Binder b} → a →K b → (a ▹ v) →K (b ▹ v')
 liftSubst θ (old x) = wk (θ x)
 liftSubst θ (new x) = return (new _)
 
 
-
-module Stupid {w : World} where
-  -- Both swp and id have the same type...
-
-  swp : w ⇑ ⇑ → w ⇑ ⇑
-  swp (old (old x)) = old (old x)
-  swp (old (new ._)) = new _
-  swp (new ._) = old (new _)
-
-  swp' : ∀ {b : Binder w} {b' : Binder (w ▹ b)} -> w ▹ b ▹ b' → w ▹ b ▹ b'
-  swp' (old (old x)) = old (old x)
-  swp' {b} {b'} (old (new .b)) = new b'
-  swp' {b} {b'} (new .b') = old (new b)
 
 
    
