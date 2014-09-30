@@ -90,19 +90,35 @@ data _⟶_ {α} : (t u : Tm α) → Type where
   ƛ_   : ∀ {t t'}(r : t ⟶ t') → ƛ t ⟶ ƛ t'
 
 ⟶trans : ∀ {a} {t u v : Tm a} -> (t ⟶ u) -> (u ⟶ v) -> (t ⟶ v)
-⟶trans = {!!}
+⟶trans = {!false!}
 
 ==⟶ : ∀ {a} -> {t u : Tm a} -> (t == u) -> (t ⟶ u)
 ==⟶ = {!!}
 
+map⟶ : ∀ {a b} {f : a -> b} {f' : a -> b} (f= : ∀ x -> f x == f' x) {t u : Tm a} -> (t ⟶ u) -> f <$> t ⟶ f <$> u
+map⟶ f= noop = noop
+map⟶ f= (β r) = β (map⟶ {!!} {!r!})
+map⟶ f= (r1 $$ r2) = map⟶ f= r1 $$ map⟶ f= r2
+map⟶ f= (ƛ r) = ƛ map⟶ (λ { (old x) → ap old (f= x) ; (new .♦) → refl }) r
+
+ext⟶ : ∀ {a b} {s s' : a -> Tm b} -> ((x : a) → s x ⟶ s' x) -> ((x : _) → ext s x ⟶ ext s' x)
+ext⟶ s= (old x) = map⟶ (λ x₁ → refl) (s= x)
+ext⟶ s= (new .♦) = noop
+
+base-1 : ∀ {a b} {M : Tm a} {s s' : a -> Tm b} -> ((x : a) → s x ⟶ s' x) -> substT s M ⟶ substT s' M
+base-1 {M = var x} s= = s= x
+base-1 {M = ƛ x} s= = ƛ (base-1 (ext⟶ s=))
+base-1 {M = M $$ M₁} s= = (base-1 s=) $$ (base-1 s=)
+
+ 
 subst-lemma' : ∀ {a b} -> {M M' : Tm a} -> ∀ {s s' : a → Tm b} → (M ⟶ M') -> (∀ x -> s x ⟶ s' x) -> M >>= s ⟶ M' >>= s'
-subst-lemma' noop = {!extensionality x!}  
+subst-lemma' noop x = base-1 x
 subst-lemma' {a} {b} {._} {M'} {s} {s'} (β {t} {u} r1) x = β (⟶trans (==⟶ (trans (bind-assoc {{Tm-Monad}} {s =(subst0 (substT s u)) } {s' = ext s} {s'' = substT (subst0 (substT s u)) ∘ (ext  s )} (λ x₁ → refl) t) (trans {!ap2 substT ? refl !} (! bind-assoc {{Tm-Monad}} {s = s} {s' = subst0 u} {s'' = substT s ∘ subst0 u} (λ x₁ → refl) t)))) (subst-lemma' {M = substT (subst0 u) t} {M' = M'} {s = s} {s' = s'} r1 x))
 subst-lemma' (r1 $$ r2) x = subst-lemma' r1 x $$ subst-lemma' r2 x 
-subst-lemma' (ƛ r1) x = ƛ subst-lemma' r1 {!extensionality x!}
+subst-lemma' (ƛ r1) x = ƛ subst-lemma' r1 (ext⟶ x)
 
 subst-lemma : ∀ {a} -> {M v : Tm a} -> (N v' : ScopeF Tm a) → (M ⟶ v) -> (N ⟶ v') -> [0≔ M ] N ⟶ [0≔ v ] v'
-subst-lemma = {!!}
+subst-lemma N v r1 r2 = subst-lemma' r2 (λ { (old x) → noop ; (new .♦) → r1 })
 
 lemma5' : ∀ {a P v'} {M v : Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> [0≔ (ƛ P) ] cpsP M ♦ ⟶ v'
 lemma5' {a} {P} {v'} {M = var x} noop r2 = β r2
