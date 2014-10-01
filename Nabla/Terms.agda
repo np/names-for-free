@@ -19,17 +19,6 @@ pattern lam t = ƛ_ t
 lamP : ∀ {w} → ScopeP Tm w -> Tm w
 lamP f = lam (f ♦)
 
-var' : ∀ {w w'}(b : Binder w){{s : (w ▹ b) ⇉ w'}} → Tm w'
-var' b = var (name' b)
-
-idTm : ∀ {w} -> Tm w
-idTm = lamP λ x → var' x
-
-apTm : ∀ {w} (b : Binder w) -> Tm w
-apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app (var' x) (var' y)
-
-ap' : ∀ {w} -> ScopeP (ScopeP Tm) w
-ap' = λ x → λ y → app (var' x) (var' y)
 
 -- invalid!
 -- invalid : ∀ {w} (b : Binder w) → Tm ((w ▹ b) ▹ b)
@@ -94,6 +83,29 @@ _⇶_ : World → World → Type
 renT∘var : ∀ {α β} (f : α → β) → var ∘ f ~ renT f ∘ var
 renT∘var f x = refl
 
+
+instance
+  Tm-Functor : Functor Tm
+  Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
+
+
+renT-var : {a b : Set} (f : a → b) {s : a → Tm a} → ((x : a) → s x == var x) → (x : a) → renT f (s x) == var (f x)
+renT-var f {s} s= x with s x | s= x
+renT-var f s= x | .(var x) | refl = refl
+
+instance
+  Tm-Pointed : PointedFunctor Tm
+  Tm-Pointed = record { return = var ; map-return = renT-var }
+
+idTm : ∀ {w} -> Tm w
+idTm = lamP λ x → var' x
+
+apTm : ∀ {w} (b : Binder w) -> Tm w
+apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app (var' x) (var' y)
+
+ap' : ∀ {w} -> ScopeP (ScopeP Tm) w
+ap' = λ x → λ y → app (var' x) (var' y)
+  
 wkT : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
 wkT = renT wkN'
 -- wkT : ∀ {α b} → Tm α → Tm (α ▹ b)
@@ -115,12 +127,6 @@ wkT' (mk⇉ wk) = renT wk
 
 -- open Trv (λ f → f) ext public renaming (trvT to substT)
 
-Tm-Functor : Functor Tm
-Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
-
-ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
-ext = ext-gen {{Fun = Tm-Functor}} var
-
 substT : ∀ {α β} (s : α ⇶ β) → Tm α → Tm β
 substT s (var x) = s x
 substT s (lam t) = lam (substT (ext s) t)
@@ -135,10 +141,6 @@ joinT = substT id
 _∘s_ : ∀ {α β γ} (s : β ⇶ γ) (s' : α ⇶ β) → α ⇶ γ
 s ∘s s' = substT s ∘ s'
 
--- TODO generalize out of terms
-ext-var : ∀ {α}{s : α ⇶ α} (s= : s ~ var) → ext s ~ var
-ext-var s= (old x)  = ap wkT (s= x)
-ext-var s= (new ._) = refl
 
 -- m >>= return   ≡   m
 subst-var : ∀ {α}{s} (s= : s ~ var) → substT {α} s ~ id
@@ -146,8 +148,8 @@ subst-var s= (var x) = s= x
 subst-var s= (lam t) = ap lam (subst-var (ext-var s=) t)
 subst-var s= (app t u) = ap₂ app (subst-var s= t) (subst-var s= u)
 
-subst-var′ : ∀ {α} → substT {α} var ~ id
-subst-var′ = subst-var (λ _ → refl)
+-- subst-var′ : ∀ {α} → substT {α} var ~ id
+-- subst-var′ = subst-var (λ _ → refl)
 
 ext-ren-subst : ∀ {α β} {f : α → β}{s : α ⇶ β} (s= : (var ∘ f) ~ s) → (var ∘ map⇑ f) ~ ext s
 ext-ren-subst s= (old x) = ap wkT (s= x)
@@ -163,8 +165,7 @@ ren-subst s= (var x) = s= x
 ren-subst s= (lam t) = ap lam (ren-subst (ext-ren-subst s=) t)
 ren-subst s= (app t u) = ap₂ app (ren-subst s= t) (ren-subst s= u)
 
-ren-subst′ : ∀ {α β} (f : α → β)
-           → renT f ~ substT (var ∘ f)
+ren-subst′ : ∀ {α β} (f : α → β) → renT f ~ substT (var ∘ f)
 ren-subst′ f = ren-subst {f = f} λ x → refl
 
 subst-var∘old : ∀ {α b} → wkT {α} {α ▹ b} ~ substT (var ∘ old)
@@ -180,15 +181,6 @@ module Alt-ext where
   ext-ext' s (old x) = subst-var∘old (s x)
   ext-ext' s (new ._) = refl
 
-ext-wk-subst : ∀ {α β γ δ}
-                 {f  : α → γ}
-                 {s  : γ ⇶ δ}
-                 {f' : β → δ}
-                 {s' : α ⇶ β}
-                 (q : s ∘ f ~ renT f' ∘ s')
-               → ext s ∘ map⇑ f ~ renT (map⇑ f') ∘ ext s'
-ext-wk-subst q (old x) = ap wkT (q x) ∙ renT-∘′ _ ∙ ! renT-∘′ _
-ext-wk-subst q (new ._) = refl
 
 subst∘ren : ∀ {α β γ δ}
              {f  : α → γ}
@@ -198,7 +190,7 @@ subst∘ren : ∀ {α β γ δ}
              (q : s ∘ f ~ renT f' ∘ s')
             → substT s ∘ renT f ~ renT f' ∘ substT s'
 subst∘ren q (var x) = q x
-subst∘ren q (lam t) = ap lam (subst∘ren (ext-wk-subst q) t)
+subst∘ren q (lam t) = ap lam (subst∘ren {!!} t)
 subst∘ren q (app t u) = ap₂ app (subst∘ren q t) (subst∘ren q u)
 
 ext-hom : ∀ {α β γ}
@@ -224,6 +216,7 @@ subst-hom′ : ∀ {α β γ} (s : β ⇶ γ) (s' : α ⇶ β)
 subst-hom′ s s' t = subst-hom (λ _ → refl) t
 
 -- (>>=) f == join ∘ fmap f
+-- TODO: generalise
 subst-join∘ren : ∀ {α β} (s : α ⇶ β) → substT s ~ joinT ∘ renT s
 subst-join∘ren s t =
   !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
@@ -236,9 +229,9 @@ var-subst s= | ._ | refl = refl
 instance
   Tm-Monad : Monad Tm
   Tm-Monad = record
-               { return = var
-               ; _>>=_ = flip substT
-               ; isFunctor = Tm-Functor
+               {
+                 _>>=_ = flip substT
+               -- ; isFunctor = Tm-Functor
                ; bind-assoc = subst-hom
                ; right-id = subst-var
                ; left-id = λ {α} {β} {x} {f} → var-subst
