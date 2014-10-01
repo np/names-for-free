@@ -289,8 +289,6 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   ext-var s= (new ._)     = refl
 
   ext-wk-subst : ∀ {α β γ δ}
-                   {F : Set -> Set}
-                   {_ : Functor F}
                    {f  : α → γ}
                    {s  : γ →K δ}
                    {f' : β → δ}

@@ -107,19 +107,10 @@ ap' : ∀ {w} -> ScopeP (ScopeP Tm) w
 ap' = λ x → λ y → app (var' x) (var' y)
   
 wkT : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
-wkT = renT wkN'
--- wkT : ∀ {α b} → Tm α → Tm (α ▹ b)
--- wkT = renT old
--- wkT : ∀ {α β} {{i : α ⊆ β}} → Tm α → Tm β
--- wkT = renT (wk …)
-
--- wkT : ∀ {α b} → Tm α → Tm (α ▹ b)
--- wkT = renT old
--- wkT : ∀ {α β} {{i : α ⊆ β}} → Tm α → Tm β
--- wkT = renT (wk …)
+wkT = wk
 
 wkT' : ∀ {α β} (s : α ⇉ β) → Tm α → Tm β
-wkT' (mk⇉ wk) = renT wk
+wkT' (mk⇉ wk) = map wk
 
 η : ∀ {w} → Tm w → Tm w
 η t = lamP λ x → app (wkT t) (var' x)
@@ -132,12 +123,10 @@ substT s (var x) = s x
 substT s (lam t) = lam (substT (ext s) t)
 substT s (app t u) = app (substT s t) (substT s u)
 
-joinT : ∀ {α} → Tm (Tm α) → Tm α
-joinT = substT id
-
 -- (return x) >>= f   ≡   f x
 -- by definition
 
+-- Kleisli composition
 _∘s_ : ∀ {α β γ} (s : β ⇶ γ) (s' : α ⇶ β) → α ⇶ γ
 s ∘s s' = substT s ∘ s'
 
@@ -165,13 +154,13 @@ ren-subst s= (var x) = s= x
 ren-subst s= (lam t) = ap lam (ren-subst (ext-ren-subst s=) t)
 ren-subst s= (app t u) = ap₂ app (ren-subst s= t) (ren-subst s= u)
 
-ren-subst′ : ∀ {α β} (f : α → β) → renT f ~ substT (var ∘ f)
-ren-subst′ f = ren-subst {f = f} λ x → refl
-
-subst-var∘old : ∀ {α b} → wkT {α} {α ▹ b} ~ substT (var ∘ old)
-subst-var∘old = ren-subst′ old
-
 module Alt-ext where
+  ren-subst′ : ∀ {α β} (f : α → β) → renT f ~ substT (var ∘ f)
+  ren-subst′ f = ren-subst {f = f} λ x → refl
+
+  subst-var∘old : ∀ {α b} → wkT {α} {α ▹ b} ~ substT (var ∘ old)
+  subst-var∘old = ren-subst′ old
+
   ext' : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
   ext' f (old x) = substT (var ∘ old) (f x)
   ext' f (new ._)     = var (new _)
@@ -190,7 +179,7 @@ subst∘ren : ∀ {α β γ δ}
              (q : s ∘ f ~ renT f' ∘ s')
             → substT s ∘ renT f ~ renT f' ∘ substT s'
 subst∘ren q (var x) = q x
-subst∘ren q (lam t) = ap lam (subst∘ren {!!} t)
+subst∘ren q (lam t) = ap lam (subst∘ren (ext-wk-subst q) t)
 subst∘ren q (app t u) = ap₂ app (subst∘ren q t) (subst∘ren q u)
 
 ext-hom : ∀ {α β γ}
@@ -215,12 +204,6 @@ subst-hom′ : ∀ {α β γ} (s : β ⇶ γ) (s' : α ⇶ β)
              → substT s ∘ substT s' ~ substT (s ∘s s')
 subst-hom′ s s' t = subst-hom (λ _ → refl) t
 
--- (>>=) f == join ∘ fmap f
--- TODO: generalise
-subst-join∘ren : ∀ {α β} (s : α ⇶ β) → substT s ~ joinT ∘ renT s
-subst-join∘ren s t =
-  !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
-    ∙ renT-id′ _)
 
 var-subst : ∀ {α} {β} {x} {f : α ⇶ β} {s : α → Tm α} → s ~ var → flip substT (s x) f == f x
 var-subst {x = x} {s = s} s= with s x | s= x
@@ -237,6 +220,16 @@ instance
                ; left-id = λ {α} {β} {x} {f} → var-subst
                ; fmap-bind = ren-subst
                }
+joinT : ∀ {α} → Tm (Tm α) → Tm α
+joinT = join
+
+-- (>>=) f == join ∘ fmap f
+-- TODO: generalise
+subst-join∘ren : ∀ {α β} (s : α ⇶ β) → substT s ~ joinT ∘ renT s
+subst-join∘ren s t =
+  !(subst∘ren {f = s}{id}{id}{s} (λ x → ! renT-id′ (s x)) t
+    ∙ renT-id′ _)
+
 
              {-
 swpLams : ∀ {w} -> Tm w -> Tm w
