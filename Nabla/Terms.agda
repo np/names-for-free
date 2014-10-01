@@ -140,9 +140,9 @@ subst-var s= (app t u) = ap₂ app (subst-var s= t) (subst-var s= u)
 -- subst-var′ : ∀ {α} → substT {α} var ~ id
 -- subst-var′ = subst-var (λ _ → refl)
 
-ext-ren-subst : ∀ {α β} {f : α → β}{s : α ⇶ β} (s= : (var ∘ f) ~ s) → (var ∘ map⇑ f) ~ ext s
-ext-ren-subst s= (old x) = ap wkT (s= x)
-ext-ren-subst s= (new ._)     = refl
+-- ext-ren-subst : ∀ {α β} {f : α → β}{s : α ⇶ β} (s= : (var ∘ f) ~ s) → (var ∘ map⇑ f) ~ ext s
+-- ext-ren-subst s= (old x) = ap wkT (s= x)
+-- ext-ren-subst s= (new ._)     = refl
 
 -- liftM == fmap
 -- NP: my hope with trvT was to avoid this proof...
@@ -214,7 +214,6 @@ instance
   Tm-Monad = record
                {
                  _>>=_ = flip substT
-               -- ; isFunctor = Tm-Functor
                ; bind-assoc = subst-hom
                ; right-id = subst-var
                ; left-id = λ {α} {β} {x} {f} → var-subst

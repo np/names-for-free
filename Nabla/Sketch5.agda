@@ -298,9 +298,10 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   ext-wk-subst {f' = f'} {s' = s'} q (old x) = (ap wk (q x) ∙ <$>-∘ (λ x₁ → refl) (s' x)) ∙ ! <$>-∘  {f = map⇑ f'} {g = old} {h = old ∘ f'} (λ x₁ → refl) (s' x) 
   ext-wk-subst {f' = f'} q (new ._) = ! map-return (map⇑ f') (λ x → refl) (new ◆)
 
-  -- ext-ren-subst : ∀ {α β} {f : α → β}{s : α →K β} (s= : (return ∘ f) ~ s) → (return ∘ map⇑ f) ~ ext s
-  -- ext-ren-subst  {f = f} {s = s} s= (old x) = ! map-return old {s = {!!} }_ (f x)  -- ap wk (s= x)
-  -- ext-ren-subst s= (new ._) = refl
+  ext-ren-subst : ∀ {α β} {f : α → β}{s : α →K β} (s= : (return ∘ f) ~ s) → (return ∘ map⇑ f) ~ ext s
+  ext-ren-subst {s = s} s= (old x) with s x | s= x
+  ext-ren-subst {f = f} s= (old x) | ._ | refl = ! map-return old (\x -> refl) (f x)
+  ext-ren-subst s= (new ._) = refl
 
 
 record Monad (M : Set -> Set) : Set1 where
