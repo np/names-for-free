@@ -159,6 +159,25 @@ module Gen-Monad-Trav where
              extL (new .♦) = return (new ♦)
      trv s (t $$ u) = (_$$_ <$> trv s t ) <*> trv s t
 
+   postulate Tm' : (x : Set) -> (x' : x -> Set) -> Tm x -> Set
+   module T'
+    {f : Set -> Set} {{_ : Functor f}}{{_ : Applicative f}}
+    (f' : (x : Set) -> (x' : x -> Set) -> f x -> Set)
+    {g : Set -> Set} {{_ : Functor g}}{{_ : PointedFunctor g}}
+    (g' : (x : Set) -> (x' : x -> Set) -> g x -> Set)
+    (vr : ∀ {b} -> g b -> f (Tm b))
+    (vr' : ∀ {b} -> (b' : b -> Set) -> (y : g b) -> (g' b b' y) -> f' (Tm b) (Tm' b b') (vr y) )
+    where
+    postulate trv' : ∀ {a} (a' : a -> Set) -> 
+                     ∀ {b} (b' : b -> Set) ->
+                     ∀ {s : a -> g b} (s' : {x : a} -> a' x -> g' b b' (s x)) ->
+                     ∀ {t} -> Tm' a a' t ->
+                     f' (Tm b) (Tm' b b') (T.trv vr s t)
+   
+   thm : ∀ {α}{s} (s= : s ~ var) → substT {α} s ~ id
+   thm s= = {!T'.trv' ? ? (λ x → var <$> x) !}
+
+     
 {-   module Tᵣ
       {f : Set -> Set} {{_ : Functor f}}{{_ : Applicative f}}
       {g : Set -> Set} {{_ : Functor g}}{{_ : PointedFunctor g}}

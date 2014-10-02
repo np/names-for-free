@@ -23,14 +23,6 @@ load v (new _) = v
 wkTm : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
 wkTm = wk {{Tm-Functor}}
 
-ext-var' : ∀ {α β}(s : α → β) → ext (var ∘ s) ~ var ∘ map⇑ s
-ext-var' s (old x) = refl
-ext-var' s (new .♦) = refl
-
--- ext-map⇑ : ∀ {α b}(t : Tm α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ var
--- ext-map⇑ s (old x) = refl
--- ext-map⇑ s (new .♦) = refl
-
 
 {-# NO_TERMINATION_CHECK #-}
 mutual 
