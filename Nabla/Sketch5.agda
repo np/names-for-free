@@ -306,6 +306,10 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   ext-ren-subst {f = f} s= (old x) | ._ | refl = ! map-return old (\x -> refl) (f x)
   ext-ren-subst s= (new ._) = refl
 
+postulate
+  pointedId : PointedFunctor (\x -> x)
+  -- JP: can't seem to give a definition for this ?!
+  
 record Applicative (F : Set -> Set) : Set1 where
   field
     _<*>_ : ∀ {A B} → F (A -> B) → F A -> F B

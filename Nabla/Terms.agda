@@ -149,24 +149,47 @@ ren-subst s= (var x) = s= x
 ren-subst s= (lam t) = ap lam (ren-subst (ext-ren-subst s=) t)
 ren-subst s= (app t u) = ap₂ app (ren-subst s= t) (ren-subst s= u)
 
-module T
-   {f : Set -> Set} {{_ : Functor f}}{{_ : Applicative f}}
-   {g : Set -> Set} {{_ : Functor g}}{{_ : PointedFunctor g}}
-   (vr : ∀ {b} -> g b -> f (Tm b))
-  where
-  trv : ∀ {a b : Set} (s : a → g b) ->  Tm a -> f (Tm b)
-  trv s (var x) = vr (s x)
-  trv {a} {b} s (ƛ x) = ƛ_ <$> trv extL x
-    where extL : a ▹ ♦ → g (b ▹ ◆)
-          extL (old x₂) = old <$> s x₂
-          extL (new .♦) = return (new ♦)
-  trv s (t $$ u) = (_$$_ <$> trv s t ) <*> trv s t
+module Gen-Monad-Trav where
+   module T
+      {f : Set -> Set} {{_ : Functor f}}{{_ : Applicative f}}
+      {g : Set -> Set} {{_ : Functor g}}{{_ : PointedFunctor g}}
+      (vr : ∀ {b} -> g b -> f (Tm b))
+     where
+     trv : ∀ {a b : Set} (s : a → g b) ->  Tm a -> f (Tm b)
+     trv s (var x) = vr (s x)
+     trv {a} {b} s (ƛ x) = ƛ_ <$> trv extL x
+       where extL : a ▹ ♦ → g (b ▹ ◆)
+             extL (old x₂) = old <$> s x₂ -- "bitraverse▹"
+             extL (new .♦) = return (new ♦)
+     trv s (t $$ u) = (_$$_ <$> trv s t ) <*> trv s t
 
-traverse : ∀ {a b : Set} {f : Set -> Set} {{_ : Functor f}}{{_ : PointedFunctor f}}{{_ : Applicative f}} (s : a → f b) -> Tm a -> f (Tm b)
-traverse = T.trv (λ x → var <$> x)
+{-   module Tᵣ
+      {f : Set -> Set} {{_ : Functor f}}{{_ : Applicative f}}
+      {g : Set -> Set} {{_ : Functor g}}{{_ : PointedFunctor g}}
+      (v1 : ∀ {b} -> g b -> f (Tm b))
+      (v2 : ∀ {b} -> g b -> f (Tm b))
+      (vᵣ : ∀ {b1 b2} -> (br : b1 -> b2) -> (x1 : g b1) -> (x2 : g b2) -> (h : f (Tm b1) -> f (Tm b2)) -> ? -> map {{?}} h v1 == v2)
+     where
+      postulate
+        trvᵣ : ∀ {a1 a2} -> (ar : a1 -> a2) ->
+               ∀ {b1 b2} -> (br : b1 -> b2) ->
+               ∀ {s1 : a1 -> g b1} {s2 : a2 -> g b2} -> (∀ {x1 x2} -> ar x1 == x2 -> (h : g b1 -> g b2) -> ? ->  map {{?}} h (s1 x1) == s2 x2)  ->
+               ∀ (h : f (Tm b1) -> f (Tm b2)) ->
+               map {{?}} h (T.trv v1 s1) == T.trv v2 s2
+-}             
+     
 
-monad-bind : ∀ {a b : Set}  (s : a → Tm b) ->  Tm a -> Tm b
-monad-bind = T.trv {\x -> x} {{functorId}} {{applicId}} {Tm} id
+   traverse : ∀ {f : Set -> Set} {{_ : Functor f}}{{_ : PointedFunctor f}}{{_ : Applicative f}} {a b : Set} (s : a → f b) -> Tm a -> f (Tm b)
+   traverse = T.trv (λ x → var <$> x)
+
+   monad-bind : ∀ {a b : Set}  (s : a → Tm b) ->  Tm a -> Tm b
+   monad-bind = T.trv {{functorId}} {{applicId}} id
+
+   fmap : ∀ {a b : Set} (s : a → b) -> Tm a -> Tm b
+   fmap = traverse {\x -> x}  {{functorId}} {{pointedId}} {{applicId}}
+
+   subst-var-alt : ∀ {α}{s} (s= : s ~ var) → substT {α} s ~ id
+   subst-var-alt s= = {!traverse!}
 
 module Alt-ext where
   ren-subst′ : ∀ {α β} (f : α → β) → renT f ~ substT (var ∘ f)
