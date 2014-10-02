@@ -262,7 +262,7 @@ record Functor (F : Set -> Set) : Set1 where
   name' b = wkN' (name b)
 
   wk : ∀ {α β} {{s : α ⇉ β}} → F α → F β
-  wk {{Fun}} = _<$>_ wkN'
+  wk  = _<$>_ wkN'
 
   atVar' : {α β : World} -> ScopeF F α -> (b : Binder β) → {{_ : α ⇉ β}} -> F (β ▹ b)
   atVar'  sc b {{mk⇉ s}} = map▹ _ _ s <$> sc
@@ -298,7 +298,7 @@ record PointedFunctor (F : Set -> Set) : Set1 where
                    {s' : α →K β}
                    (q : s ∘ f ~ map f' ∘ s')
                  → ext s ∘ map⇑ f ~ map (map⇑ f') ∘ ext s'
-  ext-wk-subst {f' = f'} {s' = s'} q (old x) = (ap wk (q x) ∙ <$>-∘ (λ x₁ → refl) (s' x)) ∙ ! <$>-∘  {f = map⇑ f'} {g = old} {h = old ∘ f'} (λ x₁ → refl) (s' x) 
+  ext-wk-subst {f' = f'} {s' = s'} q (old x) = ap wk (q x) ∙ <$>-∘ (λ x₁ → refl) (s' x) ∙ ! <$>-∘  {f = map⇑ f'} {g = old} {h = old ∘ f'} (λ x₁ → refl) (s' x) 
   ext-wk-subst {f' = f'} q (new ._) = ! map-return (map⇑ f') (λ x → refl) (new ◆)
 
   ext-ren-subst : ∀ {α β} {f : α → β}{s : α →K β} (s= : (return ∘ f) ~ s) → (return ∘ map⇑ f) ~ ext s
@@ -367,10 +367,22 @@ record Monad (M : Set -> Set) : Set1 where
   -- (>>=) f == join ∘ fmap f
   -- subs-join∘ren : ∀ {α β} {f : Set -> Set} {{_ : Monad f}} (s : α →K β) → subs s ~ join ∘ _<$>_ s
   -- subs-join∘ren {{Mon}} s t = {!!}
-
+  
   postulate
     ext-map⇑ : ∀ {α b}(t : M α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ return
     -- by def of <$> and right-id
+
+  lemma4 : ∀ {a} {t : M (a ⇑)}{u}
+    → subs (ext (subst0 {b = ♦} u)) (map (map⇑ old) t) == t
+  lemma4 {t = t} {u} = trans (bind∘fmap t _ _) (right-id (ext-map⇑ u) t)
+
+  postulate
+    lemma4' : ∀ {a} {t : M (a ⇑ ⇑)}{u}
+      → subs (ext (ext (subst0 {b = ♦} u))) (map (map⇑ (map⇑ old)) t) == t
+    -- lemma4' {t = t} {u} = trans (bind∘fmap t (map⇑ (map⇑ old)) (ext (ext (subst0 {b = ♦} u)))) {!!}  
+
+
+
   {-
   We can define ANOTHER functor instance, but this is not really good.
   instance

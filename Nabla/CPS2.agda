@@ -31,14 +31,6 @@ ext-var' s (new .♦) = refl
 -- ext-map⇑ s (old x) = refl
 -- ext-map⇑ s (new .♦) = refl
 
-lemma4 : ∀ {a} {t : Tm (a ⇑)}{u}
-  → substT (ext (subst0 {b = ♦} u)) (renT (map⇑ old) t) == t
-lemma4 {t = t} {u} = trans (bind∘fmap t _ _) (right-id (ext-map⇑ u) t)
-
-lemma4' : ∀ {a} {t : Tm (a ⇑ ⇑)}{u}
-  → substT (ext (ext (subst0 {b = ♦} u))) (renT (map⇑ (map⇑ old)) t) == t
-lemma4' {t = t} {u} = trans (bind∘fmap t (map⇑ (map⇑ old)) (ext (ext (subst0 {b = ♦} u)))) {!!}  
-
 
 {-# NO_TERMINATION_CHECK #-}
 mutual 
