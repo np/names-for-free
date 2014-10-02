@@ -272,7 +272,7 @@ instance
                ; fmap-bind = ren-subst
                }
 
-open Substitution Tm-Monad public
+open Substitution Tm-Monad -- public
 
 joinT : ∀ {α} → Tm (Tm α) → Tm α
 joinT = join
