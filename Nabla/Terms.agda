@@ -188,9 +188,6 @@ module Gen-Monad-Trav where
    fmap : ∀ {a b : Set} (s : a → b) -> Tm a -> Tm b
    fmap = traverse {\x -> x}  {{functorId}} {{pointedId}} {{applicId}}
 
-   subst-var-alt : ∀ {α}{s} (s= : s ~ var) → substT {α} s ~ id
-   subst-var-alt s= = {!traverse!}
-
 module Alt-ext where
   ren-subst′ : ∀ {α β} (f : α → β) → renT f ~ substT (var ∘ f)
   ren-subst′ f = ren-subst {f = f} λ x → refl
