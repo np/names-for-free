@@ -16,13 +16,11 @@ open import Relation.Binary.PropositionalEquality.NP
 open import Sketch5
 open import Terms
 
+open Auto
+
 load : ∀ {w b}  -> w -> w ▹ b -> w
 load _ (old x) = x
 load v (new _) = v
-
-wkTm : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
-wkTm = wk {{Tm-Functor}}
-
 
 {-# NO_TERMINATION_CHECK #-}
 mutual 
@@ -31,12 +29,12 @@ mutual
   psi x = x
 
   cpsP : ∀ {a} -> Tm a -> ScopeP Tm a
-  cpsP (M $$ N) κ0 = cps (wkTm M) $$
+  cpsP (M $$ N) κ0 = cps (wk M) $$
                          (lamP λ k1 →
-                           cps (wkTm N) $$
+                           cps (wk N) $$
                                (lamP λ k2 ->
                                   (var' k2 $$ var' k1) $$ var' κ0))
-  cpsP A κ0 = var' κ0 $$ (wkTm $ psi A) -- Or psi (wk A)
+  cpsP A κ0 = var' κ0 $$ (wk $ psi A) -- Or psi (wk A)
 
   cps : ∀ {a} -> Tm a -> Tm a
   cps A = lamP (cpsP A)
@@ -50,7 +48,7 @@ cps-naturality : ∀ {α β} (f : α → β) (t : Tm α) → cps (renT f t) == r
 cps-naturality f t = ap lam (cpsP-naturality f t)
 
 cpsP-wk-naturality : ∀ {α} (t : Tm α)
- → cpsP (wkTm {{mk⇉ (old {b = ♦}) }} t) ♦ == wkTm {{mk⇉ (map⇑ old)}} (cpsP t ♦)
+ → cpsP (wk {{box (old {b = ♦}) }} t) ♦ == wk {{box (map⇑ old)}} (cpsP t ♦)
 cpsP-wk-naturality = cpsP-naturality old
 
 -- Not used yet
@@ -105,7 +103,7 @@ lemma5' : ∀ {a P v'} {M v : Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) 
 lemma5' {a} {P} {v'} {M = var x} noop r2 = β r2
 lemma5' {a} {P} {v'} {M = ƛ M}   noop r2 = β (tr (λ t → substT (subst0 (ƛ t)) P ⟶ v') (! lemma4) r2)
 lemma5' {a} {P} {v'} {M $$ N}    noop r2 = β (tr (λ t → t ⟶ v')
-    (({!lemma5' !} ∙ ap (substT _) (! cpsP-wk-naturality M)) ∙ ! subst-hom′ _ _ (cpsP (wkTm M) ♦)) r2)
+    (({!lemma5' !} ∙ ap (substT _) (! cpsP-wk-naturality M)) ∙ ! subst-hom′ _ _ (cpsP (wk M) ♦)) r2)
 lemma5' {a} {P} {v'} (ƛ r1) r2
   {-
     t ⟶ t'
