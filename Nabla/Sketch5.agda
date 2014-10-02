@@ -125,7 +125,7 @@ pattern old w = left w
 pattern new b = right (the b)
 -}
 
--- World extended with a fresh variable.
+-- World extended with an anonymous fresh variable.
 _⇑ : (w : World) → World
 w ⇑ = w ▹ ♦
 
@@ -285,8 +285,8 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   ext f (new ._) = return (new ♦)
 
   ext-var : ∀ {α}  {s : α →K α} (s= : s ~ return)  → ext s ~ return
-  ext-var {s = s} s= (old x) = map-return old s= x
-  ext-var s= (new ._)     = refl
+  ext-var s= (old x)  = map-return old s= x
+  ext-var s= (new ._) = refl
 
   ext-wk-subst : ∀ {α β γ δ}
                    {f  : α → γ}
@@ -303,6 +303,9 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   ext-ren-subst {f = f} s= (old x) | ._ | refl = ! map-return old (\x -> refl) (f x)
   ext-ren-subst s= (new ._) = refl
 
+record Applicative (F : Set -> Set) : Set1 where
+  field
+    _<*>_ : ∀ {A B} → F (A -> B) → F A -> F B
 
 record Monad (M : Set -> Set) : Set1 where
   field
@@ -371,6 +374,8 @@ module _ {F : Set -> Set} {{F : Monad F}} where
   open Monad F public
 module _ {F : Set -> Set} {{F : PointedFunctor F}} where
   open PointedFunctor F public
+module _ {F : Set -> Set} {{F : Applicative F}} where
+  open Applicative F public
 module _ {F : Set -> Set} {{F : Functor F}} where
   open Functor F public
 

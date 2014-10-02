@@ -79,15 +79,10 @@ renT-∘′ = renT-∘ (λ x → refl)
 _⇶_ : World → World → Type
 α ⇶ β = α → Tm β
 
--- return . f ≡ fmap f . return
-renT∘var : ∀ {α β} (f : α → β) → var ∘ f ~ renT f ∘ var
-renT∘var f x = refl
-
 
 instance
   Tm-Functor : Functor Tm
   Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
-
 
 renT-var : {a b : Set} (f : a → b) {s : a → Tm a} → ((x : a) → s x == var x) → (x : a) → renT f (s x) == var (f x)
 renT-var f {s} s= x with s x | s= x
@@ -153,6 +148,50 @@ ren-subst : ∀ {α β} {f : α → β} {s : α ⇶ β}
 ren-subst s= (var x) = s= x
 ren-subst s= (lam t) = ap lam (ren-subst (ext-ren-subst s=) t)
 ren-subst s= (app t u) = ap₂ app (ren-subst s= t) (ren-subst s= u)
+
+-- traverse : ∀ {a b : Set} {f : Set -> Set} {{_ : Functor f}}{{_ : PointedFunctor f}}{{_ : Applicative f}} (s : a → f b) ->  Tm a -> f (Tm b)
+-- traverse s  (var x) = var <$> s x
+-- traverse {a} {b} {f} s (ƛ x) = ƛ_ <$> traverse extL x
+--   where extL : a ▹ ♦ → f (b ▹ ♦)
+--         extL (old x₂) = old <$> s x₂
+--         extL (new .♦) = return (new ♦)
+-- traverse s (t $$ u) = (_$$_ <$> traverse s t) <*> traverse s u
+
+-- substit : ∀ {a b : Set}  (s : a → Tm b) ->  Tm a -> (Tm b)
+-- substit s  (var x) = s x
+-- substit {a} {b} s (ƛ x) = ƛ (substit extL x)
+--   where extL : a ▹ ♦ → Tm (b ▹ ◆)
+--         extL (old x₂) = old <$> s x₂
+--         extL (new .♦) = return (new ♦)
+-- substit s (t $$ u) =  substit s t $$ substit s u
+
+module T
+   {f : Set -> Set} {{_ : Functor f}}{{_ : Applicative f}}
+   {g : Set -> Set} {{_ : Functor g}}{{_ : PointedFunctor g}}
+   (vr : ∀ {b} -> g b -> f (Tm b))
+  where
+  trv : ∀ {a b : Set} (s : a → g b) ->  Tm a -> f (Tm b)
+  trv s (var x) = vr (s x)
+  trv {a} {b} s (ƛ x) = ƛ_ <$> trv extL x
+    where extL : a ▹ ♦ → g (b ▹ ◆)
+          extL (old x₂) = old <$> s x₂
+          extL (new .♦) = return (new ♦)
+  trv s (t $$ u) = (_$$_ <$> trv s t ) <*> trv s t
+  
+instance
+  -- postulate
+    -- FunComp : ∀ {f g : Set -> Set} -> {{_ : Functor f}}{{_ : Functor f}} -> Functor (\x -> f (g x))
+    -- PointedComp : ∀ {f g : Set -> Set} -> {{_ : PointedFunctor f}}{{_ : PointedFunctor f}} -> PointedFunctor (\x -> f (g x))
+  applicId :  Applicative (\x -> x)
+  applicId = record { _<*>_ = id }
+  functorId :  Functor (\x -> x)
+  functorId = record { _<$>_ = id ; <$>-id = λ pf x → pf x ; <$>-∘ = λ h= x → h= x }
+  
+traverse : ∀ {a b : Set} {f : Set -> Set} {{_ : Functor f}}{{_ : PointedFunctor f}}{{_ : Applicative f}} (s : a → f b) ->  Tm a -> f (Tm b)
+traverse = T.trv (λ x → var <$> x)
+
+monad-bind : ∀ {a b : Set}  (s : a → Tm b) ->  Tm a -> (Tm b)
+monad-bind = T.trv {\x -> x} {Tm} id
 
 module Alt-ext where
   ren-subst′ : ∀ {α β} (f : α → β) → renT f ~ substT (var ∘ f)
