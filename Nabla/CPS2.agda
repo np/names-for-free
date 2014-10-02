@@ -9,6 +9,7 @@ open import Data.Product hiding (map)
 open import Data.Maybe hiding (module Eq; Eq; map)
 open import Data.Nat
 open import Function
+open import Function.Extensionality
 open import Relation.Binary.PropositionalEquality.NP
   hiding ([_])
   renaming (_≡_ to _==_; _≗_ to _~_)
@@ -16,7 +17,7 @@ open import Relation.Binary.PropositionalEquality.NP
 open import Sketch5
 open import Terms
 
-open Auto
+open Term-Structure Tm-Monad
 
 load : ∀ {w b}  -> w -> w ▹ b -> w
 load _ (old x) = x
@@ -88,20 +89,20 @@ base-1 : ∀ {a b} {M : Tm a} {s s' : a -> Tm b} -> ((x : a) → s x ⟶ s' x) -
 base-1 {M = var x} s= = s= x
 base-1 {M = ƛ x} s= = ƛ (base-1 (ext⟶ s=))
 base-1 {M = M $$ M₁} s= = (base-1 s=) $$ (base-1 s=)
-
  
-subst-lemma' : ∀ {a b} -> {M M' : Tm a} -> ∀ {s s' : a → Tm b} → (M ⟶ M') -> (∀ x -> s x ⟶ s' x) -> M >>= s ⟶ M' >>= s'
+subst-lemma' : ∀ {{_ : FunExt}} {a b} -> {M M' : Tm a} -> ∀ {s s' : a → Tm b} → (M ⟶ M') -> (∀ x -> s x ⟶ s' x) -> M >>= s ⟶ M' >>= s'
 subst-lemma' noop x = base-1 x
-subst-lemma' {a} {b} {._} {M'} {s} {s'} (β {t} {u} r1) x = β (⟶trans (trans (bind-assoc {{Tm-Monad}} {s =(subst0 (substT s u)) } {s' = ext s} {s'' = substT (subst0 (substT s u)) ∘ (ext  s )} (λ x₁ → refl) t) (trans {!ap2 substT ? refl !} (! bind-assoc {{Tm-Monad}} {s = s} {s' = subst0 u} {s'' = substT s ∘ subst0 u} (λ x₁ → refl) t))) (subst-lemma' {M = substT (subst0 u) t} {M' = M'} {s = s} {s' = s'} r1 x))
+subst-lemma' {a} {b} {._} {M'} {s} {s'} (β {t} {u} r1) x = β (⟶trans (trans (bind-assoc {s =(subst0 (substT s u)) } {s' = ext s} {s'' = substT (subst0 (substT s u)) ∘ (ext  s )} (λ x₁ → refl) t) (trans (ap (_>>=_ t) (λ= subst0-ext)) (! bind-assoc {s = s} {s' = subst0 u} {s'' = substT s ∘ subst0 u} (λ x₁ → refl) t))) (subst-lemma' {M = substT (subst0 u) t} {M' = M'} {s = s} {s' = s'} r1 x))
 subst-lemma' (r1 $$ r2) x = subst-lemma' r1 x $$ subst-lemma' r2 x 
 subst-lemma' (ƛ r1) x = ƛ subst-lemma' r1 (ext⟶ x)
 
+{-
 subst-lemma : ∀ {a} -> {M v : Tm a} -> (N v' : ScopeF Tm a) → (M ⟶ v) -> (N ⟶ v') -> [0≔ M ] N ⟶ [0≔ v ] v'
 subst-lemma N v r1 r2 = subst-lemma' r2 (λ { (old x) → noop ; (new .♦) → r1 })
 
 lemma5' : ∀ {a P v'} {M v : Tm a} -> (M ⟶ v) -> (substituteOut _ (psi v) P) ⟶ v' -> [0≔ (ƛ P) ] cpsP M ♦ ⟶ v'
 lemma5' {a} {P} {v'} {M = var x} noop r2 = β r2
-lemma5' {a} {P} {v'} {M = ƛ M}   noop r2 = β (tr (λ t → substT (subst0 (ƛ t)) P ⟶ v') (! lemma4) r2)
+lemma5' {a} {P} {v'} {M = ƛ M}   noop r2 = β (tr (λ t → substT (subst0 (ƛ t)) P ⟶ v') (! subst-ext^-subst0-wk^-id 1) r2)
 lemma5' {a} {P} {v'} {M $$ N}    noop r2 = β (tr (λ t → t ⟶ v')
     (({!lemma5' !} ∙ ap (substT _) (! cpsP-wk-naturality M)) ∙ ! subst-hom′ _ _ (cpsP (wk M) ♦)) r2)
 lemma5' {a} {P} {v'} (ƛ r1) r2
