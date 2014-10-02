@@ -283,6 +283,9 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   field
     map-return : ∀ {a b} (f : a -> b) {s : a →K a} (s= : s ~ return) -> ∀ x -> f <$> s x == return (f x)
 
+  postulate map-return' : ∀ {a b} (f : a -> b) -> ∀ x -> f <$> return x == return (f x)
+  
+
   ext : ∀ {v w} (s : v →K w) → v ⇑ →K w ⇑
   ext f (old x)  = wk (f x)
   ext f (new ._) = return (new ♦)
@@ -341,7 +344,6 @@ record Monad (M : Set -> Set) : Set1 where
     bind-assoc : ∀ {α β γ} {s : β →K γ} {s' : α →K β} {s'' : α →K γ} (s= : (s ∘k s') ~ s'') → subs s ∘ subs s' ~ subs s''
     right-id : ∀ {α}{s} (s= : s ~ return) → subs {α} s ~ id
     left-id : ∀ {α β x} {f : α →K β}{s} (s= : s ~ return)  -> s x >>= f == f x
-    -- left-id : ∀ {α β x} {f : α →K β} -> return x >>= f == f x
     fmap-bind  : ∀ {α β} {f : α → β} {s : α →K β} (s= : return ∘ f ~ s) → _<$>_ f ~ subs s
                  --f <$> t == t >>= (\x -> return (f x))
 
@@ -374,8 +376,9 @@ record Monad (M : Set -> Set) : Set1 where
   -- subs-join∘ren : ∀ {α β} {f : Set -> Set} {{_ : Monad f}} (s : α →K β) → subs s ~ join ∘ _<$>_ s
   -- subs-join∘ren {{Mon}} s t = {!!}
   
-  postulate
-    ext-map⇑ : ∀ {α b}(t : M α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ return
+  ext-map⇑ : ∀ {α b}(t : M α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ return
+  ext-map⇑ t (old x) = map-return' old x
+  ext-map⇑ t (new .♦) = refl
     -- by def of <$> and right-id
 
   lemma4 : ∀ {a} {t : M (a ⇑)}{u}
