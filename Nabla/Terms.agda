@@ -84,13 +84,9 @@ instance
   Tm-Functor : Functor Tm
   Tm-Functor = record { _<$>_ = renT ; <$>-id = renT-id ; <$>-∘ = renT-∘ }
 
-renT-var : {a b : Set} (f : a → b) {s : a → Tm a} → ((x : a) → s x == var x) → (x : a) → renT f (s x) == var (f x)
-renT-var f {s} s= x with s x | s= x
-renT-var f s= x | .(var x) | refl = refl
-
 instance
   Tm-Pointed : PointedFunctor Tm
-  Tm-Pointed = record { return = var ; map-return = renT-var }
+  Tm-Pointed = record { return = var ; map-return' = λ f x → refl }
 
 idTm : ∀ {w} -> Tm w
 idTm = lamP λ x → var' x

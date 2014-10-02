@@ -281,9 +281,11 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   var' b = return (name' b)
 
   field
-    map-return : ∀ {a b} (f : a -> b) {s : a →K a} (s= : s ~ return) -> ∀ x -> f <$> s x == return (f x)
+    map-return' : ∀ {a b} (f : a -> b) -> ∀ x -> f <$> return x == return (f x)
 
-  postulate map-return' : ∀ {a b} (f : a -> b) -> ∀ x -> f <$> return x == return (f x)
+  map-return : ∀ {a b} (f : a -> b) {s : a →K a} (s= : s ~ return) -> ∀ x -> f <$> s x == return (f x)
+  map-return f {s} s= x with s x | s= x
+  ... | ._ | refl = map-return' f x
   
 
   ext : ∀ {v w} (s : v →K w) → v ⇑ →K w ⇑
