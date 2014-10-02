@@ -267,6 +267,9 @@ record Functor (F : Set -> Set) : Set1 where
   atVar' : {α β : World} -> ScopeF F α -> (b : Binder β) → {{_ : α ⇉ β}} -> F (β ▹ b)
   atVar'  sc b {{mk⇉ s}} = map▹ _ _ s <$> sc
 
+functorId :  Functor (\x -> x)
+functorId = record { _<$>_ = id ; <$>-id = λ pf x → pf x ; <$>-∘ = λ h= x → h= x }
+
 
 record PointedFunctor (F : Set -> Set) : Set1 where
   field
@@ -306,6 +309,9 @@ record PointedFunctor (F : Set -> Set) : Set1 where
 record Applicative (F : Set -> Set) : Set1 where
   field
     _<*>_ : ∀ {A B} → F (A -> B) → F A -> F B
+
+applicId :  Applicative (\x -> x)
+applicId = record { _<*>_ = id }
 
 record Monad (M : Set -> Set) : Set1 where
   field
