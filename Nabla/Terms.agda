@@ -88,6 +88,9 @@ instance
   Tm-Pointed : PointedFunctor Tm
   Tm-Pointed = record { return = var ; map-return' = λ f x → refl }
 
+open PointedRenaming Tm-Pointed
+open Auto
+
 idTm : ∀ {w} -> Tm w
 idTm = lamP λ x → var' x
 
@@ -97,11 +100,11 @@ apTm {w} b = lamP λ x → lamP λ y → lamP λ z → app (var' x) (var' y)
 ap' : ∀ {w} -> ScopeP (ScopeP Tm) w
 ap' = λ x → λ y → app (var' x) (var' y)
   
-wkT : ∀ {α β} {{s : α ⇉ β}} → Tm α → Tm β
+wkT : ∀ {α β} {{s : Box (α → β)}} → Tm α → Tm β
 wkT = wk
 
-wkT' : ∀ {α β} (s : α ⇉ β) → Tm α → Tm β
-wkT' (mk⇉ wk) = map wk
+wkT' : ∀ {α β} (s : Box (α → β)) → Tm α → Tm β
+wkT' (box wk) = map wk
 
 η : ∀ {w} → Tm w → Tm w
 η t = lamP λ x → app (wkT t) (var' x)
@@ -125,7 +128,7 @@ s ∘s s' = substT s ∘ s'
 -- m >>= return   ≡   m
 subst-var : ∀ {α}{s} (s= : s ~ var) → substT {α} s ~ id
 subst-var s= (var x) = s= x
-subst-var s= (lam t) = ap lam (subst-var (ext-var s=) t)
+subst-var s= (lam t) = ap lam (subst-var (ext-return s=) t)
 subst-var s= (app t u) = ap₂ app (subst-var s= t) (subst-var s= u)
 
 -- subst-var′ : ∀ {α} → substT {α} var ~ id
@@ -249,6 +252,9 @@ instance
                ; left-id = λ {α} {β} {x} {f} → var-subst
                ; fmap-bind = ren-subst
                }
+
+open Substitution Tm-Monad public
+
 joinT : ∀ {α} → Tm (Tm α) → Tm α
 joinT = join
 
@@ -299,3 +305,7 @@ mutual
   Neutral (lam t) = Zero
   Neutral (app t u) = Neutral t × Normal u
 
+-- -}
+-- -}
+-- -}
+-- -}

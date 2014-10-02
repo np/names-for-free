@@ -70,6 +70,11 @@ ap-snd : ∀ {A : Type} {B : A → Type}
          → _==_ {A = Σ A B} (x , y) (x , z) → y == z
 ap-snd refl = refl
 
+record Box {a} (A : Set a) : Set a where
+  constructor box
+  field unbox : A
+open Box public
+
 World = Type -- a context of names
 
 
@@ -210,18 +215,12 @@ exportN (new _) = left refl
 exportN-name : ∀ {α} (b : Binder α) → exportN (name b) == left refl
 exportN-name b = refl
 
-record _⇉_ (α β : World) : Set where
-  constructor mk⇉
-  field
-    wkN : α → β
-open _⇉_ public
-
 instance
-  ⇉-skip :  ∀ {α β} {b} → {{s : α ⇉ β}} → α ⇉ ( β ▹ b )
-  ⇉-skip {{mk⇉ s}} = mk⇉ (λ x → old (s x))
+  ⇉-skip :  ∀ {α β : World} {b} → {{s : Box (α → β)}} → Box (α → β ▹ b)
+  ⇉-skip {{box s}} = box (old ∘ s)
 
-  ⇉-refl : ∀ {w} → w ⇉ w
-  ⇉-refl = mk⇉ λ x → x
+  ⇉-refl : ∀ {w : World} → Box (w → w)
+  ⇉-refl = box id
 
   -- ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
   -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x -> map▹ ♦ ♦ s x
@@ -250,35 +249,36 @@ record Functor (F : Set -> Set) : Set1 where
             (h= : f ∘ g ~ h)
           → map f ∘ map g ~ map h
 
+module Renaming {F} (Fun-F : Functor F) where
+  open Functor Fun-F
+
   ----------------------------
   -- Weakening/Renaming
-  wkN' : ∀ {α β} {{s : α ⇉ β}} → α → β
-  wkN' = wkN …
+  wkN' : ∀ {α β : World} {{s : Box (α → β)}} → α → β
+  wkN' = unbox …
 
   _∈_ : ∀ {w}(b : Binder w)(w' : World) → Set
-  b ∈ w' = (_ ▹ b) ⇉ w'
+  b ∈ w' = Box ((_ ▹ b) → w')
 
   name' : ∀ {w w'}(b : Binder w) {{s : b ∈ w'}} → w'
   name' b = wkN' (name b)
 
-  wk : ∀ {α β} {{s : α ⇉ β}} → F α → F β
+  wk : ∀ {α β} {{s : Box (α → β)}} → F α → F β
   wk  = _<$>_ wkN'
 
-  atVar' : {α β : World} -> ScopeF F α -> (b : Binder β) → {{_ : α ⇉ β}} -> F (β ▹ b)
-  atVar'  sc b {{mk⇉ s}} = map▹ _ _ s <$> sc
+  atVar' : {α β : World} -> ScopeF F α -> (b : Binder β) → {{_ : Box (α → β)}} -> F (β ▹ b)
+  atVar'  sc b {{box s}} = map▹ _ _ s <$> sc
 
 functorId :  Functor (\x -> x)
 functorId = record { _<$>_ = id ; <$>-id = λ pf x → pf x ; <$>-∘ = λ h= x → h= x }
 
-
 record PointedFunctor (F : Set -> Set) : Set1 where
+  constructor mk
   field
     {{isFunctor}} : Functor F
     return : ∀ {A} → A → F A
 
   open Functor isFunctor
-  var' : ∀ {w w'}(b : Binder w){{s : (w ▹ b) ⇉ w'}} → F w'
-  var' b = return (name' b)
 
   field
     map-return' : ∀ {a b} (f : a -> b) -> ∀ x -> f <$> return x == return (f x)
@@ -286,15 +286,22 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   map-return : ∀ {a b} (f : a -> b) {s : a →K a} (s= : s ~ return) -> ∀ x -> f <$> s x == return (f x)
   map-return f {s} s= x with s x | s= x
   ... | ._ | refl = map-return' f x
-  
+
+module PointedRenaming {F} (Fun-F : PointedFunctor F) where
+  open PointedFunctor Fun-F
+  open Functor isFunctor
+  open Renaming isFunctor public
+
+  var' : ∀ {w w'}(b : Binder w){{s : Box ((w ▹ b) → w')}} → F w'
+  var' b = return (name' b)
 
   ext : ∀ {v w} (s : v →K w) → v ⇑ →K w ⇑
   ext f (old x)  = wk (f x)
   ext f (new ._) = return (new ♦)
 
-  ext-var : ∀ {α}  {s : α →K α} (s= : s ~ return)  → ext s ~ return
-  ext-var s= (old x)  = map-return old s= x
-  ext-var s= (new ._) = refl
+  ext-return : ∀ {α}  {s : α →K α} (s= : s ~ return)  → ext s ~ return
+  ext-return s= (old x)  = map-return old s= x
+  ext-return s= (new ._) = refl
 
   ext-wk-subst : ∀ {α β γ δ}
                    {f  : α → γ}
@@ -311,10 +318,9 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   ext-ren-subst {f = f} s= (old x) | ._ | refl = ! map-return old (\x -> refl) (f x)
   ext-ren-subst s= (new ._) = refl
 
-postulate
-  pointedId : PointedFunctor (\x -> x)
-  -- JP: can't seem to give a definition for this ?!
-  
+pointedId : PointedFunctor id
+pointedId = mk {{functorId}} id (λ f x → refl)
+
 record Applicative (F : Set -> Set) : Set1 where
   field
     _<*>_ : ∀ {A B} → F (A -> B) → F A -> F B
@@ -360,6 +366,12 @@ record Monad (M : Set -> Set) : Set1 where
   bind∘fmap t f s = trans ((ap (\l -> l >>= s) (fmap-bind' {f = f} t)))
                           (bind-assoc {s = s} {s' = return ∘ f} {s'' = s ∘ f} (\ y -> left-id' {f = s}) t)
 
+module Substitution {M} (Mon-M : Monad M) where
+  open Monad Mon-M
+  open PointedFunctor isPointed
+  open Functor isFunctor
+  open PointedRenaming isPointed public
+
   subst0 : ∀ {α b} → M α → (α ▹ b) →K α
   subst0 u (old x)  = return x
   subst0 u (new ._) = u
@@ -403,15 +415,23 @@ record Monad (M : Set -> Set) : Set1 where
                      ; <$>-∘ = λ h= → bind-assoc (λ x₁ → trans left-id (ap return (h= x₁))) }
   -- open Functor functor public
   -}
-module _ {F : Set -> Set} {{F : Monad F}} where
-  open Monad F public
-module _ {F : Set -> Set} {{F : PointedFunctor F}} where
-  open PointedFunctor F public
-module _ {F : Set -> Set} {{F : Applicative F}} where
-  open Applicative F public
-module _ {F : Set -> Set} {{F : Functor F}} where
-  open Functor F public
 
+module Auto where
+    open Monad          {{...}} public
+    open PointedFunctor {{...}} public
+    open Applicative    {{...}} public
+    open Functor        {{...}} public
+{-
+module Auto {F : Set -> Set} where
+    module _ {{F : Monad F}} where
+      open Monad F public
+    module _ {{F : PointedFunctor F}} where
+      open PointedFunctor F public
+    module _ {{F : Applicative F}} where
+      open Applicative F public
+    module _ {{F : Functor F}} where
+      open Functor F public
+-}
 
 
 
@@ -420,10 +440,12 @@ module _ {F : Set -> Set} {{F : Functor F}} where
 -- lambda t = t >>= (λ {(old x) → return x ; (new ._) → {!!} })
 
 
-{-- module Free where
+{-
+module Free where
+  open Auto
   -- Maybe we can make a version of "free" which supports lambdas.
 
-  -- This chould probably be defined using copatterns/whatnot, without nonsense.
+  -- This should probably be defined using copatterns/whatnot, without nonsense.
   data Free (f : Set -> Set) (a : Set) : Set where
     pure : a -> Free f a
     embed : f (Free f a) -> Free f a
