@@ -81,11 +81,8 @@ data _⟶_ {α} : (t u : Tm α) → Type where
   _$$_ : ∀ {t t' u u'}(r : t ⟶ t') (q : u ⟶ u') -> t $$ u ⟶ t' $$ u'
   ƛ_   : ∀ {t t'}(r : t ⟶ t') → ƛ t ⟶ ƛ t'
 
-⟶trans : ∀ {a} {t u v : Tm a} -> (t ⟶ u) -> (u ⟶ v) -> (t ⟶ v)
-⟶trans = {!false!}
-
-==⟶ : ∀ {a} -> {t u : Tm a} -> (t == u) -> (t ⟶ u)
-==⟶ = {!!}
+⟶trans : ∀ {a} {t u v : Tm a} -> (t == u) -> (u ⟶ v) -> (t ⟶ v)
+⟶trans refl x = x
 
 map⟶ : ∀ {a b} {f : a -> b} {f' : a -> b} (f= : ∀ x -> f x == f' x) {t u : Tm a} -> (t ⟶ u) -> f <$> t ⟶ f <$> u
 map⟶ f= noop = noop
@@ -105,7 +102,7 @@ base-1 {M = M $$ M₁} s= = (base-1 s=) $$ (base-1 s=)
  
 subst-lemma' : ∀ {a b} -> {M M' : Tm a} -> ∀ {s s' : a → Tm b} → (M ⟶ M') -> (∀ x -> s x ⟶ s' x) -> M >>= s ⟶ M' >>= s'
 subst-lemma' noop x = base-1 x
-subst-lemma' {a} {b} {._} {M'} {s} {s'} (β {t} {u} r1) x = β (⟶trans (==⟶ (trans (bind-assoc {{Tm-Monad}} {s =(subst0 (substT s u)) } {s' = ext s} {s'' = substT (subst0 (substT s u)) ∘ (ext  s )} (λ x₁ → refl) t) (trans {!ap2 substT ? refl !} (! bind-assoc {{Tm-Monad}} {s = s} {s' = subst0 u} {s'' = substT s ∘ subst0 u} (λ x₁ → refl) t)))) (subst-lemma' {M = substT (subst0 u) t} {M' = M'} {s = s} {s' = s'} r1 x))
+subst-lemma' {a} {b} {._} {M'} {s} {s'} (β {t} {u} r1) x = β (⟶trans (trans (bind-assoc {{Tm-Monad}} {s =(subst0 (substT s u)) } {s' = ext s} {s'' = substT (subst0 (substT s u)) ∘ (ext  s )} (λ x₁ → refl) t) (trans {!ap2 substT ? refl !} (! bind-assoc {{Tm-Monad}} {s = s} {s' = subst0 u} {s'' = substT s ∘ subst0 u} (λ x₁ → refl) t))) (subst-lemma' {M = substT (subst0 u) t} {M' = M'} {s = s} {s' = s'} r1 x))
 subst-lemma' (r1 $$ r2) x = subst-lemma' r1 x $$ subst-lemma' r2 x 
 subst-lemma' (ƛ r1) x = ƛ subst-lemma' r1 (ext⟶ x)
 
