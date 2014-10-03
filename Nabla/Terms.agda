@@ -89,6 +89,7 @@ instance
   Tm-Pointed = record { return = var ; map-return' = λ f x → refl }
 
 open PointedRenaming Tm-Pointed
+  using (var'; ext; wk; ext-return; ext-ren-subst; ext-wk-subst)
 open Auto
 
 idTm : ∀ {w} -> Tm w
@@ -271,7 +272,6 @@ instance
                ; left-id = λ {α} {β} {x} {f} → var-subst
                ; map-bind = ren-subst
                }
-
 open Substitution Tm-Monad -- public
 
 joinT : ∀ {α} → Tm (Tm α) → Tm α
@@ -286,7 +286,7 @@ subst-join∘ren s t =
 
 -- A fake let
 letP : ∀ {α} → Tm α → ScopeP Tm α → Tm α
-letP t f = [0≔ t ] f ♦
+letP t f = [ 0≔ t ] f ♦
 
 
              {-
@@ -310,7 +310,7 @@ join . fmap (fmap f) ≡ fmap f . join
 infix 0 _↝_ _~>_
 
 data _↝_ {α} : (t u : Tm α) → Type where
-  β     : ∀ {t u} → ƛ t $$ u ↝ [0≔ u ] t
+  β     : ∀ {t u} → ƛ t $$ u ↝ [ 0≔ u ] t
   [_]·_ : ∀ {t t'}(r : t ↝ t') u → t $$ u ↝ t' $$ u
   _·[_] : ∀ {t t'} u (r : t ↝ t') → u $$ t ↝ u $$ t'
   ƛ[_]  : ∀ {t t'}(r : t ↝ t') → ƛ t ↝ ƛ t'

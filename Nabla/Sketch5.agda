@@ -155,7 +155,7 @@ module _ {α β : World} where
     map⇑  : (α → β) → (α ⇑) → (β ⇑)
     map⇑ = map▹ ♦ ♦
 
-map⇑^ : ∀ n {α β} -> (α → β) → α ⇑^ n → β ⇑^ n
+map⇑^ : ∀ n {α β} → (α → β) → α ⇑^ n → β ⇑^ n
 map⇑^ zero    = id
 map⇑^ (suc n) = map⇑ ∘ map⇑^ n
 
@@ -375,13 +375,14 @@ module PointedRenaming {F} (Fun-F : PointedFunctor F) where
   var' b = return (name' b)
 
   -- Same as ext but with abstract b b'
-  liftSubst : ∀ {α β b b'} → α →K β → (α ▹ b) →K (β ▹ b')
-  liftSubst θ (old x) = wk (θ x)
-  liftSubst θ (new x) = return (new _)
+  ext▹ : ∀ {α β} b b' → α →K β → (α ▹ b) →K (β ▹ b')
+  ext▹ _ _ θ (old x)  = wk (θ x)
+  ext▹ b _ θ (new .b) = return (new _)
+
+  liftSubst = ext▹
 
   ext : ∀ {v w} (s : v →K w) → v ⇑ →K w ⇑
-  ext f (old x)  = wk (f x)
-  ext f (new ._) = return (new ♦)
+  ext = ext▹ _ _
 
   ext^ : ∀ n {v w} (s : v →K w) → v ⇑^ n →K w ⇑^ n
   ext^ zero    = id
@@ -395,12 +396,35 @@ module PointedRenaming {F} (Fun-F : PointedFunctor F) where
   ext-return^ zero    = id
   ext-return^ (suc n) = ext-return ∘ ext-return^ n
 
+  ext-return^' : ∀ n {α} → ext^ n {α} return ~ return
+  ext-return^' n = ext-return^ n λ _ → refl
+
+  ext-map▹ : ∀ {α β γ} b b' b'' {f : β → F γ} {g : α → β} {h : α → F γ}(h= : f ∘ g ~ h)
+            → ext▹ b' b'' f ∘ map▹ b b' g ~ ext▹ b b'' h
+  ext-map▹ _ _ _ h= (old _)  = ap (map old) (h= _)
+  ext-map▹ _ _ _ h= (new ._) = refl
+
+  ext-map⇑ : ∀ {α β γ}{f : β → F γ} {g : α → β} {h : α → F γ}(h= : f ∘ g ~ h)
+            → ext f ∘ map⇑ g ~ ext h
+  ext-map⇑ = ext-map▹ _ _ _
+
+  ext-map⇑' : ∀ {α β γ}{f : β → F γ}{g : α → β} → ext f ∘ map⇑ g ~ ext (f ∘ g)
+  ext-map⇑' = ext-map⇑ λ _ → refl
+
+  ext-map⇑^ : ∀ n {α β γ}{f : β → F γ}{g : α → β}{h : α → F γ}(h= : f ∘ g ~ h) → ext^ n f ∘ map⇑^ n g ~ ext^ n h
+  ext-map⇑^ zero    = id
+  ext-map⇑^ (suc n) = ext-map⇑ ∘ ext-map⇑^ n
+
+  ext-map⇑^' : ∀ n {α β γ}{f : β → F γ}{g : α → β} → ext^ n f ∘ map⇑^ n g ~ ext^ n (f ∘ g)
+  ext-map⇑^' n = ext-map⇑^ n λ _ → refl
+
   module _ {α β γ δ}
            {f  : α → γ}
            {s  : γ →K δ}
            {f' : β → δ}
            {s' : α →K β}
            (s= : s ∘ f ~ map f' ∘ s') where
+    -- TODO could take advantage of ext-map⇑
     ext-wk-subst : ext s ∘ map⇑ f ~ map (map⇑ f') ∘ ext s'
     ext-wk-subst (old x) = ap wk (s= x) ∙ <$>-∘' (s' x) ∙ ! <$>-∘' (s' x)
     ext-wk-subst (new ._) = ! map-return (map⇑ f') (λ x → refl) (new ◆)
@@ -410,30 +434,25 @@ module PointedRenaming {F} (Fun-F : PointedFunctor F) where
   ext-ren-subst {f = f} s= (old x) | ._ | refl = ! map-return old (\x -> refl) (f x)
   ext-ren-subst s= (new ._) = refl
 
+  infix 3 _≔_
   infix 10 0≔_
 
-  0≔_ : ∀ {α b} → F α → (α ▹ b) →K α
-  (0≔ u) (old x)  = return x
-  (0≔ u) (new ._) = u
+  _≔_ : ∀ {α} b → F α → (α ▹ b) →K α
+  (b ≔ u) (old x)  = return x
+  (b ≔ u) (new .b) = u
 
-  subst0 = 0≔_
+  0≔_ : ∀ {α} → F α → (α ⇑) →K α
+  0≔ u = ♦ ≔ u
 
-  0≔-map : ∀ {α β} (f : α → β) (t : F α) → 0≔ (f <$> t) ∘ map⇑ f ~ map f ∘ 0≔ t
-  0≔-map f t (old x)  = ! map-return' f x
-  0≔-map f t (new .♦) = refl
+  ≔-map : ∀ {α β} b b' (f : α → β) (t : F α) → (b' ≔ f <$> t) ∘ map▹ b b' f ~ map f ∘ (b ≔ t)
+  ≔-map b b' f t (old x)  = ! map-return' f x
+  ≔-map b b' f t (new ._) = refl
 
-  ext-map▹ : ∀ {α b}(t : F α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ return
-  ext-map▹ t (old x) = map-return' old x
-  ext-map▹ t (new .♦) = refl
-    -- by def of <$> and right-id
+  0≔-map : ∀ {α β} (f : α → β) (t : F α) → 0≔(f <$> t) ∘ map⇑ f ~ map f ∘ 0≔ t
+  0≔-map = ≔-map ♦ ♦
 
-  ext-map⇑ : ∀ {α}(t : F α) → ext (subst0 t) ∘ map⇑ old ~ return
-  ext-map⇑ = ext-map▹ {b = ♦}
-
-  ext-map⇑^ : ∀ n {α b}(t : F α) → ext^ n (subst0 {b = b} t) ∘ map⇑^ n old ~ return
-  ext-map⇑^ zero    t x        = refl
-  ext-map⇑^ (suc n) t (old x)  = map-return old (ext-map⇑^ n t) x
-  ext-map⇑^ (suc n) t (new .♦) = refl
+  ext-map⇑-old-return^ : ∀ n {α} b (t : F α) → ext^ n (b ≔ t) ∘ map⇑^ n old ~ return
+  ext-map⇑-old-return^ n b t u = ext-map⇑^' n u ∙ ext-return^' n u
 
 pointedId : PointedFunctor id
 pointedId = mk {{functorId}} id (λ f x → refl)
@@ -507,11 +526,8 @@ module Substitution {M} (Mon-M : Monad M) where
   -- Too many names for the same thing...
   [_]_ = subs
 
-  [0≔_]_ : ∀  {α b} (u : M α) → M (α ▹ b) → M α
-  [0≔ u ] t = [ 0≔ u ] t
-
-  substituteOut : ∀  {a} v ->  M a -> M (a ▹ v) -> M a
-  substituteOut x u t = [0≔ u ] t
+  substituteOut : ∀  {a} b ->  M a -> M (a ▹ b) -> M a
+  substituteOut b u t = [ b ≔ u ] t
 
   -- (>>=) f == join ∘ fmap f
   -- subs-join∘ren : ∀ {α β} {f : Set -> Set} {{_ : Monad f}} (s : α →K β) → subs s ~ join ∘ _<$>_ s
@@ -519,8 +535,8 @@ module Substitution {M} (Mon-M : Monad M) where
 
   -- map (map⇑^ n old) is a form of weakening
   subst-ext^-subst0-wk^-id : ∀ n {a b} {t : M (a ⇑^ n)}{u}
-    → subs (ext^ n (subst0 {b = b} u)) (map (map⇑^ n old) t) == t
-  subst-ext^-subst0-wk^-id n {t = t} {u} = =<<-<$> t ∙ right-id (ext-map⇑^ n u) t
+    → subs (ext^ n (b ≔ u)) (map (map⇑^ n old) t) == t
+  subst-ext^-subst0-wk^-id n {t = t} {u} = =<<-<$> t ∙ right-id (ext-map⇑-old-return^ n _ u) t
 
   subst0-ext : ∀ {α β} {s : α → M β} {u} → subs (0≔ (subs s u)) ∘ ext s ~ subs s ∘ 0≔ u
   subst0-ext (old x)  = subst-ext^-subst0-wk^-id 0 ∙ ! left-id'
