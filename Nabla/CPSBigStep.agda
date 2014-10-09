@@ -64,7 +64,7 @@ cps-Value M = ƛ (cpsP M ♦)
 ⟶-cps M = ƛ (cpsP M ♦)
 
 lemma5' : ∀ {a P} {M v : Tm a} → (M ⟶ v) → ([ 0≔ psi v ] P) ≈ ([ 0≔ ƛ P ] cpsP M ♦)
-lemma5' (β {t} {t'} {u} {v} ru rt rt') rP = β (ƛ _) (ƛ _) {!!}
+lemma5' {P = P} {v = v} (β {t} {t'} {u} {vu} ru rt rt') {v'} rP = β (ƛ _) (ƛ _) (tr (λ x → x ⟶ v') {!bind-assoc' {s = 0≔ (psi v)} {s' = ?} P!} rP)
 lemma5' (ƛ t) rP = β (ƛ _) (ƛ _) {!!}
 
 lemma5 : ∀{a} {M v : Tm a} {P : ScopeF Tm a} → (M ⟶ v) → ([ 0≔ psi v ] P) ≈ (cps M $$ ƛ P)
