@@ -366,7 +366,7 @@ record PointedFunctor (F : Set -> Set) : Set1 where
   map-return f {s} s= x with s x | s= x
   ... | ._ | refl = map-return' f x
 
-module PointedRenaming {F} (Fun-F : PointedFunctor F) where
+module PointedRenaming {F} {{Fun-F : PointedFunctor F}} where
   open PointedFunctor Fun-F
   open Functor isFunctor
   open Renaming isFunctor public
@@ -521,7 +521,7 @@ module Substitution {M} (Mon-M : Monad M) where
   open Monad Mon-M
   open PointedFunctor isPointed
   open Functor isFunctor
-  open PointedRenaming isPointed public
+  open PointedRenaming {{isPointed}} public
 
   -- Too many names for the same thing...
   [_]_ = subs

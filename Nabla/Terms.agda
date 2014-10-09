@@ -88,7 +88,7 @@ instance
   Tm-Pointed : PointedFunctor Tm
   Tm-Pointed = record { return = var ; map-return' = λ f x → refl }
 
-open PointedRenaming Tm-Pointed
+open PointedRenaming {{Tm-Pointed}}
   using (var'; ext; wk; ext-return; ext-ren-subst; ext-wk-subst)
 open Auto
 
