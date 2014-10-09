@@ -125,6 +125,12 @@ lemma5'' {a} {P} {ƛ M}    {v'} r2 = β (tr (λ t → substT (0≔ ƛ t) P ⟶ v
 lemma5'' {a} {P} {M $$ N} {v'} r2 = β (tr (λ t → t ⟶ v')
     (({!lemma5'' !} ∙ ap (substT _) (! cpsP-wk-naturality M)) ∙ ! subst-hom′ _ _ (cpsP (wk M) ♦)) r2)
 
+    {-
+theorem : ∀{a} (M : Tm a) -> cps M $$ idTm ⟶ psi M
+theorem M = β (lemma5'' {P = var (new ◆)} {M})
+-}
+-}
+
 lemma5' : ∀ {a P} {M v : Tm a} -> (M ⟶ v) -> ([0≔ psi v ] P) ≈ ([0≔ ƛ P ] cpsP M ♦)
 lemma5' {M = M} noop r2 = lemma5'' {M = M} r2
 lemma5' {a} {P} (ƛ r1) r2
@@ -144,8 +150,13 @@ lemma5' (r1 $$ r2) r3 = β {!!}
 lemma5 : ∀{a} {M v : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> ([0≔ psi v ] P) ≈ (cps M $$ ƛ P)
 lemma5 r1 r2 = β (lemma5' r1 r2)
 
-theorem : ∀{a} (M : Tm a) -> app (cps M) idTm ⟶ psi M
+{-
+theorem : ∀{a} (M : Tm a) -> cps M $$ idTm ⟶ psi M
 theorem M = lemma5 {M = M} {v = M} {P = var (new ◆)} noop noop
+-}
+
+theorem : ∀{a} (M v : Tm a) → M ⟶ v → cps M $$ idTm ⟶ psi v
+theorem M v r = lemma5 {M = M} {v = v} {P = var (new ◆)} r noop
 
 -- In the terms obtained by the proof, all the names are gone; so
 -- there is no help to get from the current instances for inclusions.

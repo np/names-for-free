@@ -24,7 +24,7 @@ mutual
     data Nrm {α} : Tm α → Type where
       ƛ_  : {t : Tm (α ⇑)} → Nrm t → Nrm (ƛ t)
       neu : ∀ {t} → Neu t → Nrm t
-
+      
 
 data Value {α} : Tm α → Type where
   ƛ_ : ∀ t → Value (ƛ t)
@@ -45,6 +45,20 @@ data _⟶_ {α} : (t v : Tm α) → Type where
 ⟶-trans : ∀ {α} → Transitive (_⟶_ {α})
 ⟶-trans (β rt ru rv) r = β rt ru (⟶-trans rv r)
 ⟶-trans (ƛ t) q = q
+
+module ⟶-Reasoning {α : World} where
+  infix  2 finally
+  infixr 2 _⟶⟨_⟩_
+
+  _⟶⟨_⟩_ : ∀ x {y z : Tm α} → x ⟶ y → y ⟶ z → x ⟶ z
+  _ ⟶⟨ x≈y ⟩ y≈z = ⟶-trans x≈y y≈z
+
+  -- When there is no reflexivty available this
+  -- combinator can be used to end the reasoning.
+  finally : ∀ (x y : Tm α) → x ⟶ y → x ⟶ y
+  finally _ _ x≈y = x≈y
+
+  syntax finally x y x≈y = x ⟶⟨ x≈y ⟩∎ y ∎
 
 module _ {α : World} where
 

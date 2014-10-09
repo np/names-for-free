@@ -86,7 +86,7 @@ instance
 
 instance
   Tm-Pointed : PointedFunctor Tm
-  Tm-Pointed = record { return = var ; map-return' = λ f x → refl }
+  Tm-Pointed = record { isFunctor = Tm-Functor; return = var ; map-return' = λ f x → refl }
 
 open PointedRenaming {{Tm-Pointed}}
   using (var'; ext; wk; ext-return; ext-ren-subst; ext-wk-subst)
@@ -110,6 +110,17 @@ wkT' (box wk) = map wk
 η : ∀ {w} → Tm w → Tm w
 η t = lamP λ x → app (wkT t) (var' x)
 
+{-
+{-
+ext▹ : ∀ {v w b b'} (s : v ⇶ w) → (v ▹ b) ⇶ (w ▹ b')
+ext▹ f (old x)  = wkT (f x)
+ext▹ f (new ._) = var (new _)
+-}
+
+ext : ∀ {v w} (s : v ⇶ w) → v ⇑ ⇶ w ⇑
+ext f (old x)  = wkT (f x)
+ext f (new ._) = var (new _)
+-}
 
 -- open Trv (λ f → f) ext public renaming (trvT to substT)
 

@@ -6,6 +6,8 @@ open import Relation.Binary.PropositionalEquality.NP
   renaming (_≡_ to _==_; _≗_ to _~_)
 open import Function
 
+--test = suc {!!}
+
 _~′_ : ∀ {a b} {A : Set a} {B : A → Set b} (f g : (x : A) → B x) → Set(a ⊔ b)
 f ~′ g = ∀ x → f x == g x
 
@@ -549,6 +551,22 @@ module Substitution {M} (Mon-M : Monad M) where
   subst0-ext : ∀ {α β} {s : α → M β} {u} → subs (0≔ (subs s u)) ∘ ext s ~ subs s ∘ 0≔ u
   subst0-ext (old x)  = subst-ext^-subst0-wk^-id 0 ∙ ! left-id'
   subst0-ext (new .♦) = left-id'
+
+  {-
+  ≔∘≔ : ∀ {α} b b' (t : M α) u → (b ≔ t) ∘k (b' ≔ u) ~ ⟨ b ≔ t ⁏ b' ≔ [ b ≔ t ] u ⟩
+  ≔∘≔ b b' t u (old (old x)) = {!refl!}
+  ≔∘≔ b b' t u (old (new .b)) = {!refl!}
+  ≔∘≔ b b' t u (new .b') = {!refl!}
+
+  ≔-wk : ∀ {α} b (t u : Tm α) → [ b ≔ t ] wk u == u
+  ≔-wk b t u = {!!}
+
+  ≔∘≔wk : ∀ {α} b b' (t : Tm α) u → (b ≔ t) ∘s (b' ≔ wk u) ~ ⟨ b ≔ t ⁏ b' ≔ u ⟩
+  ≔∘≔wk b b' t u x = ≔∘≔ b b' t (wk u) x ∙ ap (λ u' → ⟨ b ≔ t ⁏ b' ≔ u' ⟩ x) (≔-wk b t u)
+
+  0≔∘0≔ : ∀ {α} (t : Tm α) u → (0≔ t) ∘s (0≔ u) ~ ⟨1≔ t ⁏0≔ [ 0≔ t ] u ⟩
+  0≔∘0≔ t u = ≔∘≔ ♦ ♦ t u
+  -}
 
   {-
   We can define ANOTHER functor instance, but this is not really good.
