@@ -13,11 +13,14 @@ open import Sketch5
 open import Terms
 open import TermRed2
 
-open Term-Structure Tm-Monad
+open Term-Structure Tm-Monad hiding (_≔_)
+open PointedRenaming using (_≔_)
 
 load : ∀ {w b}  -> w -> w ▹ b -> w
 load _ (old x) = x
 load v (new _) = v
+
+
 
 {-# NO_TERMINATION_CHECK #-}
 mutual 
