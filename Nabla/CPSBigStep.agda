@@ -13,8 +13,8 @@ open import Sketch5
 open import Terms
 open import TermRed2
 
-open Term-Structure Tm-Monad hiding (_≔_; ext▹)
-open PointedRenaming using (_≔_ ; ext▹)
+open Term-Structure Tm-Monad hiding (_≔_; ext▹; ext)
+open PointedRenaming using (_≔_ ; ext▹; ext)
 
 load : ∀ {w b}  -> w -> w ▹ b -> w
 load _ (old x) = x
@@ -63,9 +63,43 @@ cps-Value M = ƛ (cpsP M ♦)
 ⟶-cps : ∀ {α} (M : Tm α) → cps M ⟶ cps M
 ⟶-cps M = ƛ (cpsP M ♦)
 
+postulate
+  subst-lemma : ∀ {a b} {f g : a -> Tm b} P -> (∀ x -> f x ⟶ g x) ->  substT f P ⟶ substT g P
+
+subst-lemma2 : ∀ {a b} {f g : a -> Tm b} P -> (∀ x -> f x == g x) ->  substT f P == substT g P
+subst-lemma2 (var x) f=g = f=g x
+subst-lemma2 (ƛ t) f=g = ap ƛ_ (subst-lemma2 t (λ { (old x) → {!!} ; (new .♦) → refl }))
+subst-lemma2 (P $$ u) f=g = ap2 _$$_ (subst-lemma2 P f=g) ((subst-lemma2 u f=g))
+
+lem4 : ∀ {a} (x : a ▹ ♦) (t P : Tm (a ▹ ◆)) →
+      (♦ ≔ ƛ (ƛ cpsP t ♦)) x ==
+      (♦ ≔
+       ƛ
+       (ƛ
+        substT (ext▹ ♦ ♦ (ext▹ ♦ ♦ (♦ ≔ ƛ P)))
+        (renT (map▹ ♦ ♦ (map▹ ♦ ♦ (λ x₁ → old x₁))) (cpsP t ♦))))
+      x
+lem4 (old x) t P = refl
+lem4 (new .♦) t P = ap ƛ_ (ap ƛ_ {! !})
+
 lemma5' : ∀ {a P} {M v : Tm a} → (M ⟶ v) → ([ 0≔ psi v ] P) ≈ ([ 0≔ ƛ P ] cpsP M ♦)
-lemma5' {P = P} {v = v} (β {t} {t'} {u} {vu} ru rt rt') {v'} rP = β (ƛ _) (ƛ _) (tr (λ x → x ⟶ v') {!bind-assoc' {s = 0≔ (psi v)} {s' = ?} P!} rP)
-lemma5' (ƛ t) rP = β (ƛ _) (ƛ _) {!!}
+lemma5' {P = P} {v = v} (β {t} {t'} {u} {vu} ru rt rt') {v'} rP
+  = β (ƛ _) (ƛ _) 
+    (tr (λ x → x ⟶ v') ({!bind-assoc'!} ∙ ! bind-assoc'{s = (♦ ≔
+       ƛ
+       (ƛ
+        substT (ext▹ ♦ ♦ (ext▹ ♦ ♦ (♦ ≔ ƛ P)))
+        (cpsP (renT (λ x → old (old x)) u) ♦)
+        $$
+        ƛ
+        ((var (new ♦) $$ var (old (new ♦))) $$
+         ƛ
+         renT (map▹ ♦ ♦ (λ x → old x)) (renT (map▹ ♦ ♦ (λ x → old x)) P))))} {s' = (ext▹ ♦ ♦ (♦ ≔ ƛ P))} (cpsP (renT (λ x → old x) t) ♦)) rP)
+lemma5' {P = P} (ƛ t) {v = v} rP = β (ƛ _) (ƛ _) (tr (λ x → x ⟶ v) (subst-lemma2 P (λ { x → lem4 x t P })) rP)
+
+-- (⟶-trans (subst-lemma P
+--    (λ { (old x) → {!!}
+--       ; (new .♦) → {!!} })) rP)  
 
 lemma5 : ∀{a} {M v : Tm a} {P : ScopeF Tm a} → (M ⟶ v) → ([ 0≔ psi v ] P) ≈ (cps M $$ ƛ P)
 lemma5 {M = M} r r' = β (⟶-cps M) (ƛ _) (lemma5' r r')
