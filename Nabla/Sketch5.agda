@@ -1,4 +1,5 @@
-open import Level
+open import Level.NP
+open import Data.Nat.NP hiding (_⊔_; _==_)
 open import Function.Extensionality
 open import Relation.Binary.PropositionalEquality.NP
   hiding ([_])
@@ -134,26 +135,90 @@ pattern new b = right (the b)
 _⇑ : (w : World) → World
 w ⇑ = w ▹ ♦
 
--- b # v and b' # w
-map▹  : ∀ {v w} b b' -> (v → w) → (v ▹ b) → (w ▹ b')
-map▹ _ _ f (old x) = old (f x)
-map▹ _ _ f (new ._) = new _
+infixl 5 _⇑^_
 
--- Map to a fresh thing
-map⇑  : ∀ {v w} -> (v → w) → (v ⇑) → (w ⇑)
-map⇑ = map▹ ♦ ♦
+_⇑^_ : World → ℕ → World
+w ⇑^ zero  = w
+w ⇑^ suc n = (w ⇑^ n)⇑
 
-map▹-id : ∀ {α}{f : α → α} (pf : f ~ id){b} → map▹ b b f ~ id
-map▹-id pf (old x) = ap old (pf x)
-map▹-id pf (new _) = refl
+old^ : ∀ {w} (n : ℕ) → w → w ⇑^ n
+old^ zero    = id
+old^ (suc n) = old ∘ old^ n
+
+module _ {α β : World} where
+    -- b # α and b' # β
+    map▹  : ∀ b b' -> (α → β) → (α ▹ b) → (β ▹ b')
+    map▹ _ _ f (old x) = old (f x)
+    map▹ _ _ f (new ._) = new _
+
+    -- Map to a fresh thing
+    map⇑  : (α → β) → (α ⇑) → (β ⇑)
+    map⇑ = map▹ ♦ ♦
+
+map⇑^ : ∀ n {α β} → (α → β) → α ⇑^ n → β ⇑^ n
+map⇑^ zero    = id
+map⇑^ (suc n) = map⇑ ∘ map⇑^ n
+
+{-
+compose^ : ∀ n {α β} -> (α → β) → α ⇑^ n → β ⇑^ n
+compose^ n = ?
+
+foo : ∀ n {α} → map⇑ {α} (old^ n) ~ map⇑^ n old
+foo n x = ?
+
+foo : ∀ n {α} → map⇑^ n {α} old ~ map⇑^ old ∘ ?
+foo zero x = {!!}
+foo (suc n) (old x) = {!!}
+foo (suc n) (new .♦) = {!!}
+-}
+
+module _ {α : World} where
+    map▹-id : ∀ {f : α → α} (pf : f ~ id){b} → map▹ b b f ~ id
+    map▹-id pf (old x) = ap old (pf x)
+    map▹-id pf (new _) = refl
+
+    map▹-id' : ∀ {b} → map▹ b b id ~ id
+    map▹-id' = map▹-id λ _ → refl
+
+    map⇑-id : ∀ {f : α → α} (pf : f ~ id) → map⇑ f ~ id
+    map⇑-id pf = map▹-id pf {♦}
+
+    map⇑-id' : map⇑ id ~ id
+    map⇑-id' = map▹-id'
+
+map⇑^-id : ∀ n {α} {f : α → α} (pf : f ~ id) → map⇑^ n f ~ id
+map⇑^-id zero    = id
+map⇑^-id (suc n) = map⇑-id ∘ map⇑^-id n
 
 module _ {α β γ}{f : β → γ}{g : α → β}{h : α → γ}(h= : f ∘ g ~ h) where
     map▹-∘ : ∀ b0 b1 b2 → map▹ b1 b2 f ∘ map▹ b0 b1 g ~ map▹ b0 b2 h
-    map▹-∘ b0 b1 b2 (old x) = ap old (h= x)
+    map▹-∘ b0 b1 b2 (old x)   = ap old (h= x)
     map▹-∘ b0 b1 b2 (new .b0) = refl
 
     map⇑-∘ : map⇑ f ∘ map⇑ g ~ map⇑ h
     map⇑-∘ = map▹-∘ _ _ _
+
+map⇑^-∘ : ∀ n {α β γ}{f : β → γ}{g : α → β}{h : α → γ}(h= : f ∘ g ~ h) → map⇑^ n f ∘ map⇑^ n g ~ map⇑^ n h
+map⇑^-∘ zero    = id
+map⇑^-∘ (suc n) = map⇑-∘ ∘ map⇑^-∘ n
+
+module _ {α β γ}{f : β → γ}{g : α → β} where
+    map▹-∘' : ∀ b0 b1 b2 → map▹ b1 b2 f ∘ map▹ b0 b1 g ~ map▹ b0 b2 (f ∘ g)
+    map▹-∘' = map▹-∘ λ _ → refl
+
+    map⇑-∘' : map⇑ f ∘ map⇑ g ~ map⇑ (f ∘ g)
+    map⇑-∘' = map▹-∘' _ _ _
+
+    map⇑^-∘' : ∀ n → map⇑^ n f ∘ map⇑^ n g ~ map⇑^ n (f ∘ g)
+    map⇑^-∘' n = map⇑^-∘ n λ _ → refl
+
+map⇑= : ∀ {α β} {f f' : α → β} (f= : f ~ f') → map⇑ f ~ map⇑ f'
+map⇑= f= (old x)  = ap old (f= x)
+map⇑= f= (new .♦) = refl
+
+map⇑^= : ∀ n {α β} {f f' : α → β} (f= : f ~ f') → map⇑^ n f ~ map⇑^ n f'
+map⇑^= zero    = id
+map⇑^= (suc n) = map⇑= ∘ map⇑^= n
 
 mkScope : ∀ {w} (T : World -> Set) -> Binder w -> Set
 mkScope {w} T = λ b → T (w ▹ b)
@@ -222,6 +287,9 @@ instance
   ⇉-refl : ∀ {w : World} → Box (w → w)
   ⇉-refl = box id
 
+⇉^ : ∀ n {α} → Box (α → α ⇑^ n)
+⇉^ n = box (old^ n)
+
   -- ⇉-▹ :  ∀ {α β}{{s : α ⇉ β}} → (α ▹ ♦) ⇉ (β ▹ ♦)
   -- ⇉-▹ {{mk⇉ s}} = mk⇉ λ x -> map▹ ♦ ♦ s x
 
@@ -235,6 +303,7 @@ instance
   -}
 record Functor (F : Set -> Set) : Set1 where
   -- Kleisli arrow (useful at this level even though we do not have a category yet.)
+  infixr 0 _→K_
   _→K_ : Set -> Set -> Set
   _→K_ A B = A → F B
   infixl 4 _<$>_
@@ -248,6 +317,13 @@ record Functor (F : Set -> Set) : Set1 where
     <$>-∘ : ∀ {α β γ}{f : β → γ}{g : α → β}{h : α → γ}
             (h= : f ∘ g ~ h)
           → map f ∘ map g ~ map h
+
+  <$>-id' : ∀ {α} → _<$>_ {α} id ~ id
+  <$>-id' = <$>-id (λ _ → refl)
+
+  <$>-∘' : ∀ {α β γ}{f : β → γ}{g : α → β}
+          → map f ∘ map g ~ map (f ∘ g)
+  <$>-∘' = <$>-∘ (λ _ → refl)
 
 module Renaming {F} (Fun-F : Functor F) where
   open Functor Fun-F
@@ -264,7 +340,10 @@ module Renaming {F} (Fun-F : Functor F) where
   name' b = wkN' (name b)
 
   wk : ∀ {α β} {{s : Box (α → β)}} → F α → F β
-  wk  = _<$>_ wkN'
+  wk  = map wkN'
+
+  wk^ : ∀ n {α} → F α → F (α ⇑^ n)
+  wk^ n = wk {{⇉^ n}}
 
   atVar' : {α β : World} -> ScopeF F α -> (b : Binder β) → {{_ : Box (α → β)}} -> F (β ▹ b)
   atVar'  sc b {{box s}} = map▹ _ _ s <$> sc
@@ -295,28 +374,85 @@ module PointedRenaming {F} (Fun-F : PointedFunctor F) where
   var' : ∀ {w w'}(b : Binder w){{s : Box ((w ▹ b) → w')}} → F w'
   var' b = return (name' b)
 
+  -- Same as ext but with abstract b b'
+  ext▹ : ∀ {α β} b b' → α →K β → (α ▹ b) →K (β ▹ b')
+  ext▹ _ _ θ (old x)  = wk (θ x)
+  ext▹ b _ θ (new .b) = return (new _)
+
+  liftSubst = ext▹
+
   ext : ∀ {v w} (s : v →K w) → v ⇑ →K w ⇑
-  ext f (old x)  = wk (f x)
-  ext f (new ._) = return (new ♦)
+  ext = ext▹ _ _
+
+  ext^ : ∀ n {v w} (s : v →K w) → v ⇑^ n →K w ⇑^ n
+  ext^ zero    = id
+  ext^ (suc n) = ext ∘ ext^ n
 
   ext-return : ∀ {α}  {s : α →K α} (s= : s ~ return)  → ext s ~ return
   ext-return s= (old x)  = map-return old s= x
   ext-return s= (new ._) = refl
 
-  ext-wk-subst : ∀ {α β γ δ}
-                   {f  : α → γ}
-                   {s  : γ →K δ}
-                   {f' : β → δ}
-                   {s' : α →K β}
-                   (q : s ∘ f ~ map f' ∘ s')
-                 → ext s ∘ map⇑ f ~ map (map⇑ f') ∘ ext s'
-  ext-wk-subst {f' = f'} {s' = s'} q (old x) = ap wk (q x) ∙ <$>-∘ (λ x₁ → refl) (s' x) ∙ ! <$>-∘  {f = map⇑ f'} {g = old} {h = old ∘ f'} (λ x₁ → refl) (s' x) 
-  ext-wk-subst {f' = f'} q (new ._) = ! map-return (map⇑ f') (λ x → refl) (new ◆)
+  ext-return^ : ∀ n {α}  {s : α →K α} (s= : s ~ return)  → ext^ n s ~ return
+  ext-return^ zero    = id
+  ext-return^ (suc n) = ext-return ∘ ext-return^ n
+
+  ext-return^' : ∀ n {α} → ext^ n {α} return ~ return
+  ext-return^' n = ext-return^ n λ _ → refl
+
+  ext-map▹ : ∀ {α β γ} b b' b'' {f : β → F γ} {g : α → β} {h : α → F γ}(h= : f ∘ g ~ h)
+            → ext▹ b' b'' f ∘ map▹ b b' g ~ ext▹ b b'' h
+  ext-map▹ _ _ _ h= (old _)  = ap (map old) (h= _)
+  ext-map▹ _ _ _ h= (new ._) = refl
+
+  ext-map⇑ : ∀ {α β γ}{f : β → F γ} {g : α → β} {h : α → F γ}(h= : f ∘ g ~ h)
+            → ext f ∘ map⇑ g ~ ext h
+  ext-map⇑ = ext-map▹ _ _ _
+
+  ext-map⇑' : ∀ {α β γ}{f : β → F γ}{g : α → β} → ext f ∘ map⇑ g ~ ext (f ∘ g)
+  ext-map⇑' = ext-map⇑ λ _ → refl
+
+  ext-map⇑^ : ∀ n {α β γ}{f : β → F γ}{g : α → β}{h : α → F γ}(h= : f ∘ g ~ h) → ext^ n f ∘ map⇑^ n g ~ ext^ n h
+  ext-map⇑^ zero    = id
+  ext-map⇑^ (suc n) = ext-map⇑ ∘ ext-map⇑^ n
+
+  ext-map⇑^' : ∀ n {α β γ}{f : β → F γ}{g : α → β} → ext^ n f ∘ map⇑^ n g ~ ext^ n (f ∘ g)
+  ext-map⇑^' n = ext-map⇑^ n λ _ → refl
+
+  module _ {α β γ δ}
+           {f  : α → γ}
+           {s  : γ →K δ}
+           {f' : β → δ}
+           {s' : α →K β}
+           (s= : s ∘ f ~ map f' ∘ s') where
+    -- TODO could take advantage of ext-map⇑
+    ext-wk-subst : ext s ∘ map⇑ f ~ map (map⇑ f') ∘ ext s'
+    ext-wk-subst (old x) = ap wk (s= x) ∙ <$>-∘' (s' x) ∙ ! <$>-∘' (s' x)
+    ext-wk-subst (new ._) = ! map-return (map⇑ f') (λ x → refl) (new ◆)
 
   ext-ren-subst : ∀ {α β} {f : α → β}{s : α →K β} (s= : (return ∘ f) ~ s) → (return ∘ map⇑ f) ~ ext s
   ext-ren-subst {s = s} s= (old x) with s x | s= x
   ext-ren-subst {f = f} s= (old x) | ._ | refl = ! map-return old (\x -> refl) (f x)
   ext-ren-subst s= (new ._) = refl
+
+  infix 3 _≔_
+  infix 10 0≔_
+
+  _≔_ : ∀ {α} b → F α → (α ▹ b) →K α
+  (b ≔ u) (old x)  = return x
+  (b ≔ u) (new .b) = u
+
+  0≔_ : ∀ {α} → F α → (α ⇑) →K α
+  0≔ u = ♦ ≔ u
+
+  ≔-map : ∀ {α β} b b' (f : α → β) (t : F α) → (b' ≔ f <$> t) ∘ map▹ b b' f ~ map f ∘ (b ≔ t)
+  ≔-map b b' f t (old x)  = ! map-return' f x
+  ≔-map b b' f t (new ._) = refl
+
+  0≔-map : ∀ {α β} (f : α → β) (t : F α) → 0≔(f <$> t) ∘ map⇑ f ~ map f ∘ 0≔ t
+  0≔-map = ≔-map ♦ ♦
+
+  ext-map⇑-old-return^ : ∀ n {α} b (t : F α) → ext^ n (b ≔ t) ∘ map⇑^ n old ~ return
+  ext-map⇑-old-return^ n b t u = ext-map⇑^' n u ∙ ext-return^' n u
 
 pointedId : PointedFunctor id
 pointedId = mk {{functorId}} id (λ f x → refl)
@@ -329,42 +465,57 @@ applicId :  Applicative (\x -> x)
 applicId = record { _<*>_ = id }
 
 record Monad (M : Set -> Set) : Set1 where
+  infixl 5 _>>=_
+  infixr 5 _=<<_
   field
     {{isPointed}} : PointedFunctor M
     _>>=_  : ∀ {A B} → M A → (A → M B) → M B
-    
+
   open PointedFunctor isPointed
   open Functor isFunctor
-  -- Too many names for the same thing...
-  subs : ∀ {A B} → (A → M B) → M A  → M B
-  subs = λ x x₁ → x₁ >>= x
 
-  [_]_ = subs
+  _=<<_ : ∀ {A B} → (A → M B) → M A  → M B
+  _=<<_ = λ f m → m >>= f
+
+  -- Too many names for the same thing...
+  subs = _=<<_
 
   join : ∀ {A} -> M (M A) -> M A
   join x = x >>= id
 
   -- Kleisli composition
   _∘k_ : ∀ {α β γ} (s : β →K γ) (s' : α →K β) → α →K γ
-  _∘k_ s s' x = subs s (s' x)
+  _∘k_ s s' = subs s ∘ s'
 
   field
     bind-assoc : ∀ {α β γ} {s : β →K γ} {s' : α →K β} {s'' : α →K γ} (s= : (s ∘k s') ~ s'') → subs s ∘ subs s' ~ subs s''
     right-id : ∀ {α}{s} (s= : s ~ return) → subs {α} s ~ id
     left-id : ∀ {α β x} {f : α →K β}{s} (s= : s ~ return)  -> s x >>= f == f x
-    fmap-bind  : ∀ {α β} {f : α → β} {s : α →K β} (s= : return ∘ f ~ s) → _<$>_ f ~ subs s
+    map-bind : ∀ {α β} {f : α → β} {s : α →K β} (s= : return ∘ f ~ s) → map f ~ subs s
                  --f <$> t == t >>= (\x -> return (f x))
 
-  fmap-bind'  : ∀ {α β} {f : α → β} -> _<$>_ f ~ subs (return ∘ f)
-  fmap-bind' = fmap-bind (λ x → refl)
+  bind-assoc' : ∀ {α β γ} {s : β →K γ} {s' : α →K β} → subs s ∘ subs s' ~ subs (s ∘k s')
+  bind-assoc' = bind-assoc λ _ → refl
+
+  right-id' : ∀ {α} → subs {α} return ~ id
+  right-id' = right-id λ _ → refl
+
+  map-bind'  : ∀ {α β} {f : α → β} -> map f ~ subs (return ∘ f)
+  map-bind' = map-bind λ _ → refl
 
   left-id' : ∀ {α β x} {f : α →K β} -> return x >>= f == f x
-  left-id' = left-id (λ x → refl)
+  left-id' = left-id λ _ → refl
 
-  -- associativity, but with one substitution specialised to fmap
-  bind∘fmap : ∀ {a b c} (t : M a) (f : a -> b) (s : b -> M c) -> ((f <$> t) >>= s) == (t >>= (s ∘ f))
-  bind∘fmap t f s = trans ((ap (\l -> l >>= s) (fmap-bind' {f = f} t)))
-                          (bind-assoc {s = s} {s' = return ∘ f} {s'' = s ∘ f} (\ y -> left-id' {f = s}) t)
+  -- associativity, but with one substitution specialised to map
+  bind∘map : ∀ {a b c} (t : M a) (f : a -> b) (s : b -> M c) -> ((f <$> t) >>= s) == (t >>= (s ∘ f))
+  bind∘map t f s = ap (subs s) (map-bind' t) ∙ bind-assoc (λ _ → left-id') t
+
+  -- another name for bind∘map
+  =<<-<$> : ∀ {α β γ} {f : β →K γ} {g : α → β} t → f =<< (g <$> t) == f ∘ g =<< t
+  =<<-<$> t = bind∘map t _ _
+
+  <$>-=<< : ∀ {{_ : FunExt}} {α β γ} {f : β → γ} {g : α →K β} t → f <$> (g =<< t) == map f ∘ g =<< t
+  <$>-=<< {f = f} {g} t = map-bind' (g =<< t) ∙ bind-assoc' t ∙ ap (_>>=_ t) (λ= (!_ ∘ map-bind' ∘ g))
 
 module Substitution {M} (Mon-M : Monad M) where
   open Monad Mon-M
@@ -372,39 +523,24 @@ module Substitution {M} (Mon-M : Monad M) where
   open Functor isFunctor
   open PointedRenaming isPointed public
 
-  subst0 : ∀ {α b} → M α → (α ▹ b) →K α
-  subst0 u (old x)  = return x
-  subst0 u (new ._) = u
+  -- Too many names for the same thing...
+  [_]_ = subs
 
-  [0≔_]_ : ∀  {α b} (u : M α) → M (α ▹ b) → M α
-  [0≔ u ] t = [ subst0 u ] t
-
-  substituteOut : ∀  {a} v ->  M a -> M (a ▹ v) -> M a
-  substituteOut  x t u = u >>= subst0 t
-
-  liftSubst : ∀ {a b v} {v' : Binder b} → a →K b → (a ▹ v) →K (b ▹ v')
-  liftSubst θ (old x) = wk (θ x)
-  liftSubst θ (new x) = return (new _)
+  substituteOut : ∀  {a} b ->  M a -> M (a ▹ b) -> M a
+  substituteOut b u t = [ b ≔ u ] t
 
   -- (>>=) f == join ∘ fmap f
   -- subs-join∘ren : ∀ {α β} {f : Set -> Set} {{_ : Monad f}} (s : α →K β) → subs s ~ join ∘ _<$>_ s
   -- subs-join∘ren {{Mon}} s t = {!!}
-  
-  ext-map⇑ : ∀ {α b}(t : M α) → ext (subst0 {b = b} t) ∘ map⇑ old ~ return
-  ext-map⇑ t (old x) = map-return' old x
-  ext-map⇑ t (new .♦) = refl
-    -- by def of <$> and right-id
 
-  lemma4 : ∀ {a} {t : M (a ⇑)}{u}
-    → subs (ext (subst0 {b = ♦} u)) (map (map⇑ old) t) == t
-  lemma4 {t = t} {u} = trans (bind∘fmap t _ _) (right-id (ext-map⇑ u) t)
+  -- map (map⇑^ n old) is a form of weakening
+  subst-ext^-subst0-wk^-id : ∀ n {a b} {t : M (a ⇑^ n)}{u}
+    → subs (ext^ n (b ≔ u)) (map (map⇑^ n old) t) == t
+  subst-ext^-subst0-wk^-id n {t = t} {u} = =<<-<$> t ∙ right-id (ext-map⇑-old-return^ n _ u) t
 
-  postulate
-    lemma4' : ∀ {a} {t : M (a ⇑ ⇑)}{u}
-      → subs (ext (ext (subst0 {b = ♦} u))) (map (map⇑ (map⇑ old)) t) == t
-    -- lemma4' {t = t} {u} = trans (bind∘fmap t (map⇑ (map⇑ old)) (ext (ext (subst0 {b = ♦} u)))) {!!}  
-
-
+  subst0-ext : ∀ {α β} {s : α → M β} {u} → subs (0≔ (subs s u)) ∘ ext s ~ subs s ∘ 0≔ u
+  subst0-ext (old x)  = subst-ext^-subst0-wk^-id 0 ∙ ! left-id'
+  subst0-ext (new .♦) = left-id'
 
   {-
   We can define ANOTHER functor instance, but this is not really good.
@@ -421,6 +557,14 @@ module Auto where
     open PointedFunctor {{...}} public
     open Applicative    {{...}} public
     open Functor        {{...}} public
+
+module Term-Structure {F} (M : Monad F) where
+    open Monad          M         public
+    open PointedFunctor isPointed public
+    -- open Applicative    {{...}} public
+    open Functor        isFunctor public
+    open Substitution   M         public
+
 {-
 module Auto {F : Set -> Set} where
     module _ {{F : Monad F}} where
