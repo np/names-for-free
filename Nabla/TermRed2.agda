@@ -1,5 +1,6 @@
 module TermRed2 where
 
+open import Data.Zero
 open import Function
 open import Function.Extensionality
 open import Relation.Binary.NP
@@ -24,18 +25,26 @@ mutual
       ƛ_  : {t : Tm (α ⇑)} → Nrm t → Nrm (ƛ t)
       neu : ∀ {t} → Neu t → Nrm t
 
+
+data Value {α} : Tm α → Type where
+  ƛ_ : ∀ t → Value (ƛ t)
+
 infix 2 _⟶_
-data _⟶_ {α} : (t u : Tm α) → Type where
-  β    : ∀ {t t' u {-vu-} v}
+data _⟶_ {α} : (t v : Tm α) → Type where
+  β    : ∀ {t t' u vu v}
            (rt : t ⟶ ƛ t')
-           -- (ru : u ⟶ vu)
+           (ru : u ⟶ vu)
            (rv : [ 0≔ u ] t' ⟶ v)
          → t $$ u ⟶ v
-  ƛ_   : ∀ {t t'}(r : t ⟶ t') → ƛ t ⟶ ƛ t'
+  ƛ_   : ∀ t → ƛ t ⟶ ƛ t
+
+⟶-Value : ∀ {α} {t v : Tm α} → t ⟶ v → Value v
+⟶-Value (β r r₁ r₂) = ⟶-Value r₂
+⟶-Value (ƛ t) = ƛ t
 
 ⟶-trans : ∀ {α} → Transitive (_⟶_ {α})
-⟶-trans (β rt {-ru-} rv) r = β rt {-ru-} (⟶-trans rv r)
-⟶-trans (ƛ p) (ƛ x) = ƛ ⟶-trans p x
+⟶-trans (β rt ru rv) r = β rt ru (⟶-trans rv r)
+⟶-trans (ƛ t) q = q
 
 module _ {α : World} where
 
@@ -52,23 +61,26 @@ module _ {α : World} where
 
     {-
     β-≈ : ∀ {t} {u : Tm α} → [ 0≔ u ] t ≈ (ƛ t $$ u)
-    β-≈ = β
+    β-≈ = β (ƛ _) {!!}
     -}
 
     ≈-reflexive : ∀ {t u : Tm α} -> (t == u) -> (t ≈ u)
     ≈-reflexive refl x = x
 
-    bar : ∀ {t u : Tm α} -> t ⟶ u → u ≈ t
-    bar r {v} r2 = {!!}
+    {-
+    ⟶-≈ : ∀ {t u : Tm α} -> t ⟶ u → u ≈ t
+    ⟶-≈ r r' = ⟶-trans r r'
+    -}
 
 infix 2 _⟶°_
 _⟶°_ : ∀ {α β}(s s' : α ⇶ β) → Type
 s ⟶° s' = ∀ x → s x ⟶ s' x
 
-0≔⟶° : ∀ {α} {M v : Tm α} (r : M ⟶ v) → 0≔ M ⟶° 0≔ v
-0≔⟶° r (old x)  = {!!}
+0≔⟶° : ∀ {M v : Tm 𝟘} (r : M ⟶ v) → 0≔ M ⟶° 0≔ v
+0≔⟶° r (old ())
 0≔⟶° r (new .♦) = r
 
+{-
 module _ {{_ : FunExt}} where
     open ≡-Reasoning
 
