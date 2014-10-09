@@ -454,6 +454,14 @@ module PointedRenaming {F} {{Fun-F : PointedFunctor F}} where
   ext-map⇑-old-return^ : ∀ n {α} b (t : F α) → ext^ n (b ≔ t) ∘ map⇑^ n old ~ return
   ext-map⇑-old-return^ n b t u = ext-map⇑^' n u ∙ ext-return^' n u
 
+  ⟨_≔_⁏_≔_⟩ : ∀ {α} b (t : F α) b' (t' : F α) → (α ▹ b ▹ b') →K α
+  ⟨ b ≔ t ⁏ b' ≔ t' ⟩ (old (old x))  = return x
+  ⟨ b ≔ t ⁏ b' ≔ t' ⟩ (old (new .b)) = t
+  ⟨ b ≔ t ⁏ b' ≔ t' ⟩ (new .b')      = t'
+
+  ⟨1≔_⁏0≔_⟩ : ∀ {α} (t : F α) (t' : F α) → (α ⇑ ⇑) →K α
+  ⟨1≔ t ⁏0≔ u ⟩ = ⟨ ♦ ≔ t ⁏ ♦ ≔ u ⟩
+
 pointedId : PointedFunctor id
 pointedId = mk {{functorId}} id (λ f x → refl)
 

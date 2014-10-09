@@ -34,7 +34,7 @@ data _⟶_ {α} : (t v : Tm α) → Type where
   β    : ∀ {t t' u vu v}
            (rt : t ⟶ ƛ t')
            (ru : u ⟶ vu)
-           (rv : [ 0≔ u ] t' ⟶ v)
+           (rv : [ 0≔ vu ] t' ⟶ v)
          → t $$ u ⟶ v
   ƛ_   : ∀ t → ƛ t ⟶ ƛ t
 

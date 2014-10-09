@@ -55,12 +55,8 @@ cpsP-wk-naturality = cpsP-naturality old
 open ≈-Reasoning
 
 lemma5 : ∀{a} {M v : Tm a} {P : ScopeF Tm a} -> (M ⟶ v) -> ([ 0≔ psi v ] P) ≈ (cps M $$ ƛ P)
-lemma5 r1 r2 = {!!}
-
-{-
-theorem : ∀{a} (M : Tm a) -> cps M $$ idTm ⟶ psi M
-theorem M = lemma5 {M = M} {v = M} {P = var (new ◆)} noop noop
--}
+lemma5 (β r1 r2 r3) r4 = β {!!} (ƛ _) {!!}
+lemma5 (ƛ t) r2 = {!!}
 
 ⟶-psi : ∀ {α} {v : Tm α} → Value v → psi v ⟶ psi v
 ⟶-psi (ƛ t) = ƛ _
