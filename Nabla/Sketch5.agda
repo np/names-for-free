@@ -283,11 +283,16 @@ exportN-name : ∀ {α} (b : Binder α) → exportN (name b) == left refl
 exportN-name b = refl
 
 instance
-  ⇉-skip :  ∀ {α β : World} {b} → {{s : Box (α → β)}} → Box (α → β ▹ b)
-  ⇉-skip {{box s}} = box (old ∘ s)
+  ⇉-skip : ∀ {α β : World} {b} {{s : Box (α → β)}} → Box (α → β ▹ b)
+  ⇉-skip {{s = box s}} = box (old ∘ s)
 
   ⇉-refl : ∀ {w : World} → Box (w → w)
   ⇉-refl = box id
+
+  {-
+  ⇉-map : ∀ {α β : World} {{b b'}} {{s : Box (α → β)}} → Box (α ▹ b → β ▹ b')
+  ⇉-map {{s = box s}} = box (map▹ _ _ s)
+  -}
 
 ⇉^ : ∀ n {α} → Box (α → α ⇑^ n)
 ⇉^ n = box (old^ n)
@@ -394,6 +399,9 @@ module PointedRenaming {F} {{Fun-F : PointedFunctor F}} where
   ext-return s= (old x)  = map-return old s= x
   ext-return s= (new ._) = refl
 
+  ext-return' : ∀ {α} → ext {α} return ~ return
+  ext-return' = ext-return λ _ → refl
+
   ext-return^ : ∀ n {α}  {s : α →K α} (s= : s ~ return)  → ext^ n s ~ return
   ext-return^ zero    = id
   ext-return^ (suc n) = ext-return ∘ ext-return^ n
@@ -435,6 +443,9 @@ module PointedRenaming {F} {{Fun-F : PointedFunctor F}} where
   ext-ren-subst {s = s} s= (old x) with s x | s= x
   ext-ren-subst {f = f} s= (old x) | ._ | refl = ! map-return old (\x -> refl) (f x)
   ext-ren-subst s= (new ._) = refl
+
+  ext-ren-subst' : ∀ {α β} {f : α → β} → (return ∘ map⇑ f) ~ ext (return ∘ f)
+  ext-ren-subst' = ext-ren-subst λ _ → refl
 
   infix 3 _≔_
   infix 10 0≔_
