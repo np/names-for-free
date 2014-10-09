@@ -62,5 +62,8 @@ theorem : ∀{a} (M : Tm a) -> cps M $$ idTm ⟶ psi M
 theorem M = lemma5 {M = M} {v = M} {P = var (new ◆)} noop noop
 -}
 
+⟶-psi : ∀ {α} {v : Tm α} → Value v → psi v ⟶ psi v
+⟶-psi (ƛ t) = ƛ _
+
 theorem : ∀{a} (M v : Tm a) → M ⟶ v → cps M $$ idTm ⟶ psi v
-theorem M v r = lemma5 {M = M} {v = v} {P = var (new ◆)} r {!!}
+theorem M v r = lemma5 {M = M} {v = v} {P = var (new ◆)} r (⟶-psi (⟶-Value r))
