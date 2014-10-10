@@ -13,8 +13,6 @@ open import Sketch5
 open import Terms
 open import TermRed2
 
-test = suc {!!}
-
 open Term-Structure Tm-Monad hiding (_≔_; ext▹; ext)
 open PointedRenaming using (_≔_ ; ext▹; ext)
 
@@ -233,8 +231,13 @@ lemma5' {α} {v = v} (β {t} {t'} {u} {vu} ru rt rt') {P} {v'} rP
               [ 1≔ ƛ (ƛ (cpsP t' ♦)) ]
               map (map⇑ old) (cpsP u ♦)
             ∎
+            
+        pf''' : cpsP (substT (♦ ≔ vu) t') ♦ == substT (ext▹ ♦ ♦ (♦ ≔ ƛ (ƛ cpsP t' ♦))) (cpsP (unƛ (⟶-Value rt)) ♦)
+        -- cps (t' [vu / x]) =  cps vu [cps t' / x]
+        -- they might not be equal but reducing to the same thing
+        pf''' = {!!}
         pf'' = [ 0≔ ƛ P ] cpsP ([ 0≔ vu ] t') ♦
-             ≡⟨ {!!} ⟩ -- <= they might not be equal be reducing to the same thing
+             ≡⟨ ap (substT (♦ ≔ ƛ P)) pf''' ⟩ 
                [ 0≔ ƛ P ]
                [ 1≔ ƛ(ƛ (cpsP t' ♦)) ]
                cpsP (unƛ (⟶-Value rt)) ♦
