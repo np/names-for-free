@@ -747,17 +747,17 @@ data ⟦Tmᴹ⟧ {A₁ A₂} (Aᵣ : A₁ → A₂ → Set) : ⟦Set₀⟧ (Tm�
 
 module _ {A B : Set} (f : A → B) where
     map?⇒⟦Maybe⟧ : ⟨ map? f ⟩ᴿ ⇒ ⟦Maybe⟧ ⟨ f ⟩ᴿ
-    map?⇒⟦Maybe⟧ {just x}  ≡.refl = just ≡.refl
-    map?⇒⟦Maybe⟧ {nothing} ≡.refl = nothing
+    map?⇒⟦Maybe⟧ {just x}  ≡.refl = ⟦just⟧ ≡.refl
+    map?⇒⟦Maybe⟧ {nothing} ≡.refl = ⟦nothing⟧
 
     ⟦Maybe⟧⇒map? : ⟦Maybe⟧ ⟨ f ⟩ᴿ ⇒ ⟨ map? f ⟩ᴿ
-    ⟦Maybe⟧⇒map? (just ≡.refl) = ≡.refl
-    ⟦Maybe⟧⇒map? nothing       = ≡.refl
+    ⟦Maybe⟧⇒map? (⟦just⟧ ≡.refl) = ≡.refl
+    ⟦Maybe⟧⇒map? ⟦nothing⟧       = ≡.refl
 
 ⟦Maybe⟧-⇒ : ∀ {A₁ A₂ : Set} {Aᵣ Aᵣ′ : A₁ → A₂ → Set} (Aᵣ⇒Aᵣ′ : Aᵣ ⇒ Aᵣ′)
             → ⟦Maybe⟧ Aᵣ ⇒ ⟦Maybe⟧ Aᵣ′
-⟦Maybe⟧-⇒ Aᵣ⇒Aᵣ′ (just pf) = just (Aᵣ⇒Aᵣ′ pf)
-⟦Maybe⟧-⇒ _      nothing   = nothing
+⟦Maybe⟧-⇒ Aᵣ⇒Aᵣ′ (⟦just⟧ pf) = ⟦just⟧ (Aᵣ⇒Aᵣ′ pf)
+⟦Maybe⟧-⇒ _      ⟦nothing⟧   = ⟦nothing⟧
 
 ⟦Tmᴹ⟧-⇒ : ∀ {A₁ A₂ : Set} {Aᵣ Aᵣ′ : A₁ → A₂ → Set}
                 → Aᵣ ⇒ Aᵣ′
